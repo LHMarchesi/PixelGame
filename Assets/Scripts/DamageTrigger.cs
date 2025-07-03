@@ -7,8 +7,10 @@ public class DamageTrigger : MonoBehaviour
     private float lastDamageTime;
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if (collision.TryGetComponent(out IDamageable damageable))
+        if (collision.TryGetComponent(out IDamageable damageable)) // si el jugador esta dasheando que no reciba daño de la luz
         {
+            if (collision.GetComponent<PlayerController>().isDashing) return;
+            
             // Verifica si ha pasado el intervalo de da�o
             if (Time.time - lastDamageTime >= damageInterval)
             {

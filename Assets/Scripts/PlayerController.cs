@@ -35,7 +35,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private float currentHealth;
     private float gravity;
     private bool canDash = true;
-    private bool isDashing;
+    public bool isDashing;
     private float dashTimeLeft;
     private Vector2 dashDirection;
 

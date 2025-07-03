@@ -104,12 +104,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe37784e5d0452f43995ff32cb087f1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 0
+  maxHealth: 100
   speed: 6
   smoothFactor: 7
   jumpForce: 6
   maxCoyoteTime: 0.2
   maxJumpBufferTime: 0.2
+  dashSpeed: 15
+  dashDuration: 0.4
+  dashCooldown: 2
   GroundCheck: {fileID: 1198956787382329936}
   groundLayer:
     serializedVersion: 2

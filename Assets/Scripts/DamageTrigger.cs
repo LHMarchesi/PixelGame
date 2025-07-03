@@ -7,15 +7,16 @@ public class DamageTrigger : MonoBehaviour
     private float lastDamageTime;
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if(collision.TryGetComponent(out IDamageable damageable))
+        if (collision.TryGetComponent(out IDamageable damageable))
         {
-            // Verifica si ha pasado el intervalo de daño
+            // Verifica si ha pasado el intervalo de daï¿½o
             if (Time.time - lastDamageTime >= damageInterval)
             {
                 damageable.TakeDamage(damageAmount);
-                lastDamageTime = Time.time; // Actualiza el tiempo del último daño
+                lastDamageTime = Time.time; // Actualiza el tiempo del ï¿½ltimo daï¿½o
             }
         }
+        
     }
 }
 

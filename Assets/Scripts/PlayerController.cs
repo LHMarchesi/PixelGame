@@ -25,7 +25,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     [SerializeField] private float dashDuration;
     [SerializeField] private float dashCooldown;
 
-    [Header("Detección de Suelo")]
+    [Header("Detecciï¿½n de Suelo")]
     [SerializeField] private Transform GroundCheck;
     [SerializeField] private LayerMask groundLayer;
 
@@ -105,7 +105,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void WaitForJump()
     {
-        // Si el jugador presiona el botón de salto y está en coyote time o tocando el suelo
+        // Si el jugador presiona el botï¿½n de salto y estï¿½ en coyote time o tocando el suelo
         if (jumpBufferTimer > 0f && (isGrounded || coyoteTimer > 0f))
         {
             Vector2 currentVelocity = rb.velocity;
@@ -154,13 +154,14 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         isDashing = false;
         rb.gravityScale = gravity;
-        StartCoroutine(CooldownRoutine(dashCooldown, canDash));
+        StartCoroutine(CooldownRoutine(dashCooldown));
     }
 
-    private IEnumerator CooldownRoutine(float cooldown, bool bolean)
+    private IEnumerator CooldownRoutine(float cooldown)
     {
         yield return new WaitForSeconds(cooldown);
-        bolean = true;
+        canDash = true;
+        Debug.Log("Dash listo");
     }
 }
 

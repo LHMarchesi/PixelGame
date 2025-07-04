@@ -163,6 +163,19 @@ public class PlayerController : MonoBehaviour, IDamageable
         canDash = true;
         Debug.Log("Dash listo");
     }
+
+// cuando "agarra" items que tienen la interfaz IPickUp
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        IPickUp pickup = other.gameObject.GetComponent<IPickUp>();
+
+        if (pickup != null)
+        {
+            pickup.PickUp(); 
+            Debug.Log($"<color=green>el pickeable se agarro</color>");
+        }
+        
+    }
 }
 
 

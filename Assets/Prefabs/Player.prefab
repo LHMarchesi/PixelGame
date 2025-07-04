@@ -112,11 +112,12 @@ MonoBehaviour:
   maxJumpBufferTime: 0.2
   dashSpeed: 15
   dashDuration: 0.4
-  dashCooldown: 2
+  dashCooldown: 1
   GroundCheck: {fileID: 1198956787382329936}
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  isDashing: 0
 --- !u!114 &7993573008727829387
 MonoBehaviour:
   m_ObjectHideFlags: 0

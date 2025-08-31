@@ -64,6 +64,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         IsDashing();
     }
+
     public void TakeDamage(int amount)
     {
         currentHealth -= amount;
@@ -149,7 +150,6 @@ public class PlayerController : MonoBehaviour, IDamageable
             rb.gravityScale = 0f;
         }
     }
-
     private void EndDash()
     {
         isDashing = false;
@@ -164,17 +164,17 @@ public class PlayerController : MonoBehaviour, IDamageable
         Debug.Log("Dash listo");
     }
 
-// cuando "agarra" items que tienen la interfaz IPickUp
+    // cuando "agarra" items que tienen la interfaz IPickUp
     void OnTriggerEnter2D(Collider2D other)
     {
         IPickUp pickup = other.gameObject.GetComponent<IPickUp>();
 
         if (pickup != null)
         {
-            pickup.PickUp(); 
+            pickup.PickUp();
             Debug.Log($"<color=green>el pickeable se agarro</color>");
         }
-        
+
     }
 }
 

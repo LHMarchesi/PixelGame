@@ -38,6 +38,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     public bool isDashing;
     private float dashTimeLeft;
     private Vector2 dashDirection;
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
 
     public float MaxHealth { get => maxHealth; set { } }
     public float CurrentHealth { get => currentHealth; set { } }
@@ -47,7 +49,9 @@ public class PlayerController : MonoBehaviour, IDamageable
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
         playerContext = GetComponent<PlayerContext>();
+        animator = GetComponent<Animator>();
         currentHealth = maxHealth;
         gravity = rb.gravityScale;
     }
@@ -81,10 +85,23 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (isDashing) return;
 
         Vector2 move = playerContext.HandleInputs.GetMoveVector2();
+        FaceDirection();
 
         Vector2 targetVelocity = new Vector2(move.x * speed, rb.velocity.y);
 
         rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, smoothFactor * Time.fixedDeltaTime);
+    }
+
+    private void FaceDirection() 
+    {
+        Vector2 move = playerContext.HandleInputs.GetMoveVector2();
+        if (move.x > 0)
+            spriteRenderer.flipX = false;
+        else if (move.x < 0)
+            spriteRenderer.flipX = true;
+
+        bool isWalking = Mathf.Abs(move.x) > 0.1f && !isDashing;
+        animator.SetBool("IsWalking", isWalking);
     }
 
     private void RefreshTimers()

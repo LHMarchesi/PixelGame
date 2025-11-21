@@ -1,0 +1,391 @@
+fileFormatVersion: 2
+guid: 92a90cf842496e044840a9449c3c6ba2
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 3
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 56197e3396af6fb4da130b4730f14778
+      internalID: 1884968258
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_1
+      rect:
+        serializedVersion: 2
+        x: 49
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 18032cb0748ebed448880a150bccacb7
+      internalID: 408003134
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_2
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 0
+        width: 44
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: afcd510cac2a2604099729d1988796f6
+      internalID: 216259681
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_3
+      rect:
+        serializedVersion: 2
+        x: 142
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5d156a0822ddf764e8b1dad69c255d50
+      internalID: 1948307788
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_4
+      rect:
+        serializedVersion: 2
+        x: 189
+        y: 0
+        width: 42
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 72f5bbb821dbe1d43b5f1cf2cf1894af
+      internalID: -154557742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_5
+      rect:
+        serializedVersion: 2
+        x: 235
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 48129b2973dc4d94c98e124dda8e26ca
+      internalID: 1301058642
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_6
+      rect:
+        serializedVersion: 2
+        x: 289
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e6a83cd6d799b174fb6bf139795b20dd
+      internalID: 1980449799
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_7
+      rect:
+        serializedVersion: 2
+        x: 343
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f71144e587bcc974dae6183fb4c19b40
+      internalID: -1351777295
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_8
+      rect:
+        serializedVersion: 2
+        x: 392
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a033f8a590a2d124db9ac91be7766f43
+      internalID: 1046624500
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_9
+      rect:
+        serializedVersion: 2
+        x: 441
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9cd1cc79899fbf642b7c169488867f21
+      internalID: -1241039049
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_10
+      rect:
+        serializedVersion: 2
+        x: 490
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a036dfb2ca0b52e4d831ea6fc5edb93f
+      internalID: -1287675965
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_11
+      rect:
+        serializedVersion: 2
+        x: 539
+        y: 0
+        width: 49
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f739ff35e1e587e4881f09c899bb1d72
+      internalID: -422521580
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_0: 1884968258
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_1: 408003134
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_10: -1287675965
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_11: -422521580
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_2: 216259681
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_3: 1948307788
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_4: -154557742
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_5: 1301058642
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_6: 1980449799
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_7: -1351777295
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_8: 1046624500
+      sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_9: -1241039049
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

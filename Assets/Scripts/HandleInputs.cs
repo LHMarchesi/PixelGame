@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 public class HandleInputs : MonoBehaviour
 {
     private Vector2 move;
-    private float isRunning, isJumping, isDashing;
+    private float isRunning, isJumping, isDashing, isAttacking;
     public void OnMove(InputAction.CallbackContext context) // Catch player input
     {
         move = context.ReadValue<Vector2>();
@@ -23,9 +23,16 @@ public class HandleInputs : MonoBehaviour
         isDashing = context.ReadValue<float>();
     }
 
+    public void OnAttack(InputAction.CallbackContext context) // Catch run input
+    {
+        isAttacking = context.ReadValue<float>();
+    }
+
     public Vector2 GetMoveVector2() { return move; }  // Return public values
 
     public bool IsRunning() { return isRunning == 1f; }
+
+    public bool IsAttacking() { return isAttacking == 1f; }
     
     public bool IsJumping() { return isJumping == 1f; }
 

@@ -113,12 +113,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 49
-        height: 111
+        x: 3
+        y: 5
+        width: 42
+        height: 102
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -134,12 +134,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_1
       rect:
         serializedVersion: 2
-        x: 49
-        y: 0
-        width: 49
-        height: 111
+        x: 51
+        y: 5
+        width: 43
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -155,12 +155,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_2
       rect:
         serializedVersion: 2
-        x: 98
-        y: 0
-        width: 44
-        height: 111
+        x: 99
+        y: 5
+        width: 41
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -176,12 +176,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_3
       rect:
         serializedVersion: 2
-        x: 142
-        y: 0
-        width: 49
-        height: 111
+        x: 146
+        y: 5
+        width: 39
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -197,12 +197,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_4
       rect:
         serializedVersion: 2
-        x: 189
-        y: 0
-        width: 42
-        height: 111
+        x: 192
+        y: 5
+        width: 37
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -218,12 +218,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_5
       rect:
         serializedVersion: 2
-        x: 235
-        y: 0
-        width: 49
-        height: 111
+        x: 236
+        y: 5
+        width: 43
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -239,12 +239,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_6
       rect:
         serializedVersion: 2
-        x: 289
-        y: 0
-        width: 49
-        height: 111
+        x: 287
+        y: 5
+        width: 48
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -260,12 +260,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_7
       rect:
         serializedVersion: 2
-        x: 343
-        y: 0
+        x: 344
+        y: 5
         width: 49
-        height: 111
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -281,12 +281,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_8
       rect:
         serializedVersion: 2
-        x: 392
-        y: 0
-        width: 49
-        height: 111
+        x: 401
+        y: 5
+        width: 46
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -302,12 +302,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_9
       rect:
         serializedVersion: 2
-        x: 441
-        y: 0
-        width: 49
-        height: 111
+        x: 455
+        y: 5
+        width: 41
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -323,12 +323,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_10
       rect:
         serializedVersion: 2
-        x: 490
-        y: 0
-        width: 49
-        height: 111
+        x: 503
+        y: 5
+        width: 35
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -344,12 +344,12 @@ TextureImporter:
       name: sailor-jupiter-pretty-soldier-sailor-moon-sailor-venus-sega-saturn-sprite-731e797f544e12aeae6f99354336c7e2_11
       rect:
         serializedVersion: 2
-        x: 539
-        y: 0
-        width: 49
-        height: 111
+        x: 544
+        y: 5
+        width: 42
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []

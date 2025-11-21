@@ -6,13 +6,16 @@ public class PlayerController : MonoBehaviour, IDamageable
 {
     Rigidbody2D rb;
     PlayerContext playerContext;
+    HandleInputs handleInputs;
 
     [Header("Componentes")]
     [Header("Vida")]
     [SerializeField] private float maxHealth;
 
     [Header("Movimiento")]
-    [SerializeField] private float speed;
+    [SerializeField] private float walkingSpeed;
+    [SerializeField] private float runningSpeed;
+    private float currentSpeed;
     [SerializeField] private float smoothFactor;
 
     [Header("Salto")]
@@ -39,7 +42,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private float dashTimeLeft;
     private Vector2 dashDirection;
     private SpriteRenderer spriteRenderer;
-    private Animator animator;
+    private PlayerAnimation playerAnimation;
 
     public float MaxHealth { get => maxHealth; set { } }
     public float CurrentHealth { get => currentHealth; set { } }
@@ -50,8 +53,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        handleInputs = GetComponent<HandleInputs>();
         playerContext = GetComponent<PlayerContext>();
-        animator = GetComponent<Animator>();
+        playerAnimation = GetComponent<PlayerAnimation>();
+
         currentHealth = maxHealth;
         gravity = rb.gravityScale;
     }
@@ -83,25 +88,24 @@ public class PlayerController : MonoBehaviour, IDamageable
     private void Move()
     {
         if (isDashing) return;
+        if (handleInputs.IsRunning()) { currentSpeed = runningSpeed; } else { currentSpeed = walkingSpeed; }
+        if (handleInputs.IsAttacking()) { rb.velocity = Vector2.zero;   
+                                            StartCoroutine(playerAnimation.WaitForCurrentAnimation()); }
 
-        Vector2 move = playerContext.HandleInputs.GetMoveVector2();
         FaceDirection();
+        Vector2 move = playerContext.HandleInputs.GetMoveVector2();
 
-        Vector2 targetVelocity = new Vector2(move.x * speed, rb.velocity.y);
-
+        Vector2 targetVelocity = new Vector2(move.x * currentSpeed, rb.velocity.y);
         rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, smoothFactor * Time.fixedDeltaTime);
     }
 
-    private void FaceDirection() 
+    private void FaceDirection()
     {
         Vector2 move = playerContext.HandleInputs.GetMoveVector2();
         if (move.x > 0)
             spriteRenderer.flipX = false;
         else if (move.x < 0)
             spriteRenderer.flipX = true;
-
-        bool isWalking = Mathf.Abs(move.x) > 0.1f && !isDashing;
-        animator.SetBool("IsWalking", isWalking);
     }
 
     private void RefreshTimers()
@@ -194,5 +198,4 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     }
 }
-
 

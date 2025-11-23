@@ -32,6 +32,9 @@ public class PlayerController : MonoBehaviour, IDamageable
     [SerializeField] private Transform GroundCheck;
     [SerializeField] private LayerMask groundLayer;
 
+    [Header("Hitbox root")]
+    [SerializeField] private Transform hitboxRoot;
+
     private bool isGrounded;
     private float coyoteTimer;
     private float jumpBufferTimer;
@@ -69,6 +72,14 @@ public class PlayerController : MonoBehaviour, IDamageable
         RefreshTimers();
     }
 
+    private void Flip(bool faceRight)
+    {
+        if (faceRight)
+            hitboxRoot.localScale = new Vector3(1, 1, 1);
+        else
+            hitboxRoot.localScale = new Vector3(-1, 1, 1);
+    }
+
     private void FixedUpdate()
     {
         IsDashing();
@@ -103,9 +114,15 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         Vector2 move = playerContext.HandleInputs.GetMoveVector2();
         if (move.x > 0)
+        {
             spriteRenderer.flipX = false;
+            hitboxRoot.localScale = new Vector3(1, 1, 1);
+        }
         else if (move.x < 0)
+        {
             spriteRenderer.flipX = true;
+            hitboxRoot.localScale = new Vector3(-1,1, 1);
+        }
     }
 
     private void RefreshTimers()

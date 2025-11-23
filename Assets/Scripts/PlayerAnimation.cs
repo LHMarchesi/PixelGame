@@ -21,10 +21,12 @@ public class PlayerAnimation : MonoBehaviour
         bool isWalking = isMoving && !isRunning;
 
         animator.SetBool("IsWalking", isWalking);
-        animator.SetBool("IsRunning", isRunning);
+        animator.SetBool("IsRunning", isRunning);   
+    }
 
-       // animator.SetBool("isJumping", inputs.IsJumping());
-       // animator.SetBool("isDashing", inputs.IsDashing());
+    public void PlayAttackAnimation(string attackTrigger)
+    {
+        animator.SetTrigger(attackTrigger);
     }
 
     public IEnumerator WaitForCurrentAnimation()

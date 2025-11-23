@@ -12,6 +12,15 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    public void TakeKnockback(float verticalKnockback, float horizontalKnockback)
+    {
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.AddForce(new Vector2(horizontalKnockback, verticalKnockback), ForceMode2D.Impulse);
+        }
+    }
+
     private void Dead()
     {
         Destroy(gameObject);

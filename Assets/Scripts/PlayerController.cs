@@ -107,12 +107,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     private void Move()
     {
         if (isDashing) return;
-        if (handleInputs.IsRunning()) { currentSpeed = runningSpeed; } else { currentSpeed = walkingSpeed; }
-        if (handleInputs.IsAttacking()) { rb.velocity = Vector2.zero;   
-                                            StartCoroutine(playerAnimation.WaitForCurrentAnimation()); }
-
+        if (playerContext.InputHandler.IsRunning()) { currentSpeed = runningSpeed; } else { currentSpeed = walkingSpeed; }
+       
         FaceDirection();
-        Vector2 move = playerContext.HandleInputs.GetMoveVector2();
+        Vector2 move = playerContext.InputHandler.GetMoveVector2();
 
         Vector2 targetVelocity = new Vector2(move.x * currentSpeed, rb.velocity.y);
         rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, smoothFactor * Time.fixedDeltaTime);
@@ -120,7 +118,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void FaceDirection()
     {
-        Vector2 move = playerContext.HandleInputs.GetMoveVector2();
+        Vector2 move = playerContext.InputHandler.GetMoveVector2();
         if (move.x > 0)
         {
             spriteRenderer.flipX = false;
@@ -144,7 +142,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             coyoteTimer -= Time.deltaTime;
 
         // Actualiza el contador de buffer de salto
-        if (playerContext.HandleInputs.IsJumping())
+        if (playerContext.InputHandler.IsJumping())
             jumpBufferTimer = maxJumpBufferTime;
         else
             jumpBufferTimer -= Time.deltaTime;
@@ -181,13 +179,13 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
     private void WaitForDash()
     {
-        if (!isDashing && playerContext.HandleInputs.IsDashing() && canDash)
+        if (!isDashing && playerContext.InputHandler.IsDashing() && canDash)
         {
             canDash = false;
             isDashing = true;
             dashTimeLeft = dashDuration;
 
-            Vector2 input = playerContext.HandleInputs.GetMoveVector2();
+            Vector2 input = playerContext.InputHandler.GetMoveVector2();
 
             if (input == Vector2.zero)
                 input = new Vector2(rb.transform.localScale.x >= 0 ? 1 : -1, 0);

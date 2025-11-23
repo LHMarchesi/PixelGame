@@ -13,13 +13,11 @@ public class HandlAttack2D : MonoBehaviour
     private int comboIndex = 0;
     private bool attacking = false;
 
-    private HandleInputs input;
-    private PlayerAnimation anim;
+    private PlayerContext playerContext;
 
     private void Awake()
     {
-        input = GetComponentInParent<HandleInputs>();
-        anim = GetComponentInParent<PlayerAnimation>();
+        playerContext = GetComponentInParent<PlayerContext>();
     }
 
     private void Update()
@@ -35,7 +33,7 @@ public class HandlAttack2D : MonoBehaviour
                 comboIndex = 0;
         }
 
-        if (input.IsAttacking() && nextTimeHit <= 0 && !attacking)
+        if (playerContext.InputHandler.IsAttacking() && nextTimeHit <= 0 && !attacking)
         {
             DoAttack();
         }
@@ -48,8 +46,8 @@ public class HandlAttack2D : MonoBehaviour
         currentAttack = meleeComboAttacks[comboIndex];
         MeleeAttackData meleeAttackData = currentAttack.GetData();
         // Animación
-        anim.PlayAttackAnimation(meleeAttackData.animationTrigger);
-        anim.SetAnimatorBool("IsAttacking", true);
+        playerContext.PlayerAnimation.PlayAttackAnimation(meleeAttackData.animationTrigger);
+        playerContext.PlayerAnimation.SetAnimatorBool("IsAttacking", true);
 
         // Avanzar combo
         comboIndex = (comboIndex + 1) % meleeComboAttacks.Length;
@@ -58,14 +56,14 @@ public class HandlAttack2D : MonoBehaviour
         // Anti spam
         nextTimeHit = timeBtwMeleeHits;
 
-        StartCoroutine(EndAttackAfter(anim.GetCurrentAnimationRemainingTime()));
+        StartCoroutine(EndAttackAfter(playerContext.PlayerAnimation.GetCurrentAnimationRemainingTime()));
     }
 
     private IEnumerator EndAttackAfter(float t)
     {
         yield return new WaitForSeconds(t);
         attacking = false;
-        anim.SetAnimatorBool("IsAttacking", false);
+        playerContext.PlayerAnimation.SetAnimatorBool("IsAttacking", false);
     }
 
     public bool IsAttacking() => attacking;

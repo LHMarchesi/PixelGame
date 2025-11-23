@@ -4,24 +4,21 @@ using UnityEngine;
 public class PlayerAnimation : MonoBehaviour
 {
     private Animator animator;
-    private HandleInputs inputs;
-    private HandlAttack2D handleAttack;
-
+    private PlayerContext playerContext;
     private void Awake()
     {
         animator = GetComponent<Animator>();
-        inputs = GetComponent<HandleInputs>();
-        handleAttack = GetComponentInChildren<HandlAttack2D>();
+        playerContext = GetComponentInParent<PlayerContext>();
 
     }
 
     private void Update()
     {
-        Vector2 move = inputs.GetMoveVector2();
+        Vector2 move = playerContext.InputHandler.GetMoveVector2();
         bool isMoving = move.magnitude > 0.1f;
 
-        bool isRunning = inputs.IsRunning() && isMoving;
-        bool isWalking = isMoving && !isRunning;
+        bool isRunning = playerContext.InputHandler.IsRunning() && isMoving;
+        bool isWalking = isMoving && !isRunning && !playerContext.HandleMeleeAttack.IsAttacking();
 
         animator.SetBool("IsWalking", isWalking);
         animator.SetBool("IsRunning", isRunning);   

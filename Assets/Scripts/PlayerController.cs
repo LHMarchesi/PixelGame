@@ -46,6 +46,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private Vector2 dashDirection;
     private SpriteRenderer spriteRenderer;
     private PlayerAnimation playerAnimation;
+    private HandlAttack2D handleAttack;
 
     public float MaxHealth { get => maxHealth; set { } }
     public float CurrentHealth { get => currentHealth; set { } }
@@ -59,6 +60,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         handleInputs = GetComponent<HandleInputs>();
         playerContext = GetComponent<PlayerContext>();
         playerAnimation = GetComponent<PlayerAnimation>();
+        handleAttack = GetComponentInChildren<HandlAttack2D>();
 
         currentHealth = maxHealth;
         gravity = rb.gravityScale;
@@ -94,6 +96,12 @@ public class PlayerController : MonoBehaviour, IDamageable
             Debug.Log("Player has died.");
             gameObject.SetActive(false);
         }
+    }
+
+    public void DoMeleeAttack()
+    {
+        MeleeAttack2D meleeAttack= handleAttack.currentAttack;
+        meleeAttack.StartAttack(meleeAttack.GetData());
     }
 
     private void Move()

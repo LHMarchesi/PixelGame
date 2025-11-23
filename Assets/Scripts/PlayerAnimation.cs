@@ -5,11 +5,14 @@ public class PlayerAnimation : MonoBehaviour
 {
     private Animator animator;
     private HandleInputs inputs;
+    private HandlAttack2D handleAttack;
 
     private void Awake()
     {
-        animator = GetComponentInChildren<Animator>();
+        animator = GetComponent<Animator>();
         inputs = GetComponent<HandleInputs>();
+        handleAttack = GetComponentInChildren<HandlAttack2D>();
+
     }
 
     private void Update()
@@ -24,27 +27,48 @@ public class PlayerAnimation : MonoBehaviour
         animator.SetBool("IsRunning", isRunning);   
     }
 
+    public bool SetAnimatorBool(string boolName, bool value)
+    {
+        animator.SetBool(boolName, value);
+        return value;
+    }
+
     public void PlayAttackAnimation(string attackTrigger)
     {
         animator.SetTrigger(attackTrigger);
+        StartCoroutine(WaitForCurrentAnimation());
     }
 
     public IEnumerator WaitForCurrentAnimation()
     {
         AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
 
+        // Espera a que empiece
         while (state.normalizedTime == 0)
         {
             state = animator.GetCurrentAnimatorStateInfo(0);
             yield return null;
         }
 
-        // Esperar hasta que termine
+        // Espera a que termine
         while (state.normalizedTime < 1)
         {
             state = animator.GetCurrentAnimatorStateInfo(0);
             yield return null;
         }
+
+    }
+    public float GetCurrentAnimationRemainingTime()
+    {
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+
+        float length = state.length;                   // duración total
+        float normalized = state.normalizedTime;       // progreso (1 = terminó una vez)
+
+        float elapsed = normalized * length;           // tiempo reproducido
+        float remaining = length - elapsed;            // cuánto falta
+
+        return Mathf.Max(remaining, 0);
     }
 }
 

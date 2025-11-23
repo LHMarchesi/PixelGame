@@ -40,18 +40,16 @@ public class HandlAttack2D : MonoBehaviour
             DoAttack();
         }
     }
-
+    public MeleeAttack2D currentAttack;
     private void DoAttack()
     {
         attacking = true;
 
-        MeleeAttack2D attack = meleeComboAttacks[comboIndex];
-        MeleeAttackData meleeAttackData = attack.GetData();
+        currentAttack = meleeComboAttacks[comboIndex];
+        MeleeAttackData meleeAttackData = currentAttack.GetData();
         // Animación
         anim.PlayAttackAnimation(meleeAttackData.animationTrigger);
-
-        // Hitbox + daño
-        attack.StartAttack(meleeAttackData);
+        anim.SetAnimatorBool("IsAttacking", true);
 
         // Avanzar combo
         comboIndex = (comboIndex + 1) % meleeComboAttacks.Length;
@@ -60,13 +58,14 @@ public class HandlAttack2D : MonoBehaviour
         // Anti spam
         nextTimeHit = timeBtwMeleeHits;
 
-      StartCoroutine(EndAttackAfter(meleeAttackData.attackDuration + meleeAttackData.attackDelay));
+        StartCoroutine(EndAttackAfter(anim.GetCurrentAnimationRemainingTime()));
     }
 
     private IEnumerator EndAttackAfter(float t)
     {
         yield return new WaitForSeconds(t);
         attacking = false;
+        anim.SetAnimatorBool("IsAttacking", false);
     }
 
     public bool IsAttacking() => attacking;

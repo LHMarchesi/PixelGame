@@ -25,9 +25,6 @@ public class MeleeAttack2D : MonoBehaviour
 
     private IEnumerator AttackSequence()
     {
-        // Delay antes de activar hitbox
-        yield return new WaitForSeconds(currentAttack.attackDelay);
-
         hitbox.enabled = true;
         render.enabled = true;
 

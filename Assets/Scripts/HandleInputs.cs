@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 
 public class HandleInputs : MonoBehaviour
 {
+    public PlayerInput playerInput;
     private Vector2 move;
     private float isRunning, isJumping, isDashing, isAttacking;
     public void OnMove(InputAction.CallbackContext context) // Catch player input
@@ -27,7 +28,13 @@ public class HandleInputs : MonoBehaviour
     {
         isAttacking = context.ReadValue<float>();
     }
-
+    public void SetPaused(bool paused)
+    {
+        if (paused)
+            playerInput.DeactivateInput();
+        else
+            playerInput.ActivateInput();
+    }
     public Vector2 GetMoveVector2() { return move; }  // Return public values
 
     public bool IsRunning() { return isRunning == 1f; }

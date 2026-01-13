@@ -99,7 +99,7 @@ public class PauseState : IGameState
         Debug.Log("Entered PauseState");
         var playerContext = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerContext>();
         playerContext.InputHandler.SetPaused(true);
-      //  playerContext.PlayerUI.TogglePauseScreen(true);
+        UIManager.Instance.SetPause(true);
 
         Cursor.lockState = CursorLockMode.Confined;
         Cursor.visible = true;
@@ -109,7 +109,7 @@ public class PauseState : IGameState
     {
         var playerContext = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerContext>();
         playerContext.InputHandler.SetPaused(false);
-        //playerContext.PlayerUI.TogglePauseScreen(false);
+        UIManager.Instance.SetPause(false);
         Cursor.visible = false;
     }
 

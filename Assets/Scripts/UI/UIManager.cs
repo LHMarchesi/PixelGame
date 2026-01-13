@@ -1,39 +1,25 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public partial class UIManager : MonoBehaviour
+public class UIManager : Singleton<UIManager>
 {
-    public static UIManager Instance { get; private set; }
-
     [Header("DataFromPlayer")]
     [SerializeField] private PlayerContext playerContext;
 
-    [Header("UI Elements")]
-    [SerializeField] private SliderPassValue healthSlider;
-    [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private Image damagePanel;
-    public SliderPassValue HealthSlider { get => healthSlider; set { } }
-    private void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject); // Singleton UI Manager
-            return;
-        }
-
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-
-        playerContext = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerContext>();  // Find the PlayerContext in the scene
-    }
-
+    [SerializeField] private GameObject pausePanel;
 
     private void Start()
     {
+        playerContext = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerContext>();  // Find the PlayerContext in the scene
+
         playerContext.PlayerController.OnTakeDamage += OnPlayerTakeDamage; // Subscribe to the player's damage event
-        HealthSlider.ChangeValue(playerContext.PlayerController.MaxHealth);
+    }
+
+    public void SetPause(bool value)
+    {
+        pausePanel.SetActive(value);
     }
 
     private void ShowDamageFlash()
@@ -60,8 +46,6 @@ public partial class UIManager : MonoBehaviour
 
     public void OnPlayerTakeDamage()
     {
-        HealthSlider.ChangeValue(playerContext.PlayerController.CurrentHealth);
-        healthText.text = playerContext.PlayerController.CurrentHealth.ToString() + "/" + playerContext.PlayerController.MaxHealth.ToString();
         ShowDamageFlash();
     }
 

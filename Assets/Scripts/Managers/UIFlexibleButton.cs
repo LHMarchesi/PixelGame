@@ -15,7 +15,9 @@ public enum ButtonAction
     ChangeState, // Load a scene and change game state
     RestartGame,
     QuitGame,    // Exit the application
-    Resume       // Resume gameplay from pause
+    Resume,
+    Settings
+        // Resume gameplay from pause
 }
 
 public class UIFlexibleButton : MonoBehaviour
@@ -57,12 +59,15 @@ public class UIFlexibleButton : MonoBehaviour
                     case GameStates.MainMenu:
                         TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 0);
                         GameManager.Instance.ChangeGameState(new MainMenuState());
+                        button.interactable = false;
                         break;
 
                     case GameStates.Game:
-                        TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 1);
+                        TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 2);
                         GameManager.Instance.ChangeGameState(new GameState());
+                        button.interactable = false;
                         break;
+
                 }
                 break;
 
@@ -77,9 +82,13 @@ public class UIFlexibleButton : MonoBehaviour
             case ButtonAction.RestartGame:
                 TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, SceneManager.GetActiveScene().buildIndex);
                 GameManager.Instance.ChangeGameState(new GameState());
+                button.interactable = false;
+                break;
+
+            case ButtonAction.Settings:
+                TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 1);
+                GameManager.Instance.ChangeGameState(new MainMenuState());
                 break;
         }
-
-        button.interactable = false;
     }
 }

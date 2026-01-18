@@ -15,9 +15,9 @@ public enum ButtonAction
     ChangeState, // Load a scene and change game state
     RestartGame,
     QuitGame,    // Exit the application
-    Resume,
+    Resume,  // Resume gameplay from pause
     Settings
-        // Resume gameplay from pause
+        
 }
 
 public class UIFlexibleButton : MonoBehaviour
@@ -47,23 +47,23 @@ public class UIFlexibleButton : MonoBehaviour
         StartCoroutine(DelayedAction());
     }
 
-    private IEnumerator DelayedAction()
+    private IEnumerator DelayedAction() 
     {
-        yield return new WaitForSecondsRealtime(0.1f); // Espera para que suene el SFX (ajustable)
+        yield return new WaitForSecondsRealtime(0.1f);   // Delay
 
         switch (actionType)
         {
-            case ButtonAction.ChangeState:
+            case ButtonAction.ChangeState: 
                 switch (parameter)
                 {
                     case GameStates.MainMenu:
-                        TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 0);
+                        TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeOut, (int)SceneIndexes.MAINMENU_INDEX);  // Change to Menu Scene with Transition
                         GameManager.Instance.ChangeGameState(new MainMenuState());
                         button.interactable = false;
                         break;
 
                     case GameStates.Game:
-                        TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 2);
+                        TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeOut, (int)SceneIndexes.PERSISTENTGAMEPLAY_INDEX);  // Esto no esta ne uso 
                         GameManager.Instance.ChangeGameState(new GameState());
                         button.interactable = false;
                         break;
@@ -80,14 +80,14 @@ public class UIFlexibleButton : MonoBehaviour
                 break;
 
             case ButtonAction.RestartGame:
-                TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, SceneManager.GetActiveScene().buildIndex);
+                TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeOut, SceneManager.GetActiveScene().buildIndex);
                 GameManager.Instance.ChangeGameState(new GameState());
                 button.interactable = false;
                 break;
 
             case ButtonAction.Settings:
-                TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeIn, 1);
-                GameManager.Instance.ChangeGameState(new MainMenuState());
+                TransitionManager.Instance.PlayTransitionAndLoadScene(TransitionType.FadeOut, (int)SceneIndexes.SETTINGS_INDEX);  // Change to Settings Scene with Transition
+                GameManager.Instance.ChangeGameState(new SettingsState());
                 break;
         }
     }

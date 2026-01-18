@@ -42,17 +42,23 @@ public class TransitionManager : Singleton<TransitionManager>
     }
 
     /// <summary>
-    /// Llama una animación de transición por su tipo.
+    /// Llama una animaciï¿½n de transiciï¿½n por su tipo.
     /// </summary>
     public void PlayTransition(TransitionType type)
     {
         if (isTransitioning)
             return;
 
+        isTransitioning = true;
         ChangeAnimationState(type.ToString());
-
+        StartCoroutine(ResetTransitionFlag());
     }
 
+    IEnumerator ResetTransitionFlag()
+    {
+        yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
+        isTransitioning = false;
+    }
     public void PlayTransitionAndLoadScene(TransitionType type, int sceneIndex)
     {
         StartCoroutine(PlayTransitionAndLoadSceneCoroutine(type, sceneIndex));
@@ -71,7 +77,7 @@ public class TransitionManager : Singleton<TransitionManager>
         float fadeOutDuration = (animator.GetCurrentAnimatorStateInfo(0).length);
         yield return new WaitForSeconds(fadeOutDuration);
 
-        //  Pausar recepción de eventos antes de cargar
+        //  Pausar recepciï¿½n de eventos antes de cargar
 
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneIndex);
         asyncLoad.allowSceneActivation = false;
@@ -81,9 +87,9 @@ public class TransitionManager : Singleton<TransitionManager>
 
         asyncLoad.allowSceneActivation = true;
 
-        //  Reanudar eventos después de cargar
+        //  Reanudar eventos despuï¿½s de cargar
 
-        ChangeAnimationState(TransitionType.FadeOut.ToString());
+        ChangeAnimationState(TransitionType.FadeIn.ToString());
         yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
 
         yield return new WaitForSeconds(0.1f);

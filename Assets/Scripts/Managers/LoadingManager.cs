@@ -26,8 +26,8 @@ public class LoadingManager : Singleton<LoadingManager>
             DontDestroyOnLoad(loadingCanvasInstance);
             loadingBar = loadingCanvasInstance.GetComponentInChildren<Slider>();
         }
-        loadingCanvasInstance.SetActive(true);
 
+        loadingCanvasInstance.SetActive(true);
         StartCoroutine(LoadGameRoutine());
     }
 
@@ -40,7 +40,7 @@ public class LoadingManager : Singleton<LoadingManager>
         }
         return false;
     }
-
+    
     IEnumerator LoadGameRoutine()
     {
         operations.Clear();

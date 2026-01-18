@@ -3,27 +3,16 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : Singleton<GameManager>
 {
-    GameStateMachine gameStateMachine;
+    public GameStateMachine gameStateMachine;
 
     public override void Awake()
     {
         base.Awake();
         DontDestroyOnLoad(gameObject);
 
-        int currentBuildIndex = SceneManager.GetActiveScene().buildIndex;
-
         gameStateMachine = new GameStateMachine();
-        switch (currentBuildIndex)
-        {
-            case 0:
-                gameStateMachine.ChangeState(new MainMenuState());
-                break;
-            case 1:
-                gameStateMachine.ChangeState(new GameState());
-                break;
-            default:
-                break;
-        }
+        gameStateMachine.ChangeState(new MainMenuState());
+
     }
 
     private void Update()
@@ -37,6 +26,31 @@ public class GameManager : Singleton<GameManager>
     }
 }
 
+/// <summary>
+/// ////////// GAME STATE MACHINE
+/// </summary>
+
+public class GameStateMachine
+{
+    public IGameState CurrentState { get => currentState; private set { } }
+
+    private IGameState currentState;
+
+    public void ChangeState(IGameState state)
+    {
+        if (currentState?.GetType() == state.GetType())
+            return;
+
+        currentState?.Exit();
+        currentState = state;
+        currentState?.Enter();
+    }
+
+    public void Update()
+    {
+        currentState?.Update();
+    }
+}
 
 /// <summary>
 /// ////////////////// GAME STATES
@@ -46,6 +60,7 @@ public enum GameStates
 {
     MainMenu, Pause, Game, GameOver
 }
+
 public interface IGameState
 {
     public void Enter();
@@ -53,8 +68,29 @@ public interface IGameState
     public void Exit();
 }
 
-
 public class MainMenuState : IGameState
+{
+    public void Enter()
+    {
+        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.visible = true;
+    }
+
+    public void Exit()
+    {
+    }
+
+    public void Update()
+    {
+        if (!Cursor.visible)
+        {
+            Cursor.visible = true;
+        }
+    }
+}
+
+
+public class SettingsState : IGameState
 {
     public void Enter()
     {
@@ -138,31 +174,5 @@ public class GameOver : IGameState
 
     public void Update()
     {
-    }
-}
-
-/// <summary>
-/// ////////// GAME STATE MACHINE
-/// </summary>
-
-public class GameStateMachine
-{
-    public IGameState CurrentState { get => currentState; private set { } }
-
-    private IGameState currentState;
-
-    public void ChangeState(IGameState state)
-    {
-        if (currentState?.GetType() == state.GetType())
-            return;
-
-        currentState?.Exit();
-        currentState = state;
-        currentState?.Enter();
-    }
-
-    public void Update()
-    {
-        currentState?.Update();
     }
 }

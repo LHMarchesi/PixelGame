@@ -68,6 +68,10 @@ public class MainMenuState : IGameState
 
     public void Update()
     {
+        if (!Cursor.visible)
+        {
+            Cursor.visible = true;
+        }
     }
 }
 

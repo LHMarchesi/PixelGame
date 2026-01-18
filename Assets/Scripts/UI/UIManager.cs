@@ -51,6 +51,6 @@ public class UIManager : Singleton<UIManager>
 
     private void OnDisable()
     {
-        playerContext.PlayerController.OnTakeDamage -= OnPlayerTakeDamage; // Unsubscribe from the player's damage event
+      //  playerContext.PlayerController.OnTakeDamage -= OnPlayerTakeDamage; // Unsubscribe from the player's damage event
     }
 }

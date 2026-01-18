@@ -12,6 +12,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Settings.unity
     guid: 1791a221469594a40a2a8c9e2ec7a63d
   - enabled: 1
+    path: Assets/Scenes/PersistentGameplay.unity
+    guid: 8730436047b4dd84eaef81d5e5e36132
+  - enabled: 1
     path: Assets/Scenes/Level0.unity
     guid: 6fb8ded3543e97d4190dbe4ce5162804
   m_configObjects: {}

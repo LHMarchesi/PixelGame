@@ -297,7 +297,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86476f367d1382247b7e80cc652f28cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _InkJsonFile: {fileID: 4900000, guid: 36e197b5bc00f0941875d7ff8b9f9f58, type: 3}
+  _InkJsonFile: {fileID: 4900000, guid: 67e09d62796b7124da31057f2ae7f3d1, type: 3}
 --- !u!61 &11291335
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1567,7 +1567,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86476f367d1382247b7e80cc652f28cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _InkJsonFile: {fileID: 4900000, guid: 184adc3e00970cc4c94005fc14fb28d1, type: 3}
+  _InkJsonFile: {fileID: 4900000, guid: b34e1e430cf4322449e0b4d1dff6be01, type: 3}
 --- !u!1 &695918953
 GameObject:
   m_ObjectHideFlags: 0

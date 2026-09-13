@@ -1,55 +1,48 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
 {
     public sealed class FighterPresentation : MonoBehaviour
     {
-        [Tooltip("Hijo VisualOffset; el Animator debe estar en un hijo de este objeto.")]
         public Transform visualOffset;
         public SpriteRenderer sprite;
         public Animator animator;
         public bool spriteFacesRight = true;
-        [Min(1)] public int idleLoopTicks = 60;
-        private Vector3 restPosition;
         private bool initialized;
-        private readonly int[] hashes = {
-            Animator.StringToHash("Base Layer.Idle"), Animator.StringToHash("Base Layer.Guard"),
-            Animator.StringToHash("Base Layer.BunnyForward"), Animator.StringToHash("Base Layer.BunnyBackward") };
-        private readonly bool[] warned = new bool[4];
+        private Vector3 rest;
+        private readonly HashSet<string> warnings = new HashSet<string>();
 
         private void Initialize()
         {
             if (initialized) return;
-            if (visualOffset != null) restPosition = visualOffset.localPosition;
+            if (visualOffset != null) rest = visualOffset.localPosition;
             if (animator != null)
             {
                 animator.applyRootMotion = false;
-                animator.speed = 0; // El reloj de combate controla las poses.
+                animator.speed = 0;
                 animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             }
             initialized = true;
         }
 
-        public void Render(FighterState state, float progress, float height, int facing, int poseTick)
+        public void Render(BunnyStateMachine machine, FighterMovementProfile profile, int facing, int poseTick)
         {
             Initialize();
-            if (visualOffset != null) visualOffset.localPosition = restPosition + Vector3.up * height;
-            if (animator != null && animator.runtimeAnimatorController != null)
+            if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;
+            PhaseAnimation settings = profile.AnimationFor(machine.State, machine.Phase);
+            if (settings != null && animator != null && animator.runtimeAnimatorController != null)
             {
-                int index = (int)state;
-                if (animator.HasState(0, hashes[index]))
+                string path = settings.stateName ?? "";
+                int hash = Animator.StringToHash(path);
+                if (!string.IsNullOrEmpty(path) && animator.HasState(0, hash))
                 {
-                    bool stepping = state == FighterState.BunnyForward || state == FighterState.BunnyBackward;
-                    float time = stepping ? Mathf.Min(progress, 0.99999f) :
-                        (poseTick % Mathf.Max(1, idleLoopTicks)) / (float)Mathf.Max(1, idleLoopTicks);
-                    animator.Play(hashes[index], 0, time);
+                    int elapsed = machine.IsStepping ? machine.PhaseElapsed : machine.IsHurt ? machine.Elapsed : poseTick + 1;
+                    int duration = machine.IsStepping ? machine.PhaseDuration : machine.IsHurt ? machine.Duration : settings.loopTicks;
+                    animator.Play(hash, 0, settings.Sample(elapsed, duration));
                     animator.Update(0);
                 }
-                else if (!warned[index])
-                {
-                    warned[index] = true;
-                    Debug.LogWarning("Falta estado Animator: Base Layer." + state, this);
-                }
+                else if (warnings.Add(path)) Debug.LogWarning("Falta estado Animator: " + path, this);
             }
             if (sprite != null) sprite.flipX = spriteFacesRight ? facing < 0 : facing > 0;
         }
@@ -57,7 +50,7 @@ namespace LandOfFire.BunnyStep
         public void ResetHeight()
         {
             Initialize();
-            if (visualOffset != null) visualOffset.localPosition = restPosition;
+            if (visualOffset != null) visualOffset.localPosition = rest;
         }
         private void OnDisable() { ResetHeight(); }
     }

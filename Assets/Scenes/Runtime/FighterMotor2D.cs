@@ -14,10 +14,12 @@ namespace LandOfFire.BunnyStep
         public bool startsFacingRight = true;
         public bool frozen;
         [SerializeField] private FighterState currentState;
+        [SerializeField] private BunnyPhase currentPhase;
         [SerializeField] private int facing = 1;
         public BunnyStateMachine Machine { get; } = new BunnyStateMachine();
         public bool GuardRequested => Machine.State == FighterState.Guard;
         public int Facing => facing;
+        public FighterMovementProfile RuntimeProfile { get; private set; }
         private Rigidbody2D body;
         private PhysicsMaterial2D material;
         private double accumulated;
@@ -38,13 +40,9 @@ namespace LandOfFire.BunnyStep
                 enabled = false;
                 return;
             }
-            if (GetComponent<BunnyFighter>() != null)
-            {
-                Debug.LogError("Quitar el componente BunnyFighter anterior antes de usar FighterMotor2D.", this);
-                body.simulated = false;
-                enabled = false;
-                return;
-            }
+            RuntimeProfile = Instantiate(profile);
+            RuntimeProfile.name = profile.name + " (Play: " + name + ")";
+            RuntimeProfile.hideFlags = HideFlags.DontSave;
             if (commands == null) commands = GetComponent<FighterCommandSource>();
             if (presentation == null) presentation = GetComponent<FighterPresentation>();
             facing = startsFacingRight ? 1 : -1;
@@ -102,14 +100,15 @@ namespace LandOfFire.BunnyStep
                     if (Mathf.Abs(difference) > .001f) facing = difference > 0 ? 1 : -1;
                 }
                 bool hasCommands = commands != null && commands.isActiveAndEnabled;
-                Machine.ConfigureForwardLoop(profile.forwardLoopTicks, profile.forwardLoopDistance, profile.forwardLoopHeight);
+                Machine.ConfigurePhases(RuntimeProfile.forwardTiming, RuntimeProfile.backwardTiming, RuntimeProfile.forwardLoopTiming);
+                Machine.ConfigureForwardLoop(RuntimeProfile.forwardLoopTiming.Total, RuntimeProfile.forwardLoopDistance, RuntimeProfile.forwardLoopHeight);
                 FighterState before = Machine.State;
                 Machine.BeginTick(facing, hasCommands ? commands.Direction : 0);
                 if (hasCommands)
                     while (commands.TryReadPress(out int press))
-                        Machine.Press(press, tick, profile.doubleTapTicks,
-                            profile.forwardTicks, profile.forwardDistance, profile.forwardHeight,
-                            profile.backwardTicks, profile.backwardDistance, profile.backwardHeight);
+                        Machine.Press(press, tick, RuntimeProfile.doubleTapTicks,
+                            RuntimeProfile.forwardTiming.Total, RuntimeProfile.forwardDistance, RuntimeProfile.forwardHeight,
+                            RuntimeProfile.backwardTiming.Total, RuntimeProfile.backwardDistance, RuntimeProfile.backwardHeight);
                 else if (commands != null) commands.ClearPresses();
                 poseTick = before == Machine.State ? poseTick + 1 : 0;
                 delta += Machine.Advance();
@@ -118,26 +117,28 @@ namespace LandOfFire.BunnyStep
             // Proponemos velocidad. Physics 2D resuelve contactos, sin escribir transform.position.
             SetVelocity(new Vector2(delta / Time.fixedDeltaTime, 0));
             currentState = Machine.State;
+            currentPhase = Machine.Phase;
         }
 
         private void LateUpdate()
         {
             if (ready && presentation != null)
-                presentation.Render(Machine.State, Machine.Progress, Machine.VisualHeight, facing, poseTick);
+                presentation.Render(Machine, RuntimeProfile, facing, poseTick);
         }
 
         /// <summary>Entrada de un hit YA aceptado. No calcula daño, parry ni invulnerabilidad.</summary>
         public bool ReceiveConfirmedHit(int durationTicks = -1)
         {
             if (!ready || !isActiveAndEnabled) return false;
-            Machine.EnterHurt(durationTicks > 0 ? durationTicks : profile.hurtTicks);
+            Machine.EnterHurt(durationTicks > 0 ? durationTicks : RuntimeProfile.hurtTicks);
             if (commands != null) commands.ClearPresses();
             accumulated = 0;
             poseTick = 0;
             SetVelocity(Vector2.zero); // Cancelar inmediatamente el movimiento voluntario.
             currentState = Machine.State;
+            currentPhase = Machine.Phase;
             if (presentation != null)
-                presentation.Render(Machine.State, 0, Machine.VisualHeight, facing, 0);
+                presentation.Render(Machine, RuntimeProfile, facing, 0);
             return true;
         }
 
@@ -165,6 +166,10 @@ namespace LandOfFire.BunnyStep
             if (commands != null) commands.ClearPresses();
             if (presentation != null) presentation.ResetHeight();
         }
-        private void OnDestroy() { if (material != null) Destroy(material); }
+        private void OnDestroy()
+        {
+            if (material != null) Destroy(material);
+            if (RuntimeProfile != null) Destroy(RuntimeProfile);
+        }
     }
 }

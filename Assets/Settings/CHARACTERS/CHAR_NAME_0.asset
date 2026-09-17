@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 413f9b0bb8caf974da97275efdb0345c, type: 3}
+  m_Name: CHAR_NAME_0
+  m_EditorClassIdentifier: 
+  forwardTiming:
+    preparation: 10
+    flight: 20
+    recovery: 10
+  forwardTicks: 12
+  forwardDistance: 12
+  forwardHeight: 2.3
+  forwardLoopTiming:
+    preparation: 0
+    flight: 20
+    recovery: 30
+  forwardLoopTicks: 12
+  forwardLoopDistance: 10
+  forwardLoopHeight: 2.3
+  hurtTicks: 18
+  backwardTiming:
+    preparation: 10
+    flight: 20
+    recovery: 10
+  backwardTicks: 14
+  backwardDistance: 12
+  backwardHeight: 2.3
+  doubleTapTicks: 12
+  bodySize: {x: 6, y: 9.300686}
+  bodyOffset: {x: 0, y: 0}
+  mass: 100
+  forwardPreparation:
+    stateName: Base Layer.ForwardPreparation
+    playback: 0
+    loopTicks: 30
+  forwardFlight:
+    stateName: Base Layer.ForwardFlight
+    playback: 0
+    loopTicks: 30
+  forwardRecovery:
+    stateName: Base Layer.ForwardRecovery
+    playback: 0
+    loopTicks: 30
+  backwardPreparation:
+    stateName: Base Layer.BackwardPreparation
+    playback: 0
+    loopTicks: 30
+  backwardFlight:
+    stateName: Base Layer.BackwardFlight
+    playback: 0
+    loopTicks: 30
+  backwardRecovery:
+    stateName: Base Layer.BackwardRecovery
+    playback: 0
+    loopTicks: 30
+  idle:
+    stateName: Base Layer.Idle
+    playback: 1
+    loopTicks: 60
+  guard:
+    stateName: Base Layer.Guard
+    playback: 1
+    loopTicks: 60
+  hurt:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30

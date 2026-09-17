@@ -18,14 +18,14 @@ public class ScriptReader : MonoBehaviour
     public TMP_Text dialogueText;
     public TMP_Text nameText;
 
-    private PlayerContext playerContext;
+    //private PlayerContext playerContext;
     private bool isTextDisplaying = true;
     public int charsToPlaySound = 4;
     public float chTime;
 
     private void OnEnable()
     {
-        playerContext = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerContext>();
+       // playerContext = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerContext>();
     }
 
     private void Awake()
@@ -59,7 +59,7 @@ public class ScriptReader : MonoBehaviour
 
     public void LoadStory(TextAsset textAsset)
     {
-        playerContext.InputHandler.SetPaused(true);
+        //playerContext.InputHandler.SetPaused(true);
         dialoguePanel.SetActive(true);
 
         _StoryScript = new Story(textAsset.text);
@@ -103,7 +103,7 @@ public class ScriptReader : MonoBehaviour
         }
         else
         {
-            playerContext.InputHandler.SetPaused(false);
+         //   playerContext.InputHandler.SetPaused(false);
             dialoguePanel.SetActive(false);
         }
     }

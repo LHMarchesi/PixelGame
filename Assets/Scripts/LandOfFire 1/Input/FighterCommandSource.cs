@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LandOfFire.BunnyStep
 {
-    public enum AttackCommand { Light }
+    public enum AttackCommand { Light, Medium, Heavy }
 
     // Implementar para teclado, IA o reproducción. Sin source = dummy.
     public abstract class FighterCommandSource : MonoBehaviour

@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
-  m_Name: LIGHT_NAME_ATTACK_0
+  m_Name: MEDIUM_NAME_ATTACK_0 1
   m_EditorClassIdentifier: 
   anticipationTicks: 10
   smearTicks: 20
-  poseTicks: 20
+  poseTicks: 10
   recoveryTicks: 10
   hitDuringSmear: 1
   hitDuringPose: 0
@@ -23,22 +23,20 @@ MonoBehaviour:
   damage: 80
   hitstunTicks: 18
   hitstopTicks: 3
-  cancelStartTick: 0
-  cancelEndTick: 40
   allowBunnyCancel: 0
   anticipation:
-    stateName: Base Layer.LightAnticipation
+    stateName: Base Layer.MediumAnticipation
     playback: 0
     loopTicks: 30
   smear:
-    stateName: Base Layer.LightSmear
+    stateName: Base Layer.MediumSmear
     playback: 0
     loopTicks: 30
   pose:
-    stateName: Base Layer.LightPose
+    stateName: Base Layer.MediumPose
     playback: 0
     loopTicks: 30
   recovery:
-    stateName: Base Layer.LightRecovery
+    stateName: Base Layer.MediumRecovery
     playback: 0
     loopTicks: 30

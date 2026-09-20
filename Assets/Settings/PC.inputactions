@@ -30,6 +30,62 @@
             ]
         },
         {
+            "name": "MediumAttack_P1",
+            "id": "ed6e9e7a-03c5-42eb-a9c3-42a7a739a8dc",
+            "actions": [
+                {
+                    "name": "MediumAttack",
+                    "type": "Button",
+                    "id": "c14205c5-558f-43dc-a983-b80fcdc250a4",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "5b728da2-8ad6-416e-92a9-4fb96f80d2d1",
+                    "path": "<Keyboard>/k",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MediumAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "HeavyAttack_P1",
+            "id": "230a22be-920b-4397-a7ab-009202ed2703",
+            "actions": [
+                {
+                    "name": "HeavyAttack",
+                    "type": "Button",
+                    "id": "ebba8060-2959-4f3c-9c60-2b6624b2dcb9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "eb934b80-1abf-4b55-81e8-669b71a70685",
+                    "path": "<Keyboard>/j",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HeavyAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
             "name": "LightAttack_P2",
             "id": "f7e0ce49-cd33-4ead-9d76-869f3e576627",
             "actions": [

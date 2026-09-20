@@ -28,7 +28,7 @@ namespace LandOfFire.BunnyStep
             initialized = true;
         }
 
-        public void Render(BunnyStateMachine machine, FighterMovementProfile profile, int facing, int poseTick)
+        public void Render(FighterStateMachine machine, FighterMovementProfile profile, int facing, int poseTick)
         {
             Initialize();
             if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;

@@ -25,6 +25,13 @@ namespace LandOfFire.BunnyStep
         [Min(1)] public int hitstunTicks = 18;
         [Min(0)] public int hitstopTicks = 3;
 
+        [Header("Cancel")]
+        [Tooltip("Tick desde el que se puede cancelar este ataque con otro ataque.")]
+        [Min(0)] public int cancelStartTick = 0;
+
+        [Tooltip("Tick hasta el que se puede cancelar este ataque. Inclusive.")]
+        [Min(0)] public int cancelEndTick = 0;
+
         [Header("Entrada")]
         [Tooltip("Si se activa, L interrumpe el Bunny en cualquier fase. Por defecto solo desde Idle.")]
         public bool allowBunnyCancel;
@@ -45,6 +52,16 @@ namespace LandOfFire.BunnyStep
             phase == AttackPhase.Smear && hitDuringSmear ||
             phase == AttackPhase.Pose && hitDuringPose;
 
+        public int CancelStartTick => Mathf.Clamp(cancelStartTick, 0, RecoveryTicks - 1);
+
+
+        public int CancelEndTick => Mathf.Clamp(cancelEndTick, CancelStartTick, RecoveryTicks - 1);
+
+        public bool IsCancelWindow(int recoveryElapsed)
+        {
+            return recoveryElapsed >= CancelStartTick &&
+                   recoveryElapsed <= CancelEndTick;
+        }
         public PhaseAnimation AnimationFor(AttackPhase phase)
         {
             switch (phase)

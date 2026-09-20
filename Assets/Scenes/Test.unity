@@ -2304,6 +2304,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lightAttack: {fileID: 11400000, guid: 5c17ec24d9856db43b0e01b0ee790bea, type: 2}
+  mediumAttack: {fileID: 0}
+  heavyAttack: {fileID: 0}
   hurtboxLayers:
     serializedVersion: 2
     m_Bits: 64
@@ -2350,6 +2352,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   move: {fileID: 3242036944825254960, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   lightAttack: {fileID: 1474411616853430664, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
+  mediumAttack: {fileID: 0}
+  heavyAttack: {fileID: 0}
   useArrowKeys: 0
   enableGamepad: 0
   threshold: 0.5
@@ -2831,6 +2835,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   move: {fileID: -1063521874642587461, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   lightAttack: {fileID: 6120781037467993532, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
+  mediumAttack: {fileID: 5570255605881732705, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
+  heavyAttack: {fileID: 4749814748645914262, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   useArrowKeys: 1
   enableGamepad: 0
   threshold: 0.5
@@ -2847,6 +2853,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lightAttack: {fileID: 11400000, guid: 5c17ec24d9856db43b0e01b0ee790bea, type: 2}
+  mediumAttack: {fileID: 11400000, guid: 22fee837a9c9eac4ebdccd1c3ec8477f, type: 2}
+  heavyAttack: {fileID: 11400000, guid: a1ac90390247ab444a30ac035ca4437d, type: 2}
   hurtboxLayers:
     serializedVersion: 2
     m_Bits: 64

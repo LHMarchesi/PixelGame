@@ -83,7 +83,7 @@ namespace LandOfFire.BunnyStep
 
         /// <summary>
         /// Indica si el ataque actual está dentro de su ventana
-        /// configurable de cancel durante Recovery.
+        /// configurable de cancel durante Pose.
         /// </summary>
         public bool IsAttackCancelWindow
         {
@@ -95,7 +95,7 @@ namespace LandOfFire.BunnyStep
                 if (CurrentAttack == null)
                     return false;
 
-                if (CurrentAttackPhase != AttackPhase.Recovery)
+                if (CurrentAttackPhase != AttackPhase.Pose)
                     return false;
 
                 return CurrentAttack.IsCancelWindow(PhaseElapsed);
@@ -298,8 +298,8 @@ namespace LandOfFire.BunnyStep
 
         /// <summary>
         /// Intenta cancelar el ataque actual por otro ataque.
-        /// Todos los ataques pueden cancelar a cualquier otro,
-        /// siempre que Recovery esté dentro de su ventana.
+        /// Todos los ataques pueden cancelar a cualquier otro.
+        /// La ventana solamente existe durante Pose.
         /// </summary>
         public bool TryCancelAttack(AttackMoveData move)
         {

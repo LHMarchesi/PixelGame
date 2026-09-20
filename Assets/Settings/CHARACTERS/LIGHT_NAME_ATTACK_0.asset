@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   anticipationTicks: 10
   smearTicks: 20
-  poseTicks: 20
+  poseTicks: 25
   recoveryTicks: 10
   hitDuringSmear: 1
   hitDuringPose: 0
@@ -23,8 +23,10 @@ MonoBehaviour:
   damage: 80
   hitstunTicks: 18
   hitstopTicks: 3
-  cancelStartTick: 0
-  cancelEndTick: 40
+  showHitboxDebug: 0
+  cancelStartTick: 10
+  cancelEndTick: 25
+  cancelBufferTicks: 3
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.LightAnticipation

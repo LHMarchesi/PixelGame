@@ -2,6 +2,8 @@
 // Detecta hurtboxes en los ticks activos de cualquier ataque L/M/H.
 // Cada objetivo recibe un solo impacto por ejecución.
 // No requiere un rival asignado ni usa Animation Events.
+//
+// También controla la visualización opcional de la hitbox para debug.
 
 using System;
 using System.Collections.Generic;
@@ -30,11 +32,22 @@ namespace LandOfFire.BunnyStep
             new List<Collider2D>(8);
 
         private FighterMotor2D owner;
+        private FighterAttackDebugView debugView;
+
         private AttackMoveData currentMove;
 
         private void Awake()
         {
             owner = GetComponent<FighterMotor2D>();
+
+            debugView =
+                GetComponent<FighterAttackDebugView>();
+
+            if (debugView == null)
+            {
+                debugView =
+                    gameObject.AddComponent<FighterAttackDebugView>();
+            }
         }
 
         public AttackMoveData MoveFor(AttackCommand command)
@@ -65,9 +78,14 @@ namespace LandOfFire.BunnyStep
         {
             currentMove = null;
             hitThisAttack.Clear();
+
+            if (debugView != null)
+                debugView.Hide();
         }
 
-        public void ResolveTick(FighterStateMachine machine, int facing)
+        public void ResolveTick(
+            FighterStateMachine machine,
+            int facing)
         {
             if (!machine.IsAttacking ||
                 machine.CurrentAttack == null)
@@ -76,19 +94,41 @@ namespace LandOfFire.BunnyStep
                 return;
             }
 
-            AttackMoveData move = machine.CurrentAttack;
+            AttackMoveData move =
+                machine.CurrentAttack;
 
             if (currentMove != move)
                 BeginAttack(move);
 
-            if (!move.HasHitbox(machine.CurrentAttackPhase))
-                return;
+            // ============================================================
+            // DEBUG VISUAL
+            // ============================================================
 
-            Vector2 offset = move.hitboxOffset;
+            UpdateDebugView(
+                move,
+                machine.CurrentAttackPhase,
+                facing
+            );
+
+            // ============================================================
+            // HITBOX REAL
+            // ============================================================
+
+            if (!move.HasHitbox(
+                    machine.CurrentAttackPhase))
+            {
+                return;
+            }
+
+            Vector2 offset =
+                move.hitboxOffset;
 
             Vector2 center =
                 owner.BodyPosition +
-                new Vector2(offset.x * facing, offset.y);
+                new Vector2(
+                    offset.x * facing,
+                    offset.y
+                );
 
             Vector2 size =
                 new Vector2(
@@ -96,12 +136,15 @@ namespace LandOfFire.BunnyStep
                     Mathf.Max(.01f, move.hitboxSize.y)
                 );
 
-            var filter = new ContactFilter2D
-            {
-                useTriggers = true
-            };
+            var filter =
+                new ContactFilter2D
+                {
+                    useTriggers = true
+                };
 
-            filter.SetLayerMask(hurtboxLayers);
+            filter.SetLayerMask(
+                hurtboxLayers
+            );
 
             overlapResults.Clear();
 
@@ -120,10 +163,15 @@ namespace LandOfFire.BunnyStep
 
                 if (hurtbox == null ||
                     !hurtbox.isActiveAndEnabled)
+                {
                     continue;
+                }
 
-                FighterMotor2D target = hurtbox.Owner;
-                FighterHealth health = hurtbox.Health;
+                FighterMotor2D target =
+                    hurtbox.Owner;
+
+                FighterHealth health =
+                    hurtbox.Health;
 
                 if (target == null ||
                     target == owner ||
@@ -131,64 +179,106 @@ namespace LandOfFire.BunnyStep
                     health == null ||
                     health.CurrentHealth <= 0 ||
                     hitThisAttack.Contains(target))
+                {
                     continue;
+                }
 
-                if (!target.ReceiveConfirmedHit(move.hitstunTicks))
+                if (!target.ReceiveConfirmedHit(
+                        move.hitstunTicks))
+                {
                     continue;
+                }
 
                 hitThisAttack.Add(target);
 
-                health.TakeDamage(move.damage);
+                health.TakeDamage(
+                    move.damage
+                );
 
-                owner.ApplyHitstop(move.hitstopTicks);
-                target.ApplyHitstop(move.hitstopTicks);
+                owner.ApplyHitstop(
+                    move.hitstopTicks
+                );
 
-                HitConfirmed?.Invoke(target, move);
+                target.ApplyHitstop(
+                    move.hitstopTicks
+                );
+
+                HitConfirmed?.Invoke(
+                    target,
+                    move
+                );
             }
+        }
+
+        private void UpdateDebugView(
+            AttackMoveData move,
+            AttackPhase phase,
+            int facing)
+        {
+            if (debugView == null)
+                return;
+
+            if (!move.showHitboxDebug ||
+                !move.HasHitbox(phase))
+            {
+                debugView.Hide();
+                return;
+            }
+
+            Color color =
+                DebugColorFor(move);
+
+            debugView.Show(
+                move,
+                facing,
+                color
+            );
+        }
+
+        private Color DebugColorFor(
+            AttackMoveData move)
+        {
+            if (move == lightAttack)
+            {
+                return new Color(
+                    0.15f,
+                    0.85f,
+                    1f,
+                    0.32f
+                );
+            }
+
+            if (move == mediumAttack)
+            {
+                return new Color(
+                    1f,
+                    0.85f,
+                    0.15f,
+                    0.32f
+                );
+            }
+
+            if (move == heavyAttack)
+            {
+                return new Color(
+                    1f,
+                    0.2f,
+                    0.15f,
+                    0.32f
+                );
+            }
+
+            return new Color(
+                1f,
+                0.15f,
+                1f,
+                0.32f
+            );
         }
 
         private void OnDisable()
         {
             CancelAttack();
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            FighterMotor2D fighter =
-                owner != null
-                    ? owner
-                    : GetComponent<FighterMotor2D>();
-
-            if (fighter == null)
-                return;
-
-            DrawAttackGizmo(lightAttack, fighter.Facing);
-            DrawAttackGizmo(mediumAttack, fighter.Facing);
-            DrawAttackGizmo(heavyAttack, fighter.Facing);
-        }
-
-        private void DrawAttackGizmo(
-            AttackMoveData attack,
-            int direction)
-        {
-            if (attack == null)
-                return;
-
-            Vector2 offset = attack.hitboxOffset;
-
-            Vector3 center =
-                transform.position +
-                new Vector3(
-                    offset.x * direction,
-                    offset.y,
-                    0f
-                );
-
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(
-                center,
-                attack.hitboxSize
-            );
         }
     }
 }

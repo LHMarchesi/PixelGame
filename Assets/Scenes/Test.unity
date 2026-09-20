@@ -2672,6 +2672,7 @@ GameObject:
   - component: {fileID: 2136306435}
   - component: {fileID: 2136306431}
   - component: {fileID: 2136306430}
+  - component: {fileID: 2136306437}
   m_Layer: 0
   m_Name: Fighter
   m_TagString: Untagged
@@ -2871,6 +2872,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 1000
+--- !u!114 &2136306437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2136306425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fab7a75ca40425e47aba0ea71365d583, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

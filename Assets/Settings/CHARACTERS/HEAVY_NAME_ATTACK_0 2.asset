@@ -15,7 +15,7 @@ MonoBehaviour:
   anticipationTicks: 10
   smearTicks: 20
   poseTicks: 10
-  recoveryTicks: 10
+  recoveryTicks: 20
   hitDuringSmear: 1
   hitDuringPose: 0
   hitboxOffset: {x: 6, y: 1}
@@ -23,6 +23,8 @@ MonoBehaviour:
   damage: 80
   hitstunTicks: 18
   hitstopTicks: 3
+  cancelStartTick: 0
+  cancelEndTick: 40
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.HeavyAnticipation

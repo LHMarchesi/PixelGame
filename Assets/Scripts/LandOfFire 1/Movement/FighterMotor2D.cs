@@ -22,28 +22,54 @@ namespace LandOfFire.BunnyStep
         public bool startsFacingRight = true;
         public bool frozen;
 
+        [Header("Attack Buffer")]
+        [Tooltip(
+            "Tiempo máximo que un input L/M/H puede permanecer bufferizado " +
+            "antes de que pueda ejecutarse durante la ventana de cancel."
+        )]
+
         [SerializeField] private FighterState currentState;
         [SerializeField] private BunnyPhase currentPhase;
         [SerializeField] private AttackPhase currentAttackPhase;
         [SerializeField] private int facing = 1;
 
-        public FighterStateMachine Machine { get; } = new FighterStateMachine();
+        public FighterStateMachine Machine { get; } =
+            new FighterStateMachine();
 
-        public bool GuardRequested => Machine.State == FighterState.Guard;
+        public bool GuardRequested =>
+            Machine.State == FighterState.Guard;
+
         public int Facing => facing;
 
         public Vector2 BodyPosition =>
-            body != null ? body.position : (Vector2)transform.position;
+            body != null
+                ? body.position
+                : (Vector2)transform.position;
 
-        public FighterMovementProfile RuntimeProfile { get; private set; }
+        public FighterMovementProfile RuntimeProfile
+        {
+            get;
+            private set;
+        }
 
         private Rigidbody2D body;
         private PhysicsMaterial2D material;
+
         private double accumulated;
         private long tick;
+
         private int poseTick;
         private int hitstopRemaining;
+
         private bool ready;
+
+        // ---------------------------------------------------------------
+        // Attack buffer
+        // ---------------------------------------------------------------
+
+        private bool hasBufferedAttack;
+        private AttackCommand bufferedAttack;
+        private long bufferedAttackExpiryTick;
 
         private const double TickSeconds = 1.0 / 60.0;
 
@@ -51,20 +77,30 @@ namespace LandOfFire.BunnyStep
             RigidbodyConstraints2D.FreezePositionY |
             RigidbodyConstraints2D.FreezeRotation;
 
+        // ================================================================
+        // UNITY
+        // ================================================================
+
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
 
             if (profile == null)
             {
-                Debug.LogError("Asignar FighterMovementProfile al FighterMotor2D.", this);
+                Debug.LogError(
+                    "Asignar FighterMovementProfile al FighterMotor2D.",
+                    this);
+
                 body.simulated = false;
                 enabled = false;
                 return;
             }
 
             RuntimeProfile = Instantiate(profile);
-            RuntimeProfile.name = profile.name + " (Play: " + name + ")";
+
+            RuntimeProfile.name =
+                profile.name + " (Play: " + name + ")";
+
             RuntimeProfile.hideFlags = HideFlags.DontSave;
 
             if (commands == null)
@@ -81,10 +117,17 @@ namespace LandOfFire.BunnyStep
             body.bodyType = RigidbodyType2D.Dynamic;
             body.simulated = true;
             body.gravityScale = 0;
+
             body.constraints = GroundConstraints;
-            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-            body.interpolation = RigidbodyInterpolation2D.Interpolate;
-            body.mass = Mathf.Max(.01f, profile.mass);
+
+            body.collisionDetectionMode =
+                CollisionDetectionMode2D.Continuous;
+
+            body.interpolation =
+                RigidbodyInterpolation2D.Interpolate;
+
+            body.mass =
+                Mathf.Max(.01f, profile.mass);
 
 #if UNITY_6000_0_OR_NEWER
             body.linearDamping = 0;
@@ -92,17 +135,21 @@ namespace LandOfFire.BunnyStep
             body.drag = 0;
 #endif
 
-            material = new PhysicsMaterial2D("Fighter contact (runtime)")
-            {
-                friction = 0,
-                bounciness = 0
-            };
+            material =
+                new PhysicsMaterial2D("Fighter contact (runtime)")
+                {
+                    friction = 0,
+                    bounciness = 0
+                };
 
             var box = GetComponent<BoxCollider2D>();
+
             box.isTrigger = false;
-            box.size = new Vector2(
-                Mathf.Max(.01f, profile.bodySize.x),
-                Mathf.Max(.01f, profile.bodySize.y));
+
+            box.size =
+                new Vector2(
+                    Mathf.Max(.01f, profile.bodySize.x),
+                    Mathf.Max(.01f, profile.bodySize.y));
 
             box.offset = profile.bodyOffset;
             box.sharedMaterial = material;
@@ -116,10 +163,13 @@ namespace LandOfFire.BunnyStep
                 return;
 
             Machine.Reset();
+
             accumulated = 0;
             tick = 0;
             poseTick = 0;
             hitstopRemaining = 0;
+
+            ClearAttackBuffer();
 
             if (combat != null)
                 combat.CancelAttack();
@@ -137,12 +187,16 @@ namespace LandOfFire.BunnyStep
 
             if (frozen)
             {
-                // Un luchador congelado no puede ser empujado por otro.
-                body.constraints = RigidbodyConstraints2D.FreezeAll;
+                body.constraints =
+                    RigidbodyConstraints2D.FreezeAll;
+
                 SetVelocity(Vector2.zero);
 
                 Machine.ForgetTap();
+
                 accumulated = 0;
+
+                ClearAttackBuffer();
 
                 if (commands != null)
                     commands.ClearPresses();
@@ -150,10 +204,12 @@ namespace LandOfFire.BunnyStep
                 return;
             }
 
-            // El perfil sigue expresado a 60 ticks/s aunque Physics 2D tenga otro timestep.
+            // El perfil sigue expresado a 60 ticks/s aunque Physics 2D
+            // tenga otro timestep.
             accumulated += Time.fixedDeltaTime;
 
             float delta = 0;
+
             bool pausedThisStep = false;
             bool resumedThisStep = false;
 
@@ -161,103 +217,90 @@ namespace LandOfFire.BunnyStep
             {
                 accumulated -= TickSeconds;
 
+                // ========================================================
+                // HITSTOP
+                // ========================================================
+
                 if (hitstopRemaining > 0)
                 {
                     hitstopRemaining--;
+
                     pausedThisStep = true;
                     tick++;
+
                     continue;
                 }
 
                 resumedThisStep = true;
 
-                if (!Machine.IsTimed && facingTarget != null)
+                // ========================================================
+                // FACING
+                // ========================================================
+
+                if (!Machine.IsTimed &&
+                    facingTarget != null)
                 {
-                    float difference = facingTarget.position.x - body.position.x;
+                    float difference =
+                        facingTarget.position.x -
+                        body.position.x;
 
                     if (Mathf.Abs(difference) > .001f)
-                        facing = difference > 0 ? 1 : -1;
+                    {
+                        facing =
+                            difference > 0
+                                ? 1
+                                : -1;
+                    }
                 }
 
                 bool hasCommands =
                     commands != null &&
                     commands.isActiveAndEnabled;
 
+                // ========================================================
+                // BUNNY CONFIGURATION
+                // ========================================================
+
                 Machine.ConfigureForwardLoop(
                     RuntimeProfile.forwardLoopTiming.Total,
                     RuntimeProfile.forwardLoopDistance,
                     RuntimeProfile.forwardLoopHeight);
 
-                FighterState before = Machine.State;
+                FighterState before =
+                    Machine.State;
 
                 Machine.BeginTick(
                     facing,
-                    hasCommands ? commands.Direction : 0);
+                    hasCommands
+                        ? commands.Direction
+                        : 0);
+
+                // ========================================================
+                // ATTACK INPUT
+                // ========================================================
 
                 if (hasCommands)
                 {
-                    // =====================================================
-                    // ATAQUES
-                    // =====================================================
-                    //
-                    // Un ataque nuevo puede:
-                    // 1. comenzar desde Idle;
-                    // 2. cancelar otro ataque durante su Recovery window.
-                    //
-                    // Todos los ataques pueden cancelar a cualquier otro.
-                    //
-                    while (commands.TryReadAttack(out AttackCommand attackCommand))
-                    {
-                        AttackMoveData move =
-                            combat != null
-                                ? combat.MoveFor(attackCommand)
-                                : null;
+                    ReadAttackInputs();
 
-                        if (move == null)
-                            continue;
+                    TryExecuteBufferedAttack();
 
-                        // Si ya estamos atacando, solamente permitimos
-                        // el nuevo ataque si estamos dentro de la ventana
-                        // configurable de cancel.
-                        if (Machine.IsAttacking)
-                        {
-                            if (Machine.TryCancelAttack(move))
-                            {
-                                if (combat != null)
-                                    combat.BeginAttack(move);
+                    // ====================================================
+                    // MOVEMENT INPUT
+                    // ====================================================
 
-                                // El cancel elimina cualquier desplazamiento
-                                // voluntario que hubiera quedado del estado anterior.
-                                delta = 0;
-                            }
-                        }
-                        // Si no estamos atacando, intentamos iniciar
-                        // normalmente el ataque.
-                        else
-                        {
-                            if (Machine.TryStartAttack(move))
-                            {
-                                if (combat != null)
-                                    combat.BeginAttack(move);
-
-                                delta = 0;
-                            }
-                        }
-                    }
-
-                    // =====================================================
-                    // MOVIMIENTO
-                    // =====================================================
-
-                    while (commands.TryReadPress(out int press))
+                    while (commands.TryReadPress(
+                        out int press))
                     {
                         Machine.Press(
                             press,
                             tick,
                             RuntimeProfile.doubleTapTicks,
+
                             RuntimeProfile.forwardTiming.Total,
                             RuntimeProfile.forwardDistance,
                             RuntimeProfile.forwardHeight,
+
                             RuntimeProfile.backwardTiming.Total,
                             RuntimeProfile.backwardDistance,
                             RuntimeProfile.backwardHeight);
@@ -266,22 +309,36 @@ namespace LandOfFire.BunnyStep
                 else if (commands != null)
                 {
                     commands.ClearPresses();
+                    ClearAttackBuffer();
                 }
 
-                poseTick = before == Machine.State
-                    ? poseTick + 1
-                    : 0;
+                // ========================================================
+                // ADVANCE LOGIC
+                // ========================================================
+
+                poseTick =
+                    before == Machine.State
+                        ? poseTick + 1
+                        : 0;
 
                 delta += Machine.Advance();
 
+                // ========================================================
+                // HIT DETECTION
+                // ========================================================
+
                 if (combat != null)
-                    combat.ResolveTick(Machine, facing);
+                    combat.ResolveTick(
+                        Machine,
+                        facing);
 
                 tick++;
             }
 
-            // Proponemos velocidad. Physics 2D resuelve contactos,
-            // sin escribir transform.position.
+            // ============================================================
+            // PHYSICS
+            // ============================================================
+
             bool stopped =
                 hitstopRemaining > 0 ||
                 (pausedThisStep && !resumedThisStep);
@@ -294,30 +351,165 @@ namespace LandOfFire.BunnyStep
             SetVelocity(
                 stopped
                     ? Vector2.zero
-                    : new Vector2(delta / Time.fixedDeltaTime, 0));
+                    : new Vector2(
+                        delta / Time.fixedDeltaTime,
+                        0));
 
             currentState = Machine.State;
             currentPhase = Machine.Phase;
-            currentAttackPhase = Machine.CurrentAttackPhase;
+            currentAttackPhase =
+                Machine.CurrentAttackPhase;
         }
 
         private void LateUpdate()
         {
-            if (ready && presentation != null)
+            if (ready &&
+                presentation != null)
+            {
                 presentation.Render(
                     Machine,
                     RuntimeProfile,
                     facing,
                     poseTick);
+            }
         }
+
+        // ================================================================
+        // ATTACK INPUT BUFFER
+        // ================================================================
+
+        private void ReadAttackInputs()
+        {
+            while (commands.TryReadAttack(out AttackCommand command))
+            {
+                HandleAttackInput(command);
+            }
+        }
+
+
+        private void HandleAttackInput(AttackCommand command)
+        {
+            AttackMoveData move = combat.MoveFor(command);
+
+            if (move == null)
+                return;
+
+            // ================================================================
+            // FUERA DE UN ATAQUE
+            // ================================================================
+
+            if (!Machine.IsAttacking)
+            {
+                ClearAttackBuffer();
+
+                if (Machine.TryStartAttack(move))
+                    combat.BeginAttack(move);
+
+                return;
+            }
+
+            AttackMoveData currentAttack = Machine.CurrentAttack;
+
+            if (currentAttack == null)
+                return;
+
+            // ================================================================
+            // RECOVERY
+            // ================================================================
+            // No se puede cancelar ni guardar input durante Recovery.
+
+            if (Machine.CurrentAttackPhase == AttackPhase.Recovery)
+            {
+                ClearAttackBuffer();
+                return;
+            }
+
+            // ================================================================
+            // CANCEL WINDOW
+            // ================================================================
+
+            if (Machine.IsAttackCancelWindow)
+            {
+                ClearAttackBuffer();
+
+                if (Machine.TryCancelAttack(move))
+                    combat.BeginAttack(move);
+
+                return;
+            }
+
+            // ================================================================
+            // BUFFER
+            // ================================================================
+            // Solo se acepta si el AttackMoveData actual lo permite.
+            // Anticipation queda completamente fuera.
+
+            if (Machine.CurrentAttackPhase == AttackPhase.Smear ||
+                Machine.CurrentAttackPhase == AttackPhase.Pose)
+            {
+                int poseElapsed = Machine.PhaseElapsed;
+
+                if (Machine.CurrentAttackPhase == AttackPhase.Pose &&
+                    currentAttack.IsCancelBufferWindow(poseElapsed))
+                {
+                    bufferedAttack = command;
+                    hasBufferedAttack = true;
+                }
+            }
+        }
+
+        private void TryExecuteBufferedAttack()
+        {
+            if (!hasBufferedAttack)
+                return;
+
+            if (!Machine.IsAttacking)
+            {
+                ClearAttackBuffer();
+                return;
+            }
+
+            if (Machine.CurrentAttackPhase == AttackPhase.Recovery)
+            {
+                ClearAttackBuffer();
+                return;
+            }
+
+            if (!Machine.IsAttackCancelWindow)
+                return;
+
+            AttackMoveData move =
+                combat.MoveFor(bufferedAttack);
+
+            ClearAttackBuffer();
+
+            if (move == null)
+                return;
+
+            if (Machine.TryCancelAttack(move))
+                combat.BeginAttack(move);
+        }
+
+        private void ClearAttackBuffer()
+        {
+            hasBufferedAttack = false;
+            bufferedAttack = default(AttackCommand);
+            bufferedAttackExpiryTick = 0;
+        }
+
+        // ================================================================
+        // HIT / HURT
+        // ================================================================
 
         /// <summary>
         /// Entrada de un hit YA aceptado.
         /// No calcula daño, parry ni invulnerabilidad.
         /// </summary>
-        public bool ReceiveConfirmedHit(int durationTicks = -1)
+        public bool ReceiveConfirmedHit(
+            int durationTicks = -1)
         {
-            if (!ready || !isActiveAndEnabled)
+            if (!ready ||
+                !isActiveAndEnabled)
                 return false;
 
             Machine.EnterHurt(
@@ -331,21 +523,27 @@ namespace LandOfFire.BunnyStep
             if (commands != null)
                 commands.ClearPresses();
 
+            ClearAttackBuffer();
+
             accumulated = 0;
             poseTick = 0;
 
+            // Cancelar inmediatamente el movimiento voluntario.
             SetVelocity(Vector2.zero);
 
             currentState = Machine.State;
             currentPhase = Machine.Phase;
-            currentAttackPhase = Machine.CurrentAttackPhase;
+            currentAttackPhase =
+                Machine.CurrentAttackPhase;
 
             if (presentation != null)
+            {
                 presentation.Render(
                     Machine,
                     RuntimeProfile,
                     facing,
                     0);
+            }
 
             return true;
         }
@@ -356,23 +554,32 @@ namespace LandOfFire.BunnyStep
         /// </summary>
         public void ApplyHitstop(int ticks)
         {
-            if (!ready || ticks <= 0)
+            if (!ready ||
+                ticks <= 0)
                 return;
 
-            hitstopRemaining = Mathf.Max(
-                hitstopRemaining,
-                ticks);
+            hitstopRemaining =
+                Mathf.Max(
+                    hitstopRemaining,
+                    ticks);
 
-            body.constraints = RigidbodyConstraints2D.FreezeAll;
+            body.constraints =
+                RigidbodyConstraints2D.FreezeAll;
+
             SetVelocity(Vector2.zero);
         }
 
-        [ContextMenu("Prueba: recibir hit confirmado (Play)")]
+        [ContextMenu(
+            "Prueba: recibir hit confirmado (Play)")]
         private void DebugConfirmedHit()
         {
             if (Application.isPlaying)
                 ReceiveConfirmedHit();
         }
+
+        // ================================================================
+        // CLEANUP
+        // ================================================================
 
         private void SetVelocity(Vector2 value)
         {
@@ -389,10 +596,15 @@ namespace LandOfFire.BunnyStep
                 return;
 
             SetVelocity(Vector2.zero);
-            body.constraints = RigidbodyConstraints2D.FreezeAll;
+
+            body.constraints =
+                RigidbodyConstraints2D.FreezeAll;
 
             Machine.Reset();
+
             hitstopRemaining = 0;
+
+            ClearAttackBuffer();
 
             if (combat != null)
                 combat.CancelAttack();

@@ -5,6 +5,7 @@
 // Si lethalHit está activo, cualquier impacto no bloqueado
 // produce Flying Hurt.
 
+using Cinemachine;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -264,3 +265,4 @@ namespace LandOfFire.BunnyStep
         }
     }
 }
+

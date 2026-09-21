@@ -17,23 +17,23 @@ MonoBehaviour:
     flight: 20
     recovery: 10
   forwardTicks: 12
-  forwardDistance: 12
-  forwardHeight: 2.3
+  forwardDistance: 18
+  forwardHeight: 2.8
   forwardLoopTiming:
     preparation: 0
     flight: 20
     recovery: 30
   forwardLoopTicks: 12
-  forwardLoopDistance: 10
-  forwardLoopHeight: 2.3
+  forwardLoopDistance: 18
+  forwardLoopHeight: 2.8
   hurtTicks: 18
   backwardTiming:
     preparation: 10
     flight: 20
     recovery: 10
   backwardTicks: 14
-  backwardDistance: 12
-  backwardHeight: 2.3
+  backwardDistance: 18
+  backwardHeight: 2.8
   doubleTapTicks: 12
   bodySize: {x: 6, y: 9.300686}
   bodyOffset: {x: 0, y: 0}
@@ -72,5 +72,17 @@ MonoBehaviour:
     loopTicks: 60
   hurt:
     stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  flyingHurt:
+    stateName: Base Layer.FlyingHurt
+    playback: 0
+    loopTicks: 30
+  knockdown:
+    stateName: Base Layer.Knockdown
+    playback: 0
+    loopTicks: 30
+  reset:
+    stateName: Base Layer.GetUp
     playback: 0
     loopTicks: 30

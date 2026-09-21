@@ -1,90 +1,176 @@
 // Land of Fire · FUN-COM-001
-// Configuración de un golpe. Cada fase tiene sus propios ticks y clip; cambiar la
-// cantidad de dibujos de un clip no modifica las ventanas lógicas del impacto.
-// Es un asset compartible: durante un golpe, la máquina copia sus duraciones.
+// Configuración completa de un golpe.
+//
+// Lethal Hit NO depende de la vida restante.
+// Si lethalHit está activo, cualquier impacto no bloqueado
+// produce Flying Hurt.
 
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
 {
-    [CreateAssetMenu(menuName = "Land of Fire/Combat/Attack Move")]
-    public sealed class AttackMoveData : ScriptableObject
+    [CreateAssetMenu(
+        menuName = "Land of Fire/Combat/Attack Move")]
+    public sealed class AttackMoveData :
+        ScriptableObject
     {
         [Header("Duración por fase (ticks a 60 Hz)")]
-        [Min(1)] public int anticipationTicks = 4;
-        [Min(1)] public int smearTicks = 1;
-        [Min(1)] public int poseTicks = 1;
-        [Min(1)] public int recoveryTicks = 8;
+
+        [Min(1)]
+        public int anticipationTicks = 4;
+
+        [Min(1)]
+        public int smearTicks = 1;
+
+        [Min(1)]
+        public int poseTicks = 1;
+
+        [Min(1)]
+        public int recoveryTicks = 8;
 
         [Header("Ventana de impacto")]
+
         public bool hitDuringSmear = true;
         public bool hitDuringPose;
 
-        [Tooltip("Offset local desde la raíz; X se invierte con el facing.")]
-        public Vector2 hitboxOffset = new Vector2(1f, 1f);
+        [Tooltip(
+            "Offset local desde la raíz; X se invierte con el facing.")]
+        public Vector2 hitboxOffset =
+            new Vector2(1f, 1f);
 
-        public Vector2 hitboxSize = new Vector2(.9f, .55f);
+        public Vector2 hitboxSize =
+            new Vector2(.9f, .55f);
 
-        [Min(0)] public int damage = 8;
-        [Min(1)] public int hitstunTicks = 18;
-        [Min(0)] public int hitstopTicks = 3;
+        [Min(0)]
+        public int damage = 8;
+
+        [Min(1)]
+        public int hitstunTicks = 18;
+
+        [Min(0)]
+        public int hitstopTicks = 3;
+
+        // ================================================================
+        // PUSHBACK
+        // ================================================================
+
+        [Header("Pushback")]
+
+        [Tooltip(
+            "Distancia de pushback cuando el golpe entra normalmente.")]
+        [Min(0)]
+        public float hitPushback = .08f;
+
+        [Tooltip(
+            "Distancia de pushback cuando el rival está cubriendo.")]
+        [Min(0)]
+        public float guardPushback = .04f;
+
+        // ================================================================
+        // LETHAL HIT
+        // ================================================================
+
+        [Header("Lethal Hit")]
+
+        [Tooltip(
+            "Si está activo, cualquier impacto no bloqueado " +
+            "produce Flying Hurt sin importar el HP restante.")]
+        public bool lethalHit;
+
+        [Tooltip(
+            "Duración del Flying Hurt.")]
+        [Min(1)]
+        public int flyingHurtTicks = 24;
+
+        [Tooltip(
+            "Distancia horizontal total del Flying Hurt.")]
+        [Min(0)]
+        public float flyingHurtDistance = 3f;
+
+        [Tooltip(
+            "Altura máxima de la parábola.")]
+        [Min(0)]
+        public float flyingHurtHeight = 1.5f;
+
+        [Tooltip(
+            "Tiempo del Knockdown después de aterrizar.")]
+        [Min(1)]
+        public int lethalHitKnockdownTicks = 30;
+
+        // ================================================================
+        // DEBUG
+        // ================================================================
 
         [Header("Debug")]
+
         [Tooltip(
-            "Si está activo, muestra visualmente la hitbox durante sus ticks activos."
-        )]
+            "Muestra la hitbox durante sus ticks activos.")]
         public bool showHitboxDebug;
 
+        // ================================================================
+        // CANCEL
+        // ================================================================
+
         [Header("Cancel")]
-        [Tooltip(
-            "Primer tick de Pose en el que se puede cancelar. " +
-            "El conteo comienza desde el inicio de Pose."
-        )]
-        [Min(1)] public int cancelStartTick = 1;
 
-        [Tooltip(
-            "Último tick de Pose en el que se puede cancelar. " +
-            "Es inclusive."
-        )]
-        [Min(1)] public int cancelEndTick = 4;
+        [Min(1)]
+        public int cancelStartTick = 1;
 
-        [Tooltip(
-            "Cantidad máxima de ticks antes de la ventana de cancel " +
-            "durante los que se puede guardar un input."
-        )]
-        [Min(0)] public int cancelBufferTicks = 2;
+        [Min(1)]
+        public int cancelEndTick = 4;
+
+        [Min(0)]
+        public int cancelBufferTicks = 2;
+
+        // ================================================================
+        // ENTRADA
+        // ================================================================
 
         [Header("Entrada")]
-        [Tooltip(
-            "Si se activa, el ataque puede interrumpir el Bunny. " +
-            "Por defecto solo puede comenzar desde Idle."
-        )]
+
         public bool allowBunnyCancel;
 
+        // ================================================================
+        // ANIMACIÓN
+        // ================================================================
+
         [Header("Estados del Animator")]
+
         public PhaseAnimation anticipation =
-            new PhaseAnimation("LightAnticipation");
+            new PhaseAnimation(
+                "LightAnticipation");
 
         public PhaseAnimation smear =
-            new PhaseAnimation("LightSmear");
+            new PhaseAnimation(
+                "LightSmear");
 
         public PhaseAnimation pose =
-            new PhaseAnimation("LightPose");
+            new PhaseAnimation(
+                "LightPose");
 
         public PhaseAnimation recovery =
-            new PhaseAnimation("LightRecovery");
+            new PhaseAnimation(
+                "LightRecovery");
 
         public int AnticipationTicks =>
-            Mathf.Max(1, anticipationTicks);
+            Mathf.Max(
+                1,
+                anticipationTicks);
 
         public int SmearTicks =>
-            Mathf.Max(1, smearTicks);
+            Mathf.Max(
+                1,
+                smearTicks);
 
         public int PoseTicks =>
-            Mathf.Max(1, poseTicks);
+            Mathf.Max(
+                1,
+                poseTicks);
 
         public int RecoveryTicks =>
-            Mathf.Max(1, recoveryTicks);
+            Mathf.Max(
+                1,
+                recoveryTicks);
 
         public int TotalTicks =>
             AnticipationTicks +
@@ -92,9 +178,19 @@ namespace LandOfFire.BunnyStep
             PoseTicks +
             RecoveryTicks;
 
-        public bool HasHitbox(AttackPhase phase) =>
-            phase == AttackPhase.Smear && hitDuringSmear ||
-            phase == AttackPhase.Pose && hitDuringPose;
+        // ================================================================
+        // HITBOX
+        // ================================================================
+
+        public bool HasHitbox(
+            AttackPhase phase)
+        {
+            return
+                phase == AttackPhase.Smear &&
+                hitDuringSmear ||
+                phase == AttackPhase.Pose &&
+                hitDuringPose;
+        }
 
         // ================================================================
         // CANCEL WINDOW
@@ -112,17 +208,20 @@ namespace LandOfFire.BunnyStep
                 CancelStartTick,
                 PoseTicks);
 
-        public bool IsCancelWindow(int poseElapsed)
+        public bool IsCancelWindow(
+            int poseElapsed)
         {
-            return poseElapsed >= CancelStartTick &&
-                   poseElapsed <= CancelEndTick;
+            return
+                poseElapsed >= CancelStartTick &&
+                poseElapsed <= CancelEndTick;
         }
 
         // ================================================================
         // CANCEL BUFFER
         // ================================================================
 
-        public bool IsCancelBufferWindow(int poseElapsed)
+        public bool IsCancelBufferWindow(
+            int poseElapsed)
         {
             if (cancelBufferTicks <= 0)
                 return false;
@@ -130,17 +229,20 @@ namespace LandOfFire.BunnyStep
             int bufferStart =
                 Mathf.Max(
                     1,
-                    CancelStartTick - cancelBufferTicks);
+                    CancelStartTick -
+                    cancelBufferTicks);
 
-            return poseElapsed >= bufferStart &&
-                   poseElapsed < CancelStartTick;
+            return
+                poseElapsed >= bufferStart &&
+                poseElapsed < CancelStartTick;
         }
 
         // ================================================================
-        // ANIMACIÓN
+        // ANIMATOR
         // ================================================================
 
-        public PhaseAnimation AnimationFor(AttackPhase phase)
+        public PhaseAnimation AnimationFor(
+            AttackPhase phase)
         {
             switch (phase)
             {

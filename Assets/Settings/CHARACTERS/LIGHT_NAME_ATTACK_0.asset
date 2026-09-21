@@ -12,20 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
   m_Name: LIGHT_NAME_ATTACK_0
   m_EditorClassIdentifier: 
-  anticipationTicks: 10
-  smearTicks: 20
-  poseTicks: 25
+  anticipationTicks: 5
+  smearTicks: 10
+  poseTicks: 15
   recoveryTicks: 10
-  hitDuringSmear: 1
-  hitDuringPose: 0
+  hitDuringSmear: 0
+  hitDuringPose: 1
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
-  damage: 80
+  damage: 65
   hitstunTicks: 18
-  hitstopTicks: 3
-  showHitboxDebug: 0
-  cancelStartTick: 10
-  cancelEndTick: 25
+  hitstopTicks: 8
+  hitPushback: 0.08
+  guardPushback: 0.04
+  lethalHit: 0
+  flyingHurtTicks: 24
+  flyingHurtDistance: 3
+  flyingHurtHeight: 1.5
+  lethalHitKnockdownTicks: 30
+  showHitboxDebug: 1
+  cancelStartTick: 8
+  cancelEndTick: 13
   cancelBufferTicks: 3
   allowBunnyCancel: 0
   anticipation:

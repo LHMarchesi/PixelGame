@@ -1,16 +1,15 @@
-// Land of Fire · FUN-COM-001
-// Detecta hurtboxes en los ticks activos de cualquier ataque L/M/H.
-// Cada objetivo recibe un solo impacto por ejecución.
-// No requiere un rival asignado ni usa Animation Events.
+// Land of Fire · Debug visual de hitbox.
 //
-// También controla la visualización opcional de la hitbox para debug.
+// No participa en física ni combate.
+// Usa exactamente hitboxOffset y hitboxSize del AttackMoveData.
 
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
 {
     [DisallowMultipleComponent]
-    public sealed class FighterAttackDebugView : MonoBehaviour
+    public sealed class FighterAttackDebugView :
+        MonoBehaviour
     {
         private GameObject debugObject;
         private SpriteRenderer spriteRenderer;
@@ -38,30 +37,33 @@ namespace LandOfFire.BunnyStep
 
             EnsureCreated();
 
-            Transform debugTransform =
-                debugObject.transform;
+            Vector2 offset =
+                attack.hitboxOffset;
 
-            Vector2 offset = attack.hitboxOffset;
-
-            debugTransform.localPosition =
+            debugObject.transform.localPosition =
                 new Vector3(
                     offset.x * facing,
                     offset.y,
-                    0f
-                );
+                    0f);
 
-            debugTransform.localRotation =
+            debugObject.transform.localRotation =
                 Quaternion.identity;
 
-            debugTransform.localScale =
+            debugObject.transform.localScale =
                 new Vector3(
-                    Mathf.Max(.01f, attack.hitboxSize.x),
-                    Mathf.Max(.01f, attack.hitboxSize.y),
-                    1f
-                );
+                    Mathf.Max(
+                        .01f,
+                        attack.hitboxSize.x),
+                    Mathf.Max(
+                        .01f,
+                        attack.hitboxSize.y),
+                    1f);
 
-            spriteRenderer.color = color;
-            spriteRenderer.enabled = true;
+            spriteRenderer.color =
+                color;
+
+            spriteRenderer.enabled =
+                true;
         }
 
         public void Hide()
@@ -76,22 +78,25 @@ namespace LandOfFire.BunnyStep
                 return;
 
             debugObject =
-                new GameObject("AttackHitboxDebug");
+                new GameObject(
+                    "AttackHitboxDebug");
 
             debugObject.transform.SetParent(
                 transform,
-                false
-            );
+                false);
 
             spriteRenderer =
-                debugObject.AddComponent<SpriteRenderer>();
+                debugObject.AddComponent<
+                    SpriteRenderer>();
 
             CreateSprite();
 
-            spriteRenderer.sprite = debugSprite;
+            spriteRenderer.sprite =
+                debugSprite;
 
             SpriteRenderer ownerRenderer =
-                GetComponentInChildren<SpriteRenderer>();
+                GetComponentInChildren<
+                    SpriteRenderer>();
 
             if (ownerRenderer != null &&
                 ownerRenderer != spriteRenderer)
@@ -104,7 +109,8 @@ namespace LandOfFire.BunnyStep
             }
             else
             {
-                spriteRenderer.sortingOrder = 10000;
+                spriteRenderer.sortingOrder =
+                    10000;
             }
         }
 
@@ -120,10 +126,11 @@ namespace LandOfFire.BunnyStep
         private void CreateSprite()
         {
             debugTexture =
-                new Texture2D(1, 1, TextureFormat.RGBA32, false);
-
-            debugTexture.name =
-                "AttackHitboxDebugTexture";
+                new Texture2D(
+                    1,
+                    1,
+                    TextureFormat.RGBA32,
+                    false);
 
             debugTexture.filterMode =
                 FilterMode.Point;
@@ -134,21 +141,22 @@ namespace LandOfFire.BunnyStep
             debugTexture.SetPixel(
                 0,
                 0,
-                Color.white
-            );
+                Color.white);
 
             debugTexture.Apply();
 
             debugSprite =
                 Sprite.Create(
                     debugTexture,
-                    new Rect(0, 0, 1, 1),
-                    new Vector2(.5f, .5f),
-                    1f
-                );
-
-            debugSprite.name =
-                "AttackHitboxDebugSprite";
+                    new Rect(
+                        0,
+                        0,
+                        1,
+                        1),
+                    new Vector2(
+                        .5f,
+                        .5f),
+                    1f);
         }
 
         private void OnDestroy()

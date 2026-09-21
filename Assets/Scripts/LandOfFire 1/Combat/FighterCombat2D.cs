@@ -1,9 +1,15 @@
 // Land of Fire · FUN-COM-001
 // Detecta hurtboxes en los ticks activos de cualquier ataque L/M/H.
 // Cada objetivo recibe un solo impacto por ejecución.
-// No requiere un rival asignado ni usa Animation Events.
 //
-// También controla la visualización opcional de la hitbox para debug.
+// Resuelve:
+// - golpe normal
+// - guard
+// - pushback
+// - lethal hit
+// - flying hurt
+// - knockdown
+// - debug visual
 
 using System;
 using System.Collections.Generic;
@@ -20,25 +26,36 @@ namespace LandOfFire.BunnyStep
         public AttackMoveData mediumAttack;
         public AttackMoveData heavyAttack;
 
-        [Tooltip("Incluir la layer donde se encuentran las hurtboxes.")]
+        [Tooltip(
+            "Incluir la layer donde se encuentran las hurtboxes."
+        )]
         public LayerMask hurtboxLayers = ~0;
 
-        public event Action<FighterMotor2D, AttackMoveData> HitConfirmed;
+        public event Action<
+            FighterMotor2D,
+            AttackMoveData> HitConfirmed;
 
-        private readonly HashSet<FighterMotor2D> hitThisAttack =
-            new HashSet<FighterMotor2D>();
+        private readonly HashSet<FighterMotor2D>
+            hitThisAttack =
+                new HashSet<FighterMotor2D>();
 
-        private readonly List<Collider2D> overlapResults =
-            new List<Collider2D>(8);
+        private readonly List<Collider2D>
+            overlapResults =
+                new List<Collider2D>(8);
 
         private FighterMotor2D owner;
-        private FighterAttackDebugView debugView;
 
         private AttackMoveData currentMove;
 
+        private FighterAttackDebugView debugView;
+
+        // Futuro sistema de combos.
+        private bool forceCurrentAttackLethal;
+
         private void Awake()
         {
-            owner = GetComponent<FighterMotor2D>();
+            owner =
+                GetComponent<FighterMotor2D>();
 
             debugView =
                 GetComponent<FighterAttackDebugView>();
@@ -46,11 +63,13 @@ namespace LandOfFire.BunnyStep
             if (debugView == null)
             {
                 debugView =
-                    gameObject.AddComponent<FighterAttackDebugView>();
+                    gameObject.AddComponent<
+                        FighterAttackDebugView>();
             }
         }
 
-        public AttackMoveData MoveFor(AttackCommand command)
+        public AttackMoveData MoveFor(
+            AttackCommand command)
         {
             switch (command)
             {
@@ -68,16 +87,34 @@ namespace LandOfFire.BunnyStep
             }
         }
 
-        public void BeginAttack(AttackMoveData move)
+        public void BeginAttack(
+            AttackMoveData move)
         {
-            currentMove = move;
+            currentMove =
+                move;
+
             hitThisAttack.Clear();
+
+            forceCurrentAttackLethal =
+                false;
+        }
+
+        // Preparado para el futuro sistema de combos.
+        public void SetCurrentAttackLethal(
+            bool lethal)
+        {
+            forceCurrentAttackLethal =
+                lethal;
         }
 
         public void CancelAttack()
         {
             currentMove = null;
+
             hitThisAttack.Clear();
+
+            forceCurrentAttackLethal =
+                false;
 
             if (debugView != null)
                 debugView.Hide();
@@ -101,17 +138,16 @@ namespace LandOfFire.BunnyStep
                 BeginAttack(move);
 
             // ============================================================
-            // DEBUG VISUAL
+            // DEBUG
             // ============================================================
 
             UpdateDebugView(
                 move,
                 machine.CurrentAttackPhase,
-                facing
-            );
+                facing);
 
             // ============================================================
-            // HITBOX REAL
+            // HITBOX
             // ============================================================
 
             if (!move.HasHitbox(
@@ -127,14 +163,16 @@ namespace LandOfFire.BunnyStep
                 owner.BodyPosition +
                 new Vector2(
                     offset.x * facing,
-                    offset.y
-                );
+                    offset.y);
 
             Vector2 size =
                 new Vector2(
-                    Mathf.Max(.01f, move.hitboxSize.x),
-                    Mathf.Max(.01f, move.hitboxSize.y)
-                );
+                    Mathf.Max(
+                        .01f,
+                        move.hitboxSize.x),
+                    Mathf.Max(
+                        .01f,
+                        move.hitboxSize.y));
 
             var filter =
                 new ContactFilter2D
@@ -143,8 +181,7 @@ namespace LandOfFire.BunnyStep
                 };
 
             filter.SetLayerMask(
-                hurtboxLayers
-            );
+                hurtboxLayers);
 
             overlapResults.Clear();
 
@@ -153,13 +190,15 @@ namespace LandOfFire.BunnyStep
                 size,
                 0f,
                 filter,
-                overlapResults
-            );
+                overlapResults);
 
-            foreach (Collider2D collider in overlapResults)
+            foreach (
+                Collider2D collider
+                in overlapResults)
             {
                 FighterHurtbox2D hurtbox =
-                    collider.GetComponent<FighterHurtbox2D>();
+                    collider.GetComponent<
+                        FighterHurtbox2D>();
 
                 if (hurtbox == null ||
                     !hurtbox.isActiveAndEnabled)
@@ -183,32 +222,94 @@ namespace LandOfFire.BunnyStep
                     continue;
                 }
 
-                if (!target.ReceiveConfirmedHit(
-                        move.hitstunTicks))
+                // ========================================================
+                // GUARD
+                // ========================================================
+
+                bool blocked =
+                    target.GuardRequested;
+
+                if (blocked)
                 {
+                    // Lethal Hit no atraviesa Guard
+                    // con el sistema actual.
+
+                    target.ApplyPushback(
+                        move.guardPushback,
+                        facing);
+
+                    owner.ApplyHitstop(
+                        move.hitstopTicks);
+
+                    target.ApplyHitstop(
+                        move.hitstopTicks);
+
+                    hitThisAttack.Add(
+                        target);
+
                     continue;
                 }
 
-                hitThisAttack.Add(target);
+                // ========================================================
+                // LETHAL
+                // ========================================================
 
+                bool lethal =
+                    move.lethalHit ||
+                    forceCurrentAttackLethal;
+
+                bool accepted;
+
+                if (lethal)
+                {
+                    accepted =
+                        target.ReceiveFlyingHurt(
+                            move.flyingHurtTicks,
+                            move.flyingHurtDistance,
+                            move.flyingHurtHeight,
+                            facing,
+                            move.lethalHitKnockdownTicks);
+                }
+                else
+                {
+                    accepted =
+                        target.ReceiveConfirmedHit(
+                            move.hitstunTicks);
+
+                    if (accepted)
+                    {
+                        target.ApplyPushback(
+                            move.hitPushback,
+                            facing);
+                    }
+                }
+
+                if (!accepted)
+                    continue;
+
+                hitThisAttack.Add(
+                    target);
+
+                // El daño no decide si fue Lethal.
+                // Lethal ya fue decidido por el AttackMoveData.
                 health.TakeDamage(
-                    move.damage
-                );
+                    move.damage);
 
                 owner.ApplyHitstop(
-                    move.hitstopTicks
-                );
+                    move.hitstopTicks);
 
                 target.ApplyHitstop(
-                    move.hitstopTicks
-                );
+                    move.hitstopTicks);
 
                 HitConfirmed?.Invoke(
                     target,
-                    move
-                );
+                    move);
             }
         }
+
+        // ================================================================
+        // DEBUG
+        // ================================================================
 
         private void UpdateDebugView(
             AttackMoveData move,
@@ -225,14 +326,10 @@ namespace LandOfFire.BunnyStep
                 return;
             }
 
-            Color color =
-                DebugColorFor(move);
-
             debugView.Show(
                 move,
                 facing,
-                color
-            );
+                DebugColorFor(move));
         }
 
         private Color DebugColorFor(
@@ -244,8 +341,7 @@ namespace LandOfFire.BunnyStep
                     0.15f,
                     0.85f,
                     1f,
-                    0.32f
-                );
+                    0.32f);
             }
 
             if (move == mediumAttack)
@@ -254,8 +350,7 @@ namespace LandOfFire.BunnyStep
                     1f,
                     0.85f,
                     0.15f,
-                    0.32f
-                );
+                    0.32f);
             }
 
             if (move == heavyAttack)
@@ -264,16 +359,14 @@ namespace LandOfFire.BunnyStep
                     1f,
                     0.2f,
                     0.15f,
-                    0.32f
-                );
+                    0.32f);
             }
 
             return new Color(
                 1f,
                 0.15f,
                 1f,
-                0.32f
-            );
+                0.32f);
         }
 
         private void OnDisable()

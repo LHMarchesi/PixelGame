@@ -2,6 +2,56 @@
     "name": "PC",
     "maps": [
         {
+            "name": "Movement_P1",
+            "id": "73d41ab9-6758-48d7-b70e-078f19f866ea",
+            "actions": [
+                {
+                    "name": "Movement",
+                    "type": "Value",
+                    "id": "8f527e7e-6210-4446-b1b9-8c712387a1bb",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "2D Vector",
+                    "id": "9dd2c978-b030-4a0f-b583-647bd6326913",
+                    "path": "2DVector",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Movement",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Left",
+                    "id": "62dc6d66-82c4-4ecc-8163-62dc59c69e7b",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Movement",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Right",
+                    "id": "a911ffd6-598d-4143-a334-eae251d74b8d",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Movement",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                }
+            ]
+        },
+        {
             "name": "LightAttack_P1",
             "id": "b023f5d6-9c6e-4f1f-bdf0-92d1734e8c3e",
             "actions": [
@@ -86,84 +136,6 @@
             ]
         },
         {
-            "name": "LightAttack_P2",
-            "id": "f7e0ce49-cd33-4ead-9d76-869f3e576627",
-            "actions": [
-                {
-                    "name": "LightAttack",
-                    "type": "Button",
-                    "id": "b2b829fe-9195-4242-b816-acf660eaf2cb",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                }
-            ],
-            "bindings": [
-                {
-                    "name": "",
-                    "id": "46237263-075e-4b8e-be2d-7df1e5c49e67",
-                    "path": "<Keyboard>/f",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "LightAttack",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                }
-            ]
-        },
-        {
-            "name": "Movement_P1",
-            "id": "73d41ab9-6758-48d7-b70e-078f19f866ea",
-            "actions": [
-                {
-                    "name": "Movement",
-                    "type": "Value",
-                    "id": "8f527e7e-6210-4446-b1b9-8c712387a1bb",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
-                }
-            ],
-            "bindings": [
-                {
-                    "name": "2D Vector",
-                    "id": "9dd2c978-b030-4a0f-b583-647bd6326913",
-                    "path": "2DVector",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Movement",
-                    "isComposite": true,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "Left",
-                    "id": "62dc6d66-82c4-4ecc-8163-62dc59c69e7b",
-                    "path": "<Keyboard>/leftArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Movement",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "Right",
-                    "id": "a911ffd6-598d-4143-a334-eae251d74b8d",
-                    "path": "<Keyboard>/rightArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Movement",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                }
-            ]
-        },
-        {
             "name": "Movement_P2",
             "id": "5bfd8527-3369-47ad-b0a5-2b5790cda7c2",
             "actions": [
@@ -210,6 +182,90 @@
                     "action": "Movement",
                     "isComposite": false,
                     "isPartOfComposite": true
+                }
+            ]
+        },
+        {
+            "name": "LightAttack_P2",
+            "id": "f7e0ce49-cd33-4ead-9d76-869f3e576627",
+            "actions": [
+                {
+                    "name": "LightAttack",
+                    "type": "Button",
+                    "id": "b2b829fe-9195-4242-b816-acf660eaf2cb",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "46237263-075e-4b8e-be2d-7df1e5c49e67",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LightAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "MediumAttack_P2",
+            "id": "051d5918-94f6-49e4-8757-9b6b656772be",
+            "actions": [
+                {
+                    "name": "MediumAttack",
+                    "type": "Button",
+                    "id": "a15a8426-09ca-412f-a7d5-8b474baf2f98",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "218857cc-f02c-4f4f-a39c-700e0a4b03cc",
+                    "path": "<Keyboard>/n",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MediumAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "HeavyAttack_P2",
+            "id": "824a58b7-ab2a-460f-93a2-5cbe5712ffd0",
+            "actions": [
+                {
+                    "name": "HeavyAttack",
+                    "type": "Button",
+                    "id": "425cd6b2-5df5-46a7-abfe-b48d4f12944e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "05b0b2c9-843d-4b2b-817f-709a605584ff",
+                    "path": "<Keyboard>/m",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HeavyAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }

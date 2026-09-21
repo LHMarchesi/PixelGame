@@ -16,15 +16,24 @@ MonoBehaviour:
   smearTicks: 20
   poseTicks: 10
   recoveryTicks: 20
-  hitDuringSmear: 1
-  hitDuringPose: 0
+  hitDuringSmear: 0
+  hitDuringPose: 1
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 80
   hitstunTicks: 18
-  hitstopTicks: 3
-  cancelStartTick: 0
-  cancelEndTick: 40
+  hitstopTicks: 20
+  hitPushback: 0.08
+  guardPushback: 0.04
+  lethalHit: 1
+  flyingHurtTicks: 45
+  flyingHurtDistance: 25
+  flyingHurtHeight: 4
+  lethalHitKnockdownTicks: 30
+  showHitboxDebug: 1
+  cancelStartTick: 8
+  cancelEndTick: 10
+  cancelBufferTicks: 2
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.HeavyAnticipation

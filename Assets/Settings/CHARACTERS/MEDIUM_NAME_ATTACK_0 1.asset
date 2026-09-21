@@ -13,18 +13,27 @@ MonoBehaviour:
   m_Name: MEDIUM_NAME_ATTACK_0 1
   m_EditorClassIdentifier: 
   anticipationTicks: 10
-  smearTicks: 20
-  poseTicks: 10
-  recoveryTicks: 20
-  hitDuringSmear: 1
-  hitDuringPose: 0
+  smearTicks: 10
+  poseTicks: 15
+  recoveryTicks: 15
+  hitDuringSmear: 0
+  hitDuringPose: 1
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
-  damage: 80
+  damage: 100
   hitstunTicks: 18
-  hitstopTicks: 3
-  cancelStartTick: 0
-  cancelEndTick: 40
+  hitstopTicks: 10
+  hitPushback: 0.1
+  guardPushback: 0.06
+  lethalHit: 0
+  flyingHurtTicks: 24
+  flyingHurtDistance: 3
+  flyingHurtHeight: 1.5
+  lethalHitKnockdownTicks: 30
+  showHitboxDebug: 1
+  cancelStartTick: 8
+  cancelEndTick: 15
+  cancelBufferTicks: 2
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.MediumAnticipation

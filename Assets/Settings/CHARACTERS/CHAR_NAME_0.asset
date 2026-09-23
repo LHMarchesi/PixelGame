@@ -26,7 +26,7 @@ MonoBehaviour:
   forwardLoopTicks: 12
   forwardLoopDistance: 18
   forwardLoopHeight: 2.8
-  hurtTicks: 18
+  resetTicks: 20
   backwardTiming:
     preparation: 10
     flight: 20
@@ -83,6 +83,6 @@ MonoBehaviour:
     playback: 0
     loopTicks: 30
   reset:
-    stateName: Base Layer.GetUp
+    stateName: Base Layer.Reset
     playback: 0
     loopTicks: 30

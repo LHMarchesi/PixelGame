@@ -1,6 +1,9 @@
 // Land of Fire · Máquina lógica común de un luchador.
 // Controla estados, ticks, Bunny Step, Hurt, Flying Hurt,
 // Knockdown, Reset y ataques.
+//
+// La máquina NO interpreta input crudo.
+// Recibe comandos ya reconocidos desde FighterCommandRecognizer.
 
 using System;
 using UnityEngine;
@@ -40,6 +43,10 @@ namespace LandOfFire.BunnyStep
 
     public sealed class FighterStateMachine
     {
+        // ================================================================
+        // STATE
+        // ================================================================
+
         public FighterState State { get; private set; }
 
         public int Elapsed { get; private set; }
@@ -65,7 +72,9 @@ namespace LandOfFire.BunnyStep
         public float PhaseProgress =>
             PhaseDuration <= 1
                 ? 0
-                : (float)Math.Max(0, PhaseElapsed - 1) /
+                : (float)Math.Max(
+                    0,
+                    PhaseElapsed - 1) /
                   (PhaseDuration - 1);
 
         public bool IsStepping =>
@@ -73,11 +82,13 @@ namespace LandOfFire.BunnyStep
             State == FighterState.BunnyBackward ||
             State == FighterState.BunnyForwardLoop;
 
-        public BunnyTiming BunnyTiming => bunnyTiming;
+        public BunnyTiming BunnyTiming =>
+            bunnyTiming;
 
         private BunnyTiming bunnyTiming;
 
         private BunnyTiming configuredLoopTiming;
+
         public bool IsHurt =>
             State == FighterState.Hurt;
 
@@ -120,18 +131,23 @@ namespace LandOfFire.BunnyStep
                 if (CurrentAttack == null)
                     return false;
 
-                if (CurrentAttackPhase != AttackPhase.Pose)
+                if (CurrentAttackPhase !=
+                    AttackPhase.Pose)
+                {
                     return false;
+                }
 
                 return CurrentAttack.IsCancelWindow(
                     PhaseElapsed);
             }
         }
 
-        public event Action<FighterState, FighterState> StateChanged;
+        public event Action<
+            FighterState,
+            FighterState> StateChanged;
 
         // ================================================================
-        // ATTACK
+        // ATTACK DATA
         // ================================================================
 
         private int attackAnticipation;
@@ -154,6 +170,16 @@ namespace LandOfFire.BunnyStep
         private float flightProgress;
         private float startHeight;
 
+        private int configuredForwardTotal;
+        private float configuredForwardDistance;
+        private float configuredForwardHeight;
+        private BunnyTiming configuredForwardTiming;
+
+        private int configuredBackwardTotal;
+        private float configuredBackwardDistance;
+        private float configuredBackwardHeight;
+        private BunnyTiming configuredBackwardTiming;
+
         private int configuredLoopTotal;
         private float configuredLoopDistance;
         private float configuredLoopHeight;
@@ -174,38 +200,167 @@ namespace LandOfFire.BunnyStep
         private bool autoGetUp = true;
 
         // ================================================================
-        // INPUT
+        // RESET
         // ================================================================
 
-        private int tapDirection;
-        private long tapTick = long.MinValue;
+        private int configuredResetTicks = 20;
 
         // ================================================================
         // CONFIGURATION
         // ================================================================
 
-        public void ConfigureForwardLoop(
-     int total,
-     float distance,
-     float height,
-     BunnyTiming timing)
+        public void ConfigureBunny(
+            int forwardTotal,
+            float forwardDistance,
+            float forwardHeight,
+            BunnyTiming forwardTiming,
+
+            int backwardTotal,
+            float backwardDistance,
+            float backwardHeight,
+            BunnyTiming backwardTiming,
+
+            int loopTotal,
+            float loopDistance,
+            float loopHeight,
+            BunnyTiming loopTiming)
         {
+            configuredForwardTotal =
+                Mathf.Max(
+                    1,
+                    forwardTotal);
+
+            configuredForwardDistance =
+                Mathf.Max(
+                    0,
+                    forwardDistance);
+
+            configuredForwardHeight =
+                Mathf.Max(
+                    0,
+                    forwardHeight);
+
+            configuredForwardTiming =
+                forwardTiming;
+
+
+            configuredBackwardTotal =
+                Mathf.Max(
+                    1,
+                    backwardTotal);
+
+            configuredBackwardDistance =
+                Mathf.Max(
+                    0,
+                    backwardDistance);
+
+            configuredBackwardHeight =
+                Mathf.Max(
+                    0,
+                    backwardHeight);
+
+            configuredBackwardTiming =
+                backwardTiming;
+
+
             configuredLoopTotal =
-                Mathf.Max(1, total);
+                Mathf.Max(
+                    1,
+                    loopTotal);
 
             configuredLoopDistance =
-                Mathf.Max(0, distance);
+                Mathf.Max(
+                    0,
+                    loopDistance);
 
             configuredLoopHeight =
-                Mathf.Max(0, height);
+                Mathf.Max(
+                    0,
+                    loopHeight);
 
             configuredLoopTiming =
-                timing;
+                loopTiming;
         }
+
         public void ConfigureKnockdown(
             bool shouldAutoGetUp)
         {
-            autoGetUp = shouldAutoGetUp;
+            autoGetUp =
+                shouldAutoGetUp;
+        }
+
+        public void ConfigureReset(
+            int resetTicks)
+        {
+            configuredResetTicks =
+                Mathf.Max(
+                    1,
+                    resetTicks);
+        }
+
+        // ================================================================
+        // COMMANDS
+        // ================================================================
+
+        public bool ExecuteBunnyForward(
+            int facing)
+        {
+            if (!CanStartBunny())
+                return false;
+
+            StartBunny(
+                FighterState.BunnyForward,
+                facing,
+                configuredForwardTotal,
+                configuredForwardDistance,
+                configuredForwardHeight,
+                configuredForwardTiming);
+
+            return true;
+        }
+
+        public bool ExecuteBunnyBackward(
+            int facing)
+        {
+            if (!CanStartBunny())
+                return false;
+
+            StartBunny(
+                FighterState.BunnyBackward,
+                -facing,
+                configuredBackwardTotal,
+                configuredBackwardDistance,
+                configuredBackwardHeight,
+                configuredBackwardTiming);
+
+            return true;
+        }
+
+        public bool ExecuteBunnyForwardLoop(
+            int facing)
+        {
+            if (!CanStartBunny())
+                return false;
+
+            StartBunny(
+                FighterState.BunnyForwardLoop,
+                facing,
+                configuredLoopTotal,
+                configuredLoopDistance,
+                configuredLoopHeight,
+                configuredLoopTiming);
+
+            return true;
+        }
+
+        private bool CanStartBunny()
+        {
+            if (IsTimed)
+                return false;
+
+            return
+                State == FighterState.Idle ||
+                State == FighterState.Guard;
         }
 
         // ================================================================
@@ -255,6 +410,8 @@ namespace LandOfFire.BunnyStep
                     State == FighterState.BunnyForward ||
                     State == FighterState.BunnyForwardLoop;
 
+                // Mantener Forward después de un Bunny
+                // continúa el desplazamiento.
                 if (forward &&
                     heldDirection == newFacing)
                 {
@@ -266,16 +423,21 @@ namespace LandOfFire.BunnyStep
                         configuredLoopHeight,
                         configuredLoopTiming);
 
-                    ForgetTap();
                     return;
                 }
 
                 FinishTimedState();
             }
 
+            // ============================================================
+            // IDLE / GUARD
+            // ============================================================
+
             if (!IsTimed)
             {
-                Phase = BunnyPhase.None;
+                Phase =
+                    BunnyPhase.None;
+
                 PhaseElapsed = 0;
                 PhaseDuration = 0;
 
@@ -308,7 +470,8 @@ namespace LandOfFire.BunnyStep
             if (Elapsed >= Duration)
                 return 0;
 
-            int index = Elapsed;
+            int index =
+                Elapsed;
 
             Elapsed++;
 
@@ -332,7 +495,8 @@ namespace LandOfFire.BunnyStep
                 {
                     SetAttackPhase(
                         AttackPhase.Smear,
-                        index - attackAnticipation,
+                        index -
+                        attackAnticipation,
                         attackSmear);
                 }
                 else if (
@@ -368,12 +532,14 @@ namespace LandOfFire.BunnyStep
 
             if (IsHurt)
             {
-                Height = Mathf.Lerp(
-                    hurtStartHeight,
-                    0,
-                    Duration <= 1
-                        ? 1f
-                        : (float)Elapsed / Duration);
+                Height =
+                    Mathf.Lerp(
+                        hurtStartHeight,
+                        0,
+                        Duration <= 1
+                            ? 1f
+                            : (float)Elapsed /
+                              Duration);
 
                 return 0;
             }
@@ -384,8 +550,11 @@ namespace LandOfFire.BunnyStep
 
             if (IsFlyingHurt)
             {
-                Phase = BunnyPhase.Flight;
-                PhaseDuration = Duration;
+                Phase =
+                    BunnyPhase.Flight;
+
+                PhaseDuration =
+                    Duration;
 
                 float currentProgress =
                     Duration <= 1
@@ -401,7 +570,8 @@ namespace LandOfFire.BunnyStep
                             (float)(Elapsed - 1) /
                             (Duration - 1));
 
-                flyingProgress = currentProgress;
+                flyingProgress =
+                    currentProgress;
 
                 Height =
                     ArcHeight(
@@ -419,7 +589,8 @@ namespace LandOfFire.BunnyStep
                 Distance =
                     flyingHurtDistance;
 
-                PhaseElapsed = Elapsed;
+                PhaseElapsed =
+                    Elapsed;
 
                 return
                     (currentDistance -
@@ -433,9 +604,15 @@ namespace LandOfFire.BunnyStep
 
             if (IsKnockdown)
             {
-                Phase = BunnyPhase.None;
-                PhaseElapsed = Elapsed;
-                PhaseDuration = Duration;
+                Phase =
+                    BunnyPhase.None;
+
+                PhaseElapsed =
+                    Elapsed;
+
+                PhaseDuration =
+                    Duration;
+
                 Height = 0;
 
                 return 0;
@@ -447,9 +624,15 @@ namespace LandOfFire.BunnyStep
 
             if (IsResetting)
             {
-                Phase = BunnyPhase.None;
-                PhaseElapsed = Elapsed;
-                PhaseDuration = Duration;
+                Phase =
+                    BunnyPhase.None;
+
+                PhaseElapsed =
+                    Elapsed;
+
+                PhaseDuration =
+                    Duration;
+
                 Height = 0;
 
                 return 0;
@@ -524,23 +707,17 @@ namespace LandOfFire.BunnyStep
                               bunnyTiming.Flight;
 
                     before =
-                        Mathf.Clamp01(before);
+                        Mathf.Clamp01(
+                            before);
 
                     flightProgress =
-                        Mathf.Clamp01(flightProgress);
-
-                    // ----------------------------------------------------
-                    // ALTURA
-                    // ----------------------------------------------------
+                        Mathf.Clamp01(
+                            flightProgress);
 
                     Height =
                         ArcHeight(
                             startHeight,
                             flightProgress);
-
-                    // ----------------------------------------------------
-                    // MOVIMIENTO HORIZONTAL
-                    // ----------------------------------------------------
 
                     return
                         (Ease(flightProgress) -
@@ -575,11 +752,19 @@ namespace LandOfFire.BunnyStep
 
             return 0;
         }
-        private static float Ease(float t)
+
+        private static float Ease(
+            float t)
         {
-            t = Mathf.Clamp01(t);
-            return t * t * (3f - 2f * t);
+            t =
+                Mathf.Clamp01(t);
+
+            return
+                t *
+                t *
+                (3f - 2f * t);
         }
+
         // ================================================================
         // ATTACK START
         // ================================================================
@@ -616,7 +801,8 @@ namespace LandOfFire.BunnyStep
                 return false;
             }
 
-            return StartAttack(move);
+            return StartAttack(
+                move);
         }
 
         public bool TryCancelAttack(
@@ -631,7 +817,8 @@ namespace LandOfFire.BunnyStep
             if (!IsAttackCancelWindow)
                 return false;
 
-            return StartAttack(move);
+            return StartAttack(
+                move);
         }
 
         private bool StartAttack(
@@ -660,12 +847,15 @@ namespace LandOfFire.BunnyStep
                 attackPose +
                 attackRecovery;
 
-            CurrentAttack = move;
+            CurrentAttack =
+                move;
 
             CurrentAttackPhase =
                 AttackPhase.Anticipation;
 
-            Phase = BunnyPhase.None;
+            Phase =
+                BunnyPhase.None;
+
             PhaseElapsed = 0;
             PhaseDuration = 0;
 
@@ -673,104 +863,10 @@ namespace LandOfFire.BunnyStep
 
             flightProgress = 0;
 
-            ForgetTap();
-
-            Change(FighterState.Attack);
+            Change(
+                FighterState.Attack);
 
             return true;
-        }
-
-        // ================================================================
-        // BUNNY
-        // ================================================================
-
-        public void Press(
-     int direction,
-     long currentTick,
-     int doubleTapTicks,
-     int forwardDuration,
-     float forwardDistance,
-     float forwardHeight,
-     BunnyTiming forwardTiming,
-     int backwardDuration,
-     float backwardDistance,
-     float backwardHeight,
-     BunnyTiming backwardTiming,
-     BunnyTiming forwardLoopTiming)
-        {
-            if (direction == 0)
-                return;
-
-            if (IsTimed)
-                return;
-
-            if (State != FighterState.Idle &&
-                State != FighterState.Guard)
-            {
-                return;
-            }
-
-            bool doubleTap =
-                tapDirection == direction &&
-                currentTick - tapTick <=
-                doubleTapTicks;
-
-            tapDirection = direction;
-            tapTick = currentTick;
-
-            if (doubleTap)
-            {
-                StartBunny(
-                    direction > 0
-                        ? FighterState.BunnyForwardLoop
-                        : FighterState.BunnyBackward,
-
-                    direction,
-
-                    direction > 0
-                        ? configuredLoopTotal
-                        : backwardDuration,
-
-                    direction > 0
-                        ? configuredLoopDistance
-                        : backwardDistance,
-
-                    direction > 0
-                        ? configuredLoopHeight
-                        : backwardHeight,
-
-                    direction > 0
-                        ? forwardLoopTiming
-                        : backwardTiming);
-
-                ForgetTap();
-                return;
-            }
-
-            StartBunny(
-                direction > 0
-                    ? FighterState.BunnyForward
-                    : FighterState.BunnyBackward,
-
-                direction,
-
-                direction > 0
-                    ? forwardDuration
-                    : backwardDuration,
-
-                direction > 0
-                    ? forwardDistance
-                    : backwardDistance,
-
-                direction > 0
-                    ? forwardHeight
-                    : backwardHeight,
-
-                direction > 0
-                    ? forwardTiming
-                    : backwardTiming);
-
-            ForgetTap();
         }
 
         // ================================================================
@@ -783,11 +879,9 @@ namespace LandOfFire.BunnyStep
             float currentHeight =
                 VisualHeight;
 
-            ForgetTap();
-
             StartTimedState(
-     FighterState.Hurt,
-     duration);
+                FighterState.Hurt,
+                duration);
 
             hurtStartHeight =
                 currentHeight;
@@ -804,14 +898,15 @@ namespace LandOfFire.BunnyStep
             int direction,
             int knockdownTicks)
         {
-            ForgetTap();
-
             CurrentAttack = null;
+
             CurrentAttackPhase =
                 AttackPhase.None;
 
             Duration =
-                Mathf.Max(1, duration);
+                Mathf.Max(
+                    1,
+                    duration);
 
             Elapsed = 0;
 
@@ -821,44 +916,60 @@ namespace LandOfFire.BunnyStep
                     : -1;
 
             Distance =
-                Mathf.Max(0, distance);
+                Mathf.Max(
+                    0,
+                    distance);
 
             Height = 0;
 
             flyingHurtDistance =
-                Mathf.Max(0, distance);
+                Mathf.Max(
+                    0,
+                    distance);
 
             flyingHurtMaxHeight =
-                Mathf.Max(0, height);
+                Mathf.Max(
+                    0,
+                    height);
 
             flyingHurtKnockdownTicks =
-                Mathf.Max(1, knockdownTicks);
+                Mathf.Max(
+                    1,
+                    knockdownTicks);
 
             Phase =
                 BunnyPhase.Flight;
 
             PhaseElapsed = 0;
-            PhaseDuration = Duration;
+
+            PhaseDuration =
+                Duration;
 
             flyingProgress = 0;
 
-            // IMPORTANTE:
-            // no asignamos State antes de Change().
-            Change(FighterState.FlyingHurt);
+            Change(
+                FighterState.FlyingHurt);
         }
 
+        // ================================================================
+        // TIMED STATE
+        // ================================================================
+
         private void StartTimedState(
-    FighterState state,
-    int duration)
+            FighterState state,
+            int duration)
         {
             CurrentAttack = null;
+
             CurrentAttackPhase =
                 AttackPhase.None;
 
             Elapsed = 0;
 
             Duration =
-                Mathf.Max(1, duration);
+                Mathf.Max(
+                    1,
+                    duration);
 
             StepDirection = 0;
 
@@ -869,12 +980,14 @@ namespace LandOfFire.BunnyStep
                 BunnyPhase.None;
 
             PhaseElapsed = 0;
-            PhaseDuration = Duration;
+            PhaseDuration =
+                Duration;
 
             flightProgress = 0;
 
             Change(state);
         }
+
         // ================================================================
         // KNOCKDOWN
         // ================================================================
@@ -897,13 +1010,15 @@ namespace LandOfFire.BunnyStep
             Distance = 0;
             Height = 0;
 
-            Phase = BunnyPhase.None;
-            PhaseElapsed = 0;
-            PhaseDuration = Duration;
+            Phase =
+                BunnyPhase.None;
 
-            // IMPORTANTE:
-            // no asignamos State antes de Change().
-            Change(FighterState.Knockdown);
+            PhaseElapsed = 0;
+            PhaseDuration =
+                Duration;
+
+            Change(
+                FighterState.Knockdown);
         }
 
         // ================================================================
@@ -913,24 +1028,31 @@ namespace LandOfFire.BunnyStep
         private void EnterReset()
         {
             CurrentAttack = null;
+
             CurrentAttackPhase =
                 AttackPhase.None;
 
             Elapsed = 0;
 
-            // Por ahora 1 tick.
-            // Más adelante esto puede salir del FighterMovementProfile.
-            Duration = 1;
+            Duration =
+                Mathf.Max(
+                    1,
+                    configuredResetTicks);
 
             StepDirection = 0;
+
             Distance = 0;
             Height = 0;
 
-            Phase = BunnyPhase.None;
-            PhaseElapsed = 0;
-            PhaseDuration = Duration;
+            Phase =
+                BunnyPhase.None;
 
-            Change(FighterState.Reset);
+            PhaseElapsed = 0;
+            PhaseDuration =
+                Duration;
+
+            Change(
+                FighterState.Reset);
         }
 
         private void FinishReset()
@@ -939,18 +1061,23 @@ namespace LandOfFire.BunnyStep
             Duration = 0;
 
             StepDirection = 0;
+
             Distance = 0;
             Height = 0;
 
-            Phase = BunnyPhase.None;
+            Phase =
+                BunnyPhase.None;
+
             PhaseElapsed = 0;
             PhaseDuration = 0;
 
             CurrentAttack = null;
+
             CurrentAttackPhase =
                 AttackPhase.None;
 
-            Change(FighterState.Idle);
+            Change(
+                FighterState.Idle);
         }
 
         // ================================================================
@@ -992,22 +1119,43 @@ namespace LandOfFire.BunnyStep
             flightProgress = 0;
             startHeight = 0;
 
+            configuredForwardTotal = 0;
+            configuredForwardDistance = 0;
+            configuredForwardHeight = 0;
+
+            configuredBackwardTotal = 0;
+            configuredBackwardDistance = 0;
+            configuredBackwardHeight = 0;
+
+            configuredLoopTotal = 0;
+            configuredLoopDistance = 0;
+            configuredLoopHeight = 0;
+
             flyingHurtDistance = 0;
             flyingHurtMaxHeight = 0;
             flyingHurtKnockdownTicks = 0;
             flyingProgress = 0;
-            ForgetTap();
+
+            bunnyTiming =
+                default;
+
+            configuredForwardTiming =
+                default;
+
+            configuredBackwardTiming =
+                default;
+
+            configuredLoopTiming =
+                default;
+
+            autoGetUp = true;
+
+            configuredResetTicks = 20;
         }
 
         // ================================================================
         // HELPERS
         // ================================================================
-
-        public void ForgetTap()
-        {
-            tapDirection = 0;
-            tapTick = long.MinValue;
-        }
 
         public float VisualHeight
         {
@@ -1028,33 +1176,42 @@ namespace LandOfFire.BunnyStep
         }
 
         private void StartBunny(
-      FighterState state,
-      int direction,
-      int duration,
-      float distance,
-      float height,
-      BunnyTiming timing)
+            FighterState state,
+            int direction,
+            int duration,
+            float distance,
+            float height,
+            BunnyTiming timing)
         {
             CurrentAttack = null;
+
             CurrentAttackPhase =
                 AttackPhase.None;
 
             Elapsed = 0;
 
             Duration =
-                Mathf.Max(1, duration);
+                Mathf.Max(
+                    1,
+                    duration);
 
-            StepDirection = direction;
+            StepDirection =
+                direction;
 
             Distance =
-                Mathf.Max(0, distance);
+                Mathf.Max(
+                    0,
+                    distance);
 
             startHeight =
-                Mathf.Max(0, height);
+                Mathf.Max(
+                    0,
+                    height);
 
             Height = 0;
 
-            bunnyTiming = timing;
+            bunnyTiming =
+                timing;
 
             Phase =
                 BunnyPhase.Preparation;
@@ -1098,13 +1255,17 @@ namespace LandOfFire.BunnyStep
             if (State ==
                 FighterState.BunnyForwardLoop)
             {
-                Change(FighterState.Idle);
+                Change(
+                    FighterState.Idle);
+
                 Elapsed = 0;
                 Duration = 0;
+
                 return;
             }
 
-            Change(FighterState.Idle);
+            Change(
+                FighterState.Idle);
 
             Elapsed = 0;
             Duration = 0;
@@ -1112,11 +1273,14 @@ namespace LandOfFire.BunnyStep
             Distance = 0;
             Height = 0;
 
-            Phase = BunnyPhase.None;
+            Phase =
+                BunnyPhase.None;
+
             PhaseElapsed = 0;
             PhaseDuration = 0;
 
             CurrentAttack = null;
+
             CurrentAttackPhase =
                 AttackPhase.None;
         }
@@ -1130,7 +1294,8 @@ namespace LandOfFire.BunnyStep
             FighterState previous =
                 State;
 
-            State = next;
+            State =
+                next;
 
             StateChanged?.Invoke(
                 previous,
@@ -1141,7 +1306,8 @@ namespace LandOfFire.BunnyStep
             float maxHeight,
             float t)
         {
-            t = Mathf.Clamp01(t);
+            t =
+                Mathf.Clamp01(t);
 
             return
                 4f *

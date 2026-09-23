@@ -23,8 +23,8 @@ MonoBehaviour:
   damage: 100
   hitstunTicks: 18
   hitstopTicks: 10
-  hitPushback: 0.1
-  guardPushback: 0.06
+  hitPushback: 1.13
+  guardPushback: 0.32
   lethalHit: 0
   flyingHurtTicks: 24
   flyingHurtDistance: 3
@@ -36,18 +36,18 @@ MonoBehaviour:
   cancelBufferTicks: 2
   allowBunnyCancel: 0
   anticipation:
-    stateName: Base Layer.MediumAnticipation
+    stateName: Base Layer.LightAnticipation
     playback: 0
     loopTicks: 30
   smear:
-    stateName: Base Layer.MediumSmear
+    stateName: Base Layer.LightSmear
     playback: 0
     loopTicks: 30
   pose:
-    stateName: Base Layer.MediumPose
+    stateName: Base Layer.LightPose
     playback: 0
     loopTicks: 30
   recovery:
-    stateName: Base Layer.MediumRecovery
+    stateName: Base Layer.LightRecovery
     playback: 0
     loopTicks: 30

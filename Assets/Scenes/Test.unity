@@ -779,6 +779,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   input: {fileID: 502439206}
+  moveset: {fileID: 0}
+  commandBufferTicks: 12
 --- !u!114 &502439208
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -828,6 +830,7 @@ MonoBehaviour:
   startsFacingRight: 0
   frozen: 0
   autoGetUp: 1
+  debugHurtTicks: 18
   currentState: 0
   currentPhase: 0
   currentAttackPhase: 0
@@ -3028,6 +3031,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   input: {fileID: 2136306433}
+  moveset: {fileID: 11400000, guid: 1480df9019a8414499712a1d750fe64f, type: 2}
+  commandBufferTicks: 52
 --- !u!114 &2136306428
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3048,6 +3053,7 @@ MonoBehaviour:
   startsFacingRight: 1
   frozen: 0
   autoGetUp: 1
+  debugHurtTicks: 18
   currentState: 0
   currentPhase: 0
   currentAttackPhase: 0

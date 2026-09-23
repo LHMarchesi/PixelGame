@@ -1,7 +1,3 @@
-// Land of Fire · Asset de movimiento y animaciones de Bunny, Guard, Hurt,
-// Flying Hurt, Knockdown y Reset.
-// Cada FighterMotor2D crea una copia en Play para configurar a cada luchador por separado.
-
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -12,6 +8,7 @@ namespace LandOfFire.BunnyStep
         ScriptableObject
     {
         [Header("Adelante")]
+
         public BunnyTiming forwardTiming =
             new BunnyTiming(2, 7, 3);
 
@@ -23,6 +20,7 @@ namespace LandOfFire.BunnyStep
 
         [Min(0)]
         public float forwardHeight = .3f;
+
 
         [Header(
             "Adelante sostenido: usa solo Flight y Recovery " +
@@ -40,11 +38,15 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public float forwardLoopHeight = .3f;
 
-        [Header(
-            "Hurt provisional; el ataque podrá indicar su duración")]
 
+        [Header("Levantarse")]
+
+        [Tooltip(
+            "Cantidad de ticks que el personaje tarda en " +
+            "levantarse después del Knockdown.")]
         [Min(1)]
-        public int hurtTicks = 18;
+        public int resetTicks = 20;
+
 
         [Header("Atrás")]
 
@@ -63,111 +65,138 @@ namespace LandOfFire.BunnyStep
         [Min(1)]
         public int doubleTapTicks = 12;
 
+
         [Header("Cuerpo físico")]
 
         public Vector2 bodySize =
             new Vector2(.8f, 1.6f);
 
         public Vector2 bodyOffset =
-            new Vector2(0, .8f);
+            new Vector2(0f, .8f);
 
         [Min(.01f)]
-        public float mass = 1;
+        public float mass = 1f;
+
 
         [Header("Estados Animator")]
 
         public PhaseAnimation forwardPreparation =
             new PhaseAnimation(
-                "ForwardPreparation");
+                "BunnyForwardPreparation");
 
         public PhaseAnimation forwardFlight =
             new PhaseAnimation(
-                "ForwardFlight");
+                "BunnyForwardFlight");
 
         public PhaseAnimation forwardRecovery =
             new PhaseAnimation(
-                "ForwardRecovery");
+                "BunnyForwardRecovery");
+
 
         public PhaseAnimation backwardPreparation =
             new PhaseAnimation(
-                "BackwardPreparation");
+                "BunnyBackwardPreparation");
 
         public PhaseAnimation backwardFlight =
             new PhaseAnimation(
-                "BackwardFlight");
+                "BunnyBackwardFlight");
 
         public PhaseAnimation backwardRecovery =
             new PhaseAnimation(
-                "BackwardRecovery");
+                "BunnyBackwardRecovery");
+
 
         public PhaseAnimation idle =
-            new PhaseAnimation("Idle")
-            {
-                playback = PhasePlayback.Loop,
-                loopTicks = 60
-            };
+            new PhaseAnimation(
+                "Idle");
 
         public PhaseAnimation guard =
-            new PhaseAnimation("Guard")
-            {
-                playback = PhasePlayback.Loop,
-                loopTicks = 60
-            };
+            new PhaseAnimation(
+                "Guard");
 
         public PhaseAnimation hurt =
-            new PhaseAnimation("Hurt");
+            new PhaseAnimation(
+                "Hurt");
 
         public PhaseAnimation flyingHurt =
-            new PhaseAnimation("FlyingHurt");
+            new PhaseAnimation(
+                "FlyingHurt");
 
         public PhaseAnimation knockdown =
-            new PhaseAnimation("Knockdown");
+            new PhaseAnimation(
+                "Knockdown");
 
         public PhaseAnimation reset =
-            new PhaseAnimation("GetUp");
+            new PhaseAnimation(
+                "GetUp");
+
 
         public PhaseAnimation AnimationFor(
             FighterState state,
             BunnyPhase phase)
         {
-            if (state == FighterState.Idle)
-                return idle;
-
-            if (state == FighterState.Guard)
-                return guard;
-
-            if (state == FighterState.Hurt)
-                return hurt;
-
-            if (state == FighterState.FlyingHurt)
-                return flyingHurt;
-
-            if (state == FighterState.Knockdown)
-                return knockdown;
-
-            if (state == FighterState.Reset)
-                return reset;
-
-            bool backward =
-                state == FighterState.BunnyBackward;
-
-            if (phase == BunnyPhase.Preparation)
+            switch (state)
             {
-                return backward
-                    ? backwardPreparation
-                    : forwardPreparation;
+                case FighterState.Idle:
+                    return idle;
+
+                case FighterState.Guard:
+                    return guard;
+
+                case FighterState.Hurt:
+                    return hurt;
+
+                case FighterState.FlyingHurt:
+                    return flyingHurt;
+
+                case FighterState.Knockdown:
+                    return knockdown;
+
+                case FighterState.Reset:
+                    return reset;
             }
 
-            if (phase == BunnyPhase.Flight)
+            switch (phase)
             {
-                return backward
-                    ? backwardFlight
-                    : forwardFlight;
-            }
+                case BunnyPhase.Preparation:
 
-            return backward
-                ? backwardRecovery
-                : forwardRecovery;
+                    if (state == FighterState.BunnyForward)
+                        return forwardPreparation;
+
+                    if (state == FighterState.BunnyBackward)
+                        return backwardPreparation;
+
+                    return null;
+
+                case BunnyPhase.Flight:
+
+                    if (state == FighterState.BunnyForward ||
+                        state == FighterState.BunnyForwardLoop)
+                    {
+                        return forwardFlight;
+                    }
+
+                    if (state == FighterState.BunnyBackward)
+                        return backwardFlight;
+
+                    return null;
+
+                case BunnyPhase.Recovery:
+
+                    if (state == FighterState.BunnyForward ||
+                        state == FighterState.BunnyForwardLoop)
+                    {
+                        return forwardRecovery;
+                    }
+
+                    if (state == FighterState.BunnyBackward)
+                        return backwardRecovery;
+
+                    return null;
+
+                default:
+                    return null;
+            }
         }
     }
 }

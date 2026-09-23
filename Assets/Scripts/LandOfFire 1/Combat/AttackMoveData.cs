@@ -5,7 +5,6 @@
 // Si lethalHit está activo, cualquier impacto no bloqueado
 // produce Flying Hurt.
 
-using Cinemachine;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -45,15 +44,16 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public int damage = 8;
 
+        [Tooltip(
+            "Duración del estado Hurt que aplica este ataque.")]
         [Min(1)]
         public int hitstunTicks = 18;
 
+        public int HurtTicks =>
+            Mathf.Max(1, hitstunTicks);
+
         [Min(0)]
         public int hitstopTicks = 3;
-
-        // ================================================================
-        // PUSHBACK
-        // ================================================================
 
         [Header("Pushback")]
 
@@ -66,10 +66,6 @@ namespace LandOfFire.BunnyStep
             "Distancia de pushback cuando el rival está cubriendo.")]
         [Min(0)]
         public float guardPushback = .04f;
-
-        // ================================================================
-        // LETHAL HIT
-        // ================================================================
 
         [Header("Lethal Hit")]
 
@@ -98,19 +94,11 @@ namespace LandOfFire.BunnyStep
         [Min(1)]
         public int lethalHitKnockdownTicks = 30;
 
-        // ================================================================
-        // DEBUG
-        // ================================================================
-
         [Header("Debug")]
 
         [Tooltip(
             "Muestra la hitbox durante sus ticks activos.")]
         public bool showHitboxDebug;
-
-        // ================================================================
-        // CANCEL
-        // ================================================================
 
         [Header("Cancel")]
 
@@ -123,17 +111,9 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public int cancelBufferTicks = 2;
 
-        // ================================================================
-        // ENTRADA
-        // ================================================================
-
         [Header("Entrada")]
 
         public bool allowBunnyCancel;
-
-        // ================================================================
-        // ANIMACIÓN
-        // ================================================================
 
         [Header("Estados del Animator")]
 
@@ -154,34 +134,22 @@ namespace LandOfFire.BunnyStep
                 "LightRecovery");
 
         public int AnticipationTicks =>
-            Mathf.Max(
-                1,
-                anticipationTicks);
+            Mathf.Max(1, anticipationTicks);
 
         public int SmearTicks =>
-            Mathf.Max(
-                1,
-                smearTicks);
+            Mathf.Max(1, smearTicks);
 
         public int PoseTicks =>
-            Mathf.Max(
-                1,
-                poseTicks);
+            Mathf.Max(1, poseTicks);
 
         public int RecoveryTicks =>
-            Mathf.Max(
-                1,
-                recoveryTicks);
+            Mathf.Max(1, recoveryTicks);
 
         public int TotalTicks =>
             AnticipationTicks +
             SmearTicks +
             PoseTicks +
             RecoveryTicks;
-
-        // ================================================================
-        // HITBOX
-        // ================================================================
 
         public bool HasHitbox(
             AttackPhase phase)
@@ -192,10 +160,6 @@ namespace LandOfFire.BunnyStep
                 phase == AttackPhase.Pose &&
                 hitDuringPose;
         }
-
-        // ================================================================
-        // CANCEL WINDOW
-        // ================================================================
 
         public int CancelStartTick =>
             Mathf.Clamp(
@@ -217,10 +181,6 @@ namespace LandOfFire.BunnyStep
                 poseElapsed <= CancelEndTick;
         }
 
-        // ================================================================
-        // CANCEL BUFFER
-        // ================================================================
-
         public bool IsCancelBufferWindow(
             int poseElapsed)
         {
@@ -237,10 +197,6 @@ namespace LandOfFire.BunnyStep
                 poseElapsed >= bufferStart &&
                 poseElapsed < CancelStartTick;
         }
-
-        // ================================================================
-        // ANIMATOR
-        // ================================================================
 
         public PhaseAnimation AnimationFor(
             AttackPhase phase)
@@ -265,4 +221,3 @@ namespace LandOfFire.BunnyStep
         }
     }
 }
-

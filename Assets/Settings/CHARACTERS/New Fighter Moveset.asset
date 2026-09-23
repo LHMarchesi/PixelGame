@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9afab96fe893a574e956c12a637dbac2, type: 3}
+  m_Name: New Fighter Moveset
+  m_EditorClassIdentifier: 
+  commands:
+  - sequence: 000000000000000002000000
+    commandType: 4
+    attack: 0
+    attackMove: {fileID: 11400000, guid: 27344ce329a5b4c4fa37e414b8d36604, type: 2}
+    priority: 100
+  - sequence: 0100000001000000
+    commandType: 2
+    attack: 0
+    attackMove: {fileID: 0}
+    priority: 100

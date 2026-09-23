@@ -10,44 +10,44 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
-  m_Name: HEAVY_NAME_ATTACK_0 2
+  m_Name: FF_Light_Smash
   m_EditorClassIdentifier: 
   anticipationTicks: 10
-  smearTicks: 20
-  poseTicks: 10
-  recoveryTicks: 20
-  hitDuringSmear: 0
-  hitDuringPose: 1
-  hitboxOffset: {x: 6, y: 1}
-  hitboxSize: {x: 5, y: 8}
-  damage: 80
+  smearTicks: 15
+  poseTicks: 15
+  recoveryTicks: 10
+  hitDuringSmear: 1
+  hitDuringPose: 0
+  hitboxOffset: {x: 1, y: 1}
+  hitboxSize: {x: 0.9, y: 0.55}
+  damage: 8
   hitstunTicks: 18
-  hitstopTicks: 20
-  hitPushback: 0.08
+  hitstopTicks: 3
+  hitPushback: 2.05
   guardPushback: 0.04
-  lethalHit: 1
-  flyingHurtTicks: 45
-  flyingHurtDistance: 25
-  flyingHurtHeight: 4
-  lethalHitKnockdownTicks: 60
+  lethalHit: 0
+  flyingHurtTicks: 24
+  flyingHurtDistance: 3
+  flyingHurtHeight: 1.5
+  lethalHitKnockdownTicks: 30
   showHitboxDebug: 1
-  cancelStartTick: 8
-  cancelEndTick: 10
+  cancelStartTick: 1
+  cancelEndTick: 4
   cancelBufferTicks: 2
   allowBunnyCancel: 0
   anticipation:
-    stateName: Base Layer.HeavyAnticipation
+    stateName: Base Layer.LightAnticipation
     playback: 0
     loopTicks: 30
   smear:
-    stateName: Base Layer.HeavySmear
+    stateName: Base Layer.MediumSmear
     playback: 0
     loopTicks: 30
   pose:
-    stateName: Base Layer.HeavyPose
+    stateName: Base Layer.MediumPose
     playback: 0
     loopTicks: 30
   recovery:
-    stateName: Base Layer.HeavyRecovery
+    stateName: Base Layer.LightRecovery
     playback: 0
     loopTicks: 30

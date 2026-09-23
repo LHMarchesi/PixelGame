@@ -1,15 +1,6 @@
 // Land of Fire · FUN-COM-001
-// Detecta hurtboxes en los ticks activos de cualquier ataque L/M/H.
+// Detecta hurtboxes en los ticks activos de cualquier ataque.
 // Cada objetivo recibe un solo impacto por ejecución.
-//
-// Resuelve:
-// - golpe normal
-// - guard
-// - pushback
-// - lethal hit
-// - flying hurt
-// - knockdown
-// - debug visual
 
 using System;
 using System.Collections.Generic;
@@ -22,6 +13,7 @@ namespace LandOfFire.BunnyStep
     public sealed class FighterCombat2D : MonoBehaviour
     {
         [Header("Ataques")]
+
         public AttackMoveData lightAttack;
         public AttackMoveData mediumAttack;
         public AttackMoveData heavyAttack;
@@ -37,11 +29,11 @@ namespace LandOfFire.BunnyStep
 
         private readonly HashSet<FighterMotor2D>
             hitThisAttack =
-                new HashSet<FighterMotor2D>();
+            new HashSet<FighterMotor2D>();
 
         private readonly List<Collider2D>
             overlapResults =
-                new List<Collider2D>(8);
+            new List<Collider2D>(8);
 
         private FighterMotor2D owner;
 
@@ -49,7 +41,6 @@ namespace LandOfFire.BunnyStep
 
         private FighterAttackDebugView debugView;
 
-        // Futuro sistema de combos.
         private bool forceCurrentAttackLethal;
 
         private void Awake()
@@ -99,7 +90,6 @@ namespace LandOfFire.BunnyStep
                 false;
         }
 
-        // Preparado para el futuro sistema de combos.
         public void SetCurrentAttackLethal(
             bool lethal)
         {
@@ -231,9 +221,6 @@ namespace LandOfFire.BunnyStep
 
                 if (blocked)
                 {
-                    // Lethal Hit no atraviesa Guard
-                    // con el sistema actual.
-
                     target.ApplyPushback(
                         move.guardPushback,
                         facing);
@@ -274,7 +261,7 @@ namespace LandOfFire.BunnyStep
                 {
                     accepted =
                         target.ReceiveConfirmedHit(
-                            move.hitstunTicks);
+                            move.HurtTicks);
 
                     if (accepted)
                     {
@@ -290,8 +277,6 @@ namespace LandOfFire.BunnyStep
                 hitThisAttack.Add(
                     target);
 
-                // El daño no decide si fue Lethal.
-                // Lethal ya fue decidido por el AttackMoveData.
                 health.TakeDamage(
                     move.damage);
 
@@ -362,9 +347,12 @@ namespace LandOfFire.BunnyStep
                     0.32f);
             }
 
+            // Cualquier AttackMoveData que no sea
+            // Light / Medium / Heavy base se considera
+            // un ataque especial.
             return new Color(
-                1f,
-                0.15f,
+                0.65f,
+                0.2f,
                 1f,
                 0.32f);
         }

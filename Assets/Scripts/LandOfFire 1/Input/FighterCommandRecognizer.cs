@@ -130,6 +130,7 @@ namespace LandOfFire.BunnyStep
                     FighterInputToken.Heavy,
                     AttackCommand.Heavy,
                     -1000));
+
         }
 
         private static FighterCommandDefinition Create(
@@ -226,6 +227,17 @@ namespace LandOfFire.BunnyStep
                 PushToken(
                     token,
                     tick);
+
+                return;
+            }
+
+            // Jump is a standalone command. Do not put it through the
+            // directional sequence buffer, otherwise it could interact
+            // with the Bunny double-tap candidate.
+            if (input.Type == FighterInputEventType.Jump)
+            {
+                commands.Enqueue(
+                    FighterCommand.Jump);
 
                 return;
             }

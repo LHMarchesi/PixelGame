@@ -39,6 +39,27 @@ namespace LandOfFire.BunnyStep
         public float forwardLoopHeight = .3f;
 
 
+        [Header("Salto")]
+
+        [Min(1)]
+        public int jumpAnticipationTicks = 3;
+
+        [Min(1)]
+        public int jumpAirTicks = 12;
+
+        [Min(1)]
+        public int jumpDescendingTicks = 12;
+
+        [Min(1)]
+        public int jumpRecoveryTicks = 3;
+
+        [Min(0)]
+        public float jumpHeight = 1.2f;
+
+        [Min(0)]
+        [Tooltip("Desplazamiento horizontal por tick mientras está en Air o Descending.")]
+        public float jumpAirControl = .035f;
+
         [Header("Levantarse")]
 
         [Tooltip(
@@ -110,6 +131,22 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "Idle");
 
+        public PhaseAnimation jumpAnticipation =
+            new PhaseAnimation(
+                "JumpAnticipation");
+
+        public PhaseAnimation jumpAir =
+            new PhaseAnimation(
+                "JumpAir");
+
+        public PhaseAnimation jumpDescending =
+            new PhaseAnimation(
+                "JumpDescending");
+
+        public PhaseAnimation jumpRecovery =
+            new PhaseAnimation(
+                "JumpRecovery");
+
         public PhaseAnimation guard =
             new PhaseAnimation(
                 "Guard");
@@ -135,6 +172,14 @@ namespace LandOfFire.BunnyStep
             FighterState state,
             BunnyPhase phase)
         {
+            return AnimationFor(state, phase, JumpPhase.None);
+        }
+
+        public PhaseAnimation AnimationFor(
+            FighterState state,
+            BunnyPhase phase,
+            JumpPhase jumpPhase)
+        {
             switch (state)
             {
                 case FighterState.Idle:
@@ -142,6 +187,21 @@ namespace LandOfFire.BunnyStep
 
                 case FighterState.Guard:
                     return guard;
+
+                case FighterState.Jump:
+                    switch (jumpPhase)
+                    {
+                        case JumpPhase.Anticipation:
+                            return jumpAnticipation;
+                        case JumpPhase.Air:
+                            return jumpAir;
+                        case JumpPhase.Descending:
+                            return jumpDescending;
+                        case JumpPhase.Recovery:
+                            return jumpRecovery;
+                        default:
+                            return null;
+                    }
 
                 case FighterState.Hurt:
                     return hurt;
@@ -198,5 +258,6 @@ namespace LandOfFire.BunnyStep
                     return null;
             }
         }
+
     }
 }

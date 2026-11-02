@@ -21,7 +21,8 @@ namespace LandOfFire.BunnyStep
         Attack,
         FlyingHurt,
         Knockdown,
-        Reset
+        Reset,
+        Jump
     }
 
     public enum BunnyPhase
@@ -29,6 +30,15 @@ namespace LandOfFire.BunnyStep
         None,
         Preparation,
         Flight,
+        Recovery
+    }
+
+    public enum JumpPhase
+    {
+        None,
+        Anticipation,
+        Air,
+        Descending,
         Recovery
     }
 
@@ -60,6 +70,8 @@ namespace LandOfFire.BunnyStep
         public float Height { get; private set; }
 
         public BunnyPhase Phase { get; private set; }
+
+        public JumpPhase CurrentJumpPhase { get; private set; }
 
         public int PhaseElapsed { get; private set; }
 
@@ -104,8 +116,12 @@ namespace LandOfFire.BunnyStep
         public bool IsAttacking =>
             State == FighterState.Attack;
 
+        public bool IsJumping =>
+            State == FighterState.Jump;
+
         public bool IsTimed =>
             IsStepping ||
+            IsJumping ||
             IsHurt ||
             IsFlyingHurt ||
             IsKnockdown ||
@@ -169,6 +185,13 @@ namespace LandOfFire.BunnyStep
 
         private float flightProgress;
         private float startHeight;
+        private int configuredJumpAnticipation;
+        private int configuredJumpAir;
+        private int configuredJumpDescending;
+        private int configuredJumpRecovery;
+        private float configuredJumpHeight;
+        private float configuredJumpAirControl;
+        private int jumpAirDirection;
 
         private int configuredForwardTotal;
         private float configuredForwardDistance;
@@ -282,6 +305,54 @@ namespace LandOfFire.BunnyStep
                 loopTiming;
         }
 
+        public void ConfigureJump(
+            int anticipationTicks,
+            int airTicks,
+            int descendingTicks,
+            int recoveryTicks,
+            float height,
+            float airControl)
+        {
+            configuredJumpAnticipation = Mathf.Max(1, anticipationTicks);
+            configuredJumpAir = Mathf.Max(1, airTicks);
+            configuredJumpDescending = Mathf.Max(1, descendingTicks);
+            configuredJumpRecovery = Mathf.Max(1, recoveryTicks);
+            configuredJumpHeight = Mathf.Max(0, height);
+            configuredJumpAirControl = Mathf.Max(0, airControl);
+        }
+
+        public bool ExecuteJump()
+        {
+            if (IsTimed)
+                return false;
+
+            if (State != FighterState.Idle &&
+                State != FighterState.Guard)
+                return false;
+
+            Elapsed = 0;
+            Duration =
+                configuredJumpAnticipation +
+                configuredJumpAir +
+                configuredJumpDescending +
+                configuredJumpRecovery;
+
+            StepDirection = 0;
+            Distance = 0;
+            Height = 0;
+            jumpAirDirection = 0;
+            CurrentJumpPhase = JumpPhase.Anticipation;
+            Phase = BunnyPhase.None;
+            PhaseElapsed = 0;
+            PhaseDuration = configuredJumpAnticipation;
+            CurrentAttack = null;
+            CurrentAttackPhase = AttackPhase.None;
+            flightProgress = 0;
+
+            Change(FighterState.Jump);
+            return true;
+        }
+
         public void ConfigureKnockdown(
             bool shouldAutoGetUp)
         {
@@ -371,6 +442,9 @@ namespace LandOfFire.BunnyStep
             int newFacing,
             int heldDirection)
         {
+            if (State == FighterState.Jump)
+                jumpAirDirection = heldDirection;
+
             // ============================================================
             // KNOCKDOWN
             // ============================================================
@@ -474,6 +548,60 @@ namespace LandOfFire.BunnyStep
                 Elapsed;
 
             Elapsed++;
+
+            // ============================================================
+            // JUMP
+            // ============================================================
+
+            if (IsJumping)
+            {
+                int anticipationEnd = configuredJumpAnticipation;
+                int airEnd = anticipationEnd + configuredJumpAir;
+                int descendingEnd = airEnd + configuredJumpDescending;
+
+                if (index < anticipationEnd)
+                {
+                    CurrentJumpPhase = JumpPhase.Anticipation;
+                    PhaseElapsed = index + 1;
+                    PhaseDuration = configuredJumpAnticipation;
+                    Height = 0f;
+                    return 0f;
+                }
+
+                if (index < airEnd)
+                {
+                    CurrentJumpPhase = JumpPhase.Air;
+                    PhaseElapsed = index - anticipationEnd + 1;
+                    PhaseDuration = configuredJumpAir;
+
+                    float progress = configuredJumpAir <= 1
+                        ? 1f
+                        : Mathf.Clamp01((float)(PhaseElapsed - 1) / (configuredJumpAir - 1));
+
+                    Height = configuredJumpHeight * Ease(progress);
+                    return configuredJumpAirControl * jumpAirDirection;
+                }
+
+                if (index < descendingEnd)
+                {
+                    CurrentJumpPhase = JumpPhase.Descending;
+                    PhaseElapsed = index - airEnd + 1;
+                    PhaseDuration = configuredJumpDescending;
+
+                    float progress = configuredJumpDescending <= 1
+                        ? 1f
+                        : Mathf.Clamp01((float)(PhaseElapsed - 1) / (configuredJumpDescending - 1));
+
+                    Height = configuredJumpHeight * (1f - Ease(progress));
+                    return configuredJumpAirControl * jumpAirDirection;
+                }
+
+                CurrentJumpPhase = JumpPhase.Recovery;
+                PhaseElapsed = index - descendingEnd + 1;
+                PhaseDuration = configuredJumpRecovery;
+                Height = 0f;
+                return 0f;
+            }
 
             // ============================================================
             // ATTACK
@@ -856,6 +984,8 @@ namespace LandOfFire.BunnyStep
             Phase =
                 BunnyPhase.None;
 
+            CurrentJumpPhase = JumpPhase.None;
+
             PhaseElapsed = 0;
             PhaseDuration = 0;
 
@@ -1068,6 +1198,8 @@ namespace LandOfFire.BunnyStep
             Phase =
                 BunnyPhase.None;
 
+            CurrentJumpPhase = JumpPhase.None;
+
             PhaseElapsed = 0;
             PhaseDuration = 0;
 
@@ -1119,6 +1251,16 @@ namespace LandOfFire.BunnyStep
             flightProgress = 0;
             startHeight = 0;
 
+            configuredJumpAnticipation = 0;
+            configuredJumpAir = 0;
+            configuredJumpDescending = 0;
+            configuredJumpRecovery = 0;
+            configuredJumpHeight = 0;
+            configuredJumpAirControl = 0;
+            jumpAirDirection = 0;
+
+            CurrentJumpPhase = JumpPhase.None;
+
             configuredForwardTotal = 0;
             configuredForwardDistance = 0;
             configuredForwardHeight = 0;
@@ -1162,6 +1304,7 @@ namespace LandOfFire.BunnyStep
             get
             {
                 if (IsStepping ||
+                    IsJumping ||
                     IsHurt ||
                     IsFlyingHurt)
                 {
@@ -1275,6 +1418,8 @@ namespace LandOfFire.BunnyStep
 
             Phase =
                 BunnyPhase.None;
+
+            CurrentJumpPhase = JumpPhase.None;
 
             PhaseElapsed = 0;
             PhaseDuration = 0;

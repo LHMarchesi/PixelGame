@@ -34,16 +34,16 @@ namespace LandOfFire.BunnyStep
             if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;
             PhaseAnimation settings = machine.IsAttacking && machine.CurrentAttack != null
                 ? machine.CurrentAttack.AnimationFor(machine.CurrentAttackPhase)
-                : profile.AnimationFor(machine.State, machine.Phase);
+                : profile.AnimationFor(machine.State, machine.Phase, machine.CurrentJumpPhase);
             if (settings != null && animator != null && animator.runtimeAnimatorController != null)
             {
                 string path = settings.stateName ?? "";
                 int hash = Animator.StringToHash(path);
                 if (!string.IsNullOrEmpty(path) && animator.HasState(0, hash))
                 {
-                    int elapsed = machine.IsStepping || machine.IsAttacking ? machine.PhaseElapsed :
+                    int elapsed = machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :
                         machine.IsHurt ? machine.Elapsed : poseTick + 1;
-                    int duration = machine.IsStepping || machine.IsAttacking ? machine.PhaseDuration :
+                    int duration = machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseDuration :
                         machine.IsHurt ? machine.Duration : settings.loopTicks;
                     animator.Play(hash, 0, settings.Sample(elapsed, duration));
                     animator.Update(0);

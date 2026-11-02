@@ -46,6 +46,9 @@ namespace LandOfFire.BunnyStep
         private BunnyPhase currentPhase;
 
         [SerializeField]
+        private JumpPhase currentJumpPhase;
+
+        [SerializeField]
         private AttackPhase currentAttackPhase;
 
         [SerializeField]
@@ -406,6 +409,9 @@ namespace LandOfFire.BunnyStep
             currentPhase =
                 Machine.Phase;
 
+            currentJumpPhase =
+                Machine.CurrentJumpPhase;
+
             currentAttackPhase =
                 Machine.CurrentAttackPhase;
         }
@@ -431,6 +437,14 @@ namespace LandOfFire.BunnyStep
 
         private void ConfigureMachine()
         {
+            Machine.ConfigureJump(
+                RuntimeProfile.jumpAnticipationTicks,
+                RuntimeProfile.jumpAirTicks,
+                RuntimeProfile.jumpDescendingTicks,
+                RuntimeProfile.jumpRecoveryTicks,
+                RuntimeProfile.jumpHeight,
+                RuntimeProfile.jumpAirControl);
+
             Machine.ConfigureBunny(
                 RuntimeProfile.forwardTiming.Total,
                 RuntimeProfile.forwardDistance,
@@ -469,6 +483,12 @@ namespace LandOfFire.BunnyStep
             {
                 switch (command.Type)
                 {
+                    case FighterCommandType.Jump:
+
+                        ExecuteJump();
+
+                        break;
+
                     case FighterCommandType.Attack:
 
                         HandleAttackInput(
@@ -495,6 +515,11 @@ namespace LandOfFire.BunnyStep
                         break;
                 }
             }
+        }
+
+        private void ExecuteJump()
+        {
+            Machine.ExecuteJump();
         }
 
         private void ExecuteBunnyForward()
@@ -695,6 +720,9 @@ namespace LandOfFire.BunnyStep
             currentPhase =
                 Machine.Phase;
 
+            currentJumpPhase =
+                Machine.CurrentJumpPhase;
+
             currentAttackPhase =
                 Machine.CurrentAttackPhase;
 
@@ -750,6 +778,9 @@ namespace LandOfFire.BunnyStep
 
             currentPhase =
                 Machine.Phase;
+
+            currentJumpPhase =
+                Machine.CurrentJumpPhase;
 
             currentAttackPhase =
                 Machine.CurrentAttackPhase;

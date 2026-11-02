@@ -26,6 +26,12 @@ MonoBehaviour:
   forwardLoopTicks: 12
   forwardLoopDistance: 18
   forwardLoopHeight: 2.8
+  jumpAnticipationTicks: 10
+  jumpAirTicks: 15
+  jumpDescendingTicks: 20
+  jumpRecoveryTicks: 10
+  jumpHeight: 12
+  jumpAirControl: 0.25
   resetTicks: 20
   backwardTiming:
     preparation: 10
@@ -66,6 +72,22 @@ MonoBehaviour:
     stateName: Base Layer.Idle
     playback: 1
     loopTicks: 60
+  jumpAnticipation:
+    stateName: Base Layer.JumpAnticipation
+    playback: 0
+    loopTicks: 30
+  jumpAir:
+    stateName: Base Layer.JumpAir
+    playback: 0
+    loopTicks: 30
+  jumpDescending:
+    stateName: Base Layer.JumpDescending
+    playback: 0
+    loopTicks: 30
+  jumpRecovery:
+    stateName: Base Layer.JumpRecovery
+    playback: 0
+    loopTicks: 30
   guard:
     stateName: Base Layer.Guard
     playback: 1

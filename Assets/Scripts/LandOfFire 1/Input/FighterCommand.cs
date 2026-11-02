@@ -17,6 +17,7 @@ namespace LandOfFire.BunnyStep
     public enum FighterCommandType
     {
         None,
+        Jump,
         BunnyForward,
         BunnyBackward,
         BunnyForwardLoop,
@@ -32,6 +33,14 @@ namespace LandOfFire.BunnyStep
         // Si no es null, este ataque tiene prioridad sobre
         // el AttackCommand genérico.
         public AttackMoveData AttackMove;
+
+
+        public static FighterCommand Jump =>
+            new FighterCommand
+            {
+                Type =
+                    FighterCommandType.Jump
+            };
 
         public static FighterCommand BunnyForward =>
             new FighterCommand

@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
   m_Name: MEDIUM_NAME_ATTACK_0 1
   m_EditorClassIdentifier: 
-  anticipationTicks: 10
+  anticipationTicks: 20
   smearTicks: 10
-  poseTicks: 15
-  recoveryTicks: 15
+  poseTicks: 10
+  recoveryTicks: 20
   hitDuringSmear: 0
   hitDuringPose: 1
   hitboxOffset: {x: 6, y: 1}
@@ -23,8 +23,8 @@ MonoBehaviour:
   damage: 100
   hitstunTicks: 18
   hitstopTicks: 10
-  hitPushback: 1.13
-  guardPushback: 0.32
+  hitPushback: 2.5
+  guardPushback: 7
   lethalHit: 0
   flyingHurtTicks: 24
   flyingHurtDistance: 3
@@ -36,18 +36,18 @@ MonoBehaviour:
   cancelBufferTicks: 2
   allowBunnyCancel: 0
   anticipation:
-    stateName: Base Layer.LightAnticipation
+    stateName: Base Layer.MediumAnticipation
     playback: 0
     loopTicks: 30
   smear:
-    stateName: Base Layer.LightSmear
+    stateName: Base Layer.MediumSmear
     playback: 0
     loopTicks: 30
   pose:
-    stateName: Base Layer.LightPose
+    stateName: Base Layer.MediumPose
     playback: 0
     loopTicks: 30
   recovery:
-    stateName: Base Layer.LightRecovery
+    stateName: Base Layer.MediumRecovery
     playback: 0
     loopTicks: 30

@@ -18,7 +18,8 @@ namespace LandOfFire.BunnyStep
     public enum FighterInputEventType
     {
         Direction,
-        Attack
+        Attack,
+        Jump
     }
     public struct FighterInputEvent
     {
@@ -50,7 +51,17 @@ namespace LandOfFire.BunnyStep
                 Attack = attack
             };
         }
+
+        public static FighterInputEvent JumpPress()
+        {
+            return new FighterInputEvent
+            {
+                Type = FighterInputEventType.Jump,
+                Direction = 0,
+                Attack = default
+            };
+        }
     }
 }
 
-   
+

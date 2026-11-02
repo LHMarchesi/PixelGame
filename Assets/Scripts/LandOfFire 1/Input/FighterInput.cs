@@ -49,6 +49,9 @@ namespace LandOfFire.BunnyStep
         [SerializeField]
         private InputActionReference heavyAttack;
 
+        [SerializeField]
+        private InputActionReference jump;
+
         [Tooltip(
             "Si no se asigna Move, se crean controles A/D. " +
             "Activar para usar flechas.")]
@@ -69,6 +72,7 @@ namespace LandOfFire.BunnyStep
         private InputAction lightAction;
         private InputAction mediumAction;
         private InputAction heavyAction;
+        private InputAction jumpAction;
 
         public int Direction { get; private set; }
 
@@ -168,11 +172,6 @@ namespace LandOfFire.BunnyStep
         private void ReadMoveCanceled(
       InputAction.CallbackContext context)
         {
-            Debug.Log(
-                $"[FighterInput] Move CANCELED | " +
-                $"Previous Direction: {Direction} | " +
-                $"Frame: {Time.frameCount}");
-
             Direction = 0;
         }
 
@@ -202,6 +201,34 @@ namespace LandOfFire.BunnyStep
                     heavyAttack,
                     "<Keyboard>/l",
                     ReadHeavy);
+
+            jumpAction =
+                CreateJumpAction();
+        }
+
+        private InputAction CreateJumpAction()
+        {
+            InputAction createdAction;
+
+            if (jump != null &&
+                jump.action != null)
+            {
+                createdAction =
+                    jump.action.Clone();
+            }
+            else
+            {
+                createdAction =
+                    new InputAction(
+                        "Jump",
+                        InputActionType.Button,
+                        "<Keyboard>/space");
+            }
+
+            createdAction.performed += ReadJump;
+            createdAction.Enable();
+
+            return createdAction;
         }
 
         private InputAction CreateAttackAction(
@@ -269,6 +296,13 @@ namespace LandOfFire.BunnyStep
                     AttackCommand.Heavy));
         }
 
+        private void ReadJump(
+            InputAction.CallbackContext context)
+        {
+            inputBuffer.Enqueue(
+                FighterInputEvent.JumpPress());
+        }
+
         // ================================================================
         // INPUT BUFFER
         // ================================================================
@@ -317,6 +351,10 @@ namespace LandOfFire.BunnyStep
             DisposeAttackAction(
                 ref heavyAction,
                 ReadHeavy);
+
+            DisposeAttackAction(
+                ref jumpAction,
+                ReadJump);
 
             Direction = 0;
 

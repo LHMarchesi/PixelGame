@@ -80,6 +80,62 @@
             ]
         },
         {
+            "name": "Jump_P1",
+            "id": "097bdde7-e12b-4aee-a214-f8dcd25abaa3",
+            "actions": [
+                {
+                    "name": "Jump",
+                    "type": "Button",
+                    "id": "1dca0274-3f1c-4f30-841b-8abcae01dc78",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "58a6a662-14c6-4add-8703-4f9daf32db9a",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Jump_P2",
+            "id": "273cc192-a937-4bf8-ae2c-5133c52f31e1",
+            "actions": [
+                {
+                    "name": "Jump",
+                    "type": "Button",
+                    "id": "38969fb4-d289-476a-9108-a1a524f8c6a3",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "27cba68a-903a-4492-b412-ba0dbff4f5ab",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
             "name": "MediumAttack_P1",
             "id": "ed6e9e7a-03c5-42eb-a9c3-42a7a739a8dc",
             "actions": [

@@ -18,6 +18,12 @@ namespace LandOfFire.BunnyStep
         public AttackMoveData mediumAttack;
         public AttackMoveData heavyAttack;
 
+        [Header("Ataques aéreos")]
+        [Tooltip("Si no se asigna un ataque aéreo, se reutiliza el ataque terrestre correspondiente.")]
+        public AttackMoveData airLightAttack;
+        public AttackMoveData airMediumAttack;
+        public AttackMoveData airHeavyAttack;
+
         [Tooltip(
             "Incluir la layer donde se encuentran las hurtboxes."
         )]
@@ -62,6 +68,36 @@ namespace LandOfFire.BunnyStep
         public AttackMoveData MoveFor(
             AttackCommand command)
         {
+            return MoveFor(command, false);
+        }
+
+        public AttackMoveData MoveFor(
+            AttackCommand command,
+            bool airborne)
+        {
+            if (airborne)
+            {
+                AttackMoveData aerial = null;
+
+                switch (command)
+                {
+                    case AttackCommand.Light:
+                        aerial = airLightAttack;
+                        break;
+
+                    case AttackCommand.Medium:
+                        aerial = airMediumAttack;
+                        break;
+
+                    case AttackCommand.Heavy:
+                        aerial = airHeavyAttack;
+                        break;
+                }
+
+                if (aerial != null)
+                    return aerial;
+            }
+
             switch (command)
             {
                 case AttackCommand.Light:
@@ -131,20 +167,29 @@ namespace LandOfFire.BunnyStep
             // DEBUG
             // ============================================================
 
+            bool hitboxActive = move.HasHitbox(
+                machine.CurrentAttackPhase,
+                machine.Elapsed,
+                machine.IsAirAttacking);
+
+            float airborneHeight =
+                machine.IsAirAttacking &&
+                move.followAirborneHeight
+                    ? machine.VisualHeight
+                    : 0f;
+
             UpdateDebugView(
                 move,
-                machine.CurrentAttackPhase,
-                facing);
+                hitboxActive,
+                facing,
+                airborneHeight);
 
             // ============================================================
             // HITBOX
             // ============================================================
 
-            if (!move.HasHitbox(
-                    machine.CurrentAttackPhase))
-            {
+            if (!hitboxActive)
                 return;
-            }
 
             Vector2 offset =
                 move.hitboxOffset;
@@ -153,7 +198,7 @@ namespace LandOfFire.BunnyStep
                 owner.BodyPosition +
                 new Vector2(
                     offset.x * facing,
-                    offset.y);
+                    offset.y + airborneHeight);
 
             Vector2 size =
                 new Vector2(
@@ -298,14 +343,15 @@ namespace LandOfFire.BunnyStep
 
         private void UpdateDebugView(
             AttackMoveData move,
-            AttackPhase phase,
-            int facing)
+            bool hitboxActive,
+            int facing,
+            float airborneHeight)
         {
             if (debugView == null)
                 return;
 
             if (!move.showHitboxDebug ||
-                !move.HasHitbox(phase))
+                !hitboxActive)
             {
                 debugView.Hide();
                 return;
@@ -314,6 +360,7 @@ namespace LandOfFire.BunnyStep
             debugView.Show(
                 move,
                 facing,
+                airborneHeight,
                 DebugColorFor(move));
         }
 

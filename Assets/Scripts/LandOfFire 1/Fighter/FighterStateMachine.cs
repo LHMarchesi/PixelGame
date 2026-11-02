@@ -19,6 +19,7 @@ namespace LandOfFire.BunnyStep
         BunnyForwardLoop,
         Hurt,
         Attack,
+        AirAttack,
         FlyingHurt,
         Knockdown,
         Reset,
@@ -114,7 +115,11 @@ namespace LandOfFire.BunnyStep
             State == FighterState.Reset;
 
         public bool IsAttacking =>
-            State == FighterState.Attack;
+            State == FighterState.Attack ||
+            State == FighterState.AirAttack;
+
+        public bool IsAirAttacking =>
+            State == FighterState.AirAttack;
 
         public bool IsJumping =>
             State == FighterState.Jump;
@@ -192,6 +197,22 @@ namespace LandOfFire.BunnyStep
         private float configuredJumpHeight;
         private float configuredJumpAirControl;
         private int jumpAirDirection;
+        private float jumpHeightOffset;
+
+        // Jump context suspended while an AirAttack runs.
+        private bool hasSuspendedJump;
+        private int suspendedJumpElapsed;
+        private int suspendedJumpDuration;
+        private int suspendedJumpAirDirection;
+        private JumpPhase suspendedJumpPhase;
+        private int suspendedJumpPhaseElapsed;
+        private int suspendedJumpPhaseDuration;
+        private float suspendedJumpHeightOffset;
+        private float suspendedJumpStartHeight;
+
+        // AirAttack displacement is accumulated phase by phase.
+        private int airAttackFacing = 1;
+        private Vector2 airAttackLastOffset;
 
         private int configuredForwardTotal;
         private float configuredForwardDistance;
@@ -341,6 +362,8 @@ namespace LandOfFire.BunnyStep
             Distance = 0;
             Height = 0;
             jumpAirDirection = 0;
+            jumpHeightOffset = 0f;
+            hasSuspendedJump = false;
             CurrentJumpPhase = JumpPhase.Anticipation;
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
@@ -443,7 +466,17 @@ namespace LandOfFire.BunnyStep
             int heldDirection)
         {
             if (State == FighterState.Jump)
+            {
                 jumpAirDirection = heldDirection;
+            }
+            else if (IsAirAttacking &&
+                     CurrentAttack != null &&
+                     !CurrentAttack.useCustomAirMovement)
+            {
+                // When the attack follows the jump arc, keep its normal
+                // horizontal air control responsive to directional input.
+                suspendedJumpAirDirection = heldDirection;
+            }
 
             // ============================================================
             // KNOCKDOWN
@@ -578,7 +611,7 @@ namespace LandOfFire.BunnyStep
                         ? 1f
                         : Mathf.Clamp01((float)(PhaseElapsed - 1) / (configuredJumpAir - 1));
 
-                    Height = configuredJumpHeight * Ease(progress);
+                    Height = Mathf.Max(0f, configuredJumpHeight * Ease(progress) + jumpHeightOffset);
                     return configuredJumpAirControl * jumpAirDirection;
                 }
 
@@ -592,7 +625,7 @@ namespace LandOfFire.BunnyStep
                         ? 1f
                         : Mathf.Clamp01((float)(PhaseElapsed - 1) / (configuredJumpDescending - 1));
 
-                    Height = configuredJumpHeight * (1f - Ease(progress));
+                    Height = Mathf.Max(0f, configuredJumpHeight * (1f - Ease(progress)) + jumpHeightOffset);
                     return configuredJumpAirControl * jumpAirDirection;
                 }
 
@@ -651,7 +684,9 @@ namespace LandOfFire.BunnyStep
                         attackRecovery);
                 }
 
-                return 0;
+                return IsAirAttacking
+                    ? AdvanceAirAttackMovement()
+                    : 0f;
             }
 
             // ============================================================
@@ -900,103 +935,354 @@ namespace LandOfFire.BunnyStep
         public bool TryStartAttack(
             AttackMoveData move)
         {
-            if (move == null)
+            if (move == null || IsAttacking)
                 return false;
 
-            if (IsHurt ||
-                IsFlyingHurt ||
-                IsKnockdown ||
-                IsResetting)
-            {
-                return false;
-            }
-
-            if (IsAttacking)
+            if (IsHurt || IsFlyingHurt || IsKnockdown || IsResetting)
                 return false;
 
             if (State == FighterState.Guard)
                 return false;
 
-            if (IsStepping &&
-                !move.allowBunnyCancel)
+            if (IsStepping && !move.allowBunnyCancel)
+                return false;
+
+            if (State != FighterState.Idle && !IsStepping)
+                return false;
+
+            return StartAttack(move, false, 1);
+        }
+
+        public bool TryStartAirAttack(
+            AttackMoveData move,
+            int facing)
+        {
+            if (move == null || !IsJumping || Height <= 0.001f)
+                return false;
+
+            if (CurrentJumpPhase != JumpPhase.Air &&
+                CurrentJumpPhase != JumpPhase.Descending)
             {
                 return false;
             }
 
-            if (State != FighterState.Idle &&
-                !IsStepping)
-            {
-                return false;
-            }
+            return StartAttack(move, true, facing);
+        }
 
-            return StartAttack(
-                move);
+        public bool TryCancelAttack(AttackMoveData move)
+        {
+            return TryCancelAttack(move, 1);
         }
 
         public bool TryCancelAttack(
-            AttackMoveData move)
+            AttackMoveData move,
+            int facing)
         {
-            if (move == null)
+            if (move == null || !IsAttacking || !IsAttackCancelWindow)
                 return false;
 
-            if (!IsAttacking)
-                return false;
-
-            if (!IsAttackCancelWindow)
-                return false;
-
-            return StartAttack(
-                move);
+            return StartAttack(move, IsAirAttacking, facing);
         }
 
         private bool StartAttack(
-            AttackMoveData move)
+            AttackMoveData move,
+            bool aerial,
+            int facing)
         {
-            attackStartHeight =
-                IsStepping
-                    ? VisualHeight
-                    : 0;
+            if (aerial)
+            {
+                // Capture the jump only on the first AirAttack. Air cancels
+                // keep the original suspended context intact.
+                if (IsJumping)
+                {
+                    hasSuspendedJump = true;
+                    suspendedJumpElapsed = Elapsed;
+                    suspendedJumpDuration = Duration;
+                    suspendedJumpAirDirection = jumpAirDirection;
+                    suspendedJumpPhase = CurrentJumpPhase;
+                    suspendedJumpPhaseElapsed = PhaseElapsed;
+                    suspendedJumpPhaseDuration = PhaseDuration;
+                    suspendedJumpHeightOffset = jumpHeightOffset;
+                }
+                else if (IsAirAttacking &&
+                         hasSuspendedJump &&
+                         CurrentAttack != null &&
+                         CurrentAttack.useCustomAirMovement)
+                {
+                    // Commit the vertical displacement of the current
+                    // custom attack before starting a cancel. This keeps
+                    // both custom->custom and custom->jump-arc cancels
+                    // continuous instead of snapping to the old curve.
+                    float jumpBaseHeight =
+                        JumpHeightAtProcessedElapsed(
+                            suspendedJumpElapsed,
+                            suspendedJumpHeightOffset);
 
-            attackAnticipation =
-                move.AnticipationTicks;
+                    suspendedJumpHeightOffset +=
+                        Height - jumpBaseHeight;
+                }
 
-            attackSmear =
-                move.SmearTicks;
+                attackStartHeight = Height;
+                if (hasSuspendedJump)
+                    suspendedJumpStartHeight = Height;
 
-            attackPose =
-                move.PoseTicks;
+                airAttackFacing = facing >= 0 ? 1 : -1;
+                airAttackLastOffset = Vector2.zero;
+            }
+            else
+            {
+                attackStartHeight = IsStepping ? VisualHeight : 0f;
+                hasSuspendedJump = false;
+                jumpHeightOffset = 0f;
+            }
 
-            attackRecovery =
-                move.RecoveryTicks;
+            attackAnticipation = move.AnticipationTicks;
+            attackSmear = move.SmearTicks;
+            attackPose = move.PoseTicks;
+            attackRecovery = move.RecoveryTicks;
 
-            Duration =
-                attackAnticipation +
-                attackSmear +
-                attackPose +
-                attackRecovery;
-
-            CurrentAttack =
-                move;
-
-            CurrentAttackPhase =
-                AttackPhase.Anticipation;
-
-            Phase =
-                BunnyPhase.None;
-
+            Duration = attackAnticipation + attackSmear + attackPose + attackRecovery;
+            CurrentAttack = move;
+            CurrentAttackPhase = AttackPhase.Anticipation;
+            Phase = BunnyPhase.None;
             CurrentJumpPhase = JumpPhase.None;
-
             PhaseElapsed = 0;
             PhaseDuration = 0;
-
             Elapsed = 0;
-
             flightProgress = 0;
 
-            Change(
-                FighterState.Attack);
-
+            Change(aerial ? FighterState.AirAttack : FighterState.Attack);
             return true;
+        }
+
+        private float AdvanceAirAttackMovement()
+        {
+            if (CurrentAttack == null)
+                return 0f;
+
+            if (!CurrentAttack.useCustomAirMovement)
+                return AdvanceSuspendedJumpTrajectory();
+
+            float phaseProgress = PhaseDuration <= 1
+                ? 1f
+                : Mathf.Clamp01((float)(PhaseElapsed - 1) / (PhaseDuration - 1));
+
+            Vector2 offset = Vector2.zero;
+
+            switch (CurrentAttackPhase)
+            {
+                case AttackPhase.Anticipation:
+                    offset = CurrentAttack.airAnticipationMovement * phaseProgress;
+                    break;
+
+                case AttackPhase.Smear:
+                    offset = CurrentAttack.airAnticipationMovement +
+                             CurrentAttack.airSmearMovement * phaseProgress;
+                    break;
+
+                case AttackPhase.Pose:
+                    offset = CurrentAttack.airAnticipationMovement +
+                             CurrentAttack.airSmearMovement +
+                             CurrentAttack.airPoseMovement * phaseProgress;
+                    break;
+
+                case AttackPhase.Recovery:
+                    offset = CurrentAttack.airAnticipationMovement +
+                             CurrentAttack.airSmearMovement +
+                             CurrentAttack.airPoseMovement +
+                             CurrentAttack.airRecoveryMovement * phaseProgress;
+                    break;
+            }
+
+            float horizontalDelta = offset.x - airAttackLastOffset.x;
+            airAttackLastOffset = offset;
+            Height = Mathf.Max(0f, attackStartHeight + offset.y);
+
+            return horizontalDelta * airAttackFacing;
+        }
+
+        private float AdvanceSuspendedJumpTrajectory()
+        {
+            if (!hasSuspendedJump)
+                return 0f;
+
+            int index = suspendedJumpElapsed;
+
+            int anticipationEnd = configuredJumpAnticipation;
+            int airEnd = anticipationEnd + configuredJumpAir;
+            int descendingEnd = airEnd + configuredJumpDescending;
+
+            if (index >= suspendedJumpDuration)
+            {
+                suspendedJumpElapsed = suspendedJumpDuration;
+                suspendedJumpPhase = JumpPhase.Recovery;
+                suspendedJumpPhaseElapsed = configuredJumpRecovery;
+                suspendedJumpPhaseDuration = configuredJumpRecovery;
+                Height = 0f;
+                return 0f;
+            }
+
+            suspendedJumpElapsed++;
+
+            if (index < anticipationEnd)
+            {
+                suspendedJumpPhase = JumpPhase.Anticipation;
+                suspendedJumpPhaseElapsed = index + 1;
+                suspendedJumpPhaseDuration = configuredJumpAnticipation;
+                Height = 0f;
+                return 0f;
+            }
+
+            if (index < airEnd)
+            {
+                suspendedJumpPhase = JumpPhase.Air;
+                suspendedJumpPhaseElapsed = index - anticipationEnd + 1;
+                suspendedJumpPhaseDuration = configuredJumpAir;
+
+                float progress = configuredJumpAir <= 1
+                    ? 1f
+                    : Mathf.Clamp01(
+                        (float)(suspendedJumpPhaseElapsed - 1) /
+                        (configuredJumpAir - 1));
+
+                Height = Mathf.Max(
+                    0f,
+                    configuredJumpHeight * Ease(progress) +
+                    suspendedJumpHeightOffset);
+
+                return configuredJumpAirControl *
+                       suspendedJumpAirDirection;
+            }
+
+            if (index < descendingEnd)
+            {
+                suspendedJumpPhase = JumpPhase.Descending;
+                suspendedJumpPhaseElapsed = index - airEnd + 1;
+                suspendedJumpPhaseDuration = configuredJumpDescending;
+
+                float progress = configuredJumpDescending <= 1
+                    ? 1f
+                    : Mathf.Clamp01(
+                        (float)(suspendedJumpPhaseElapsed - 1) /
+                        (configuredJumpDescending - 1));
+
+                Height = Mathf.Max(
+                    0f,
+                    configuredJumpHeight * (1f - Ease(progress)) +
+                    suspendedJumpHeightOffset);
+
+                return configuredJumpAirControl *
+                       suspendedJumpAirDirection;
+            }
+
+            suspendedJumpPhase = JumpPhase.Recovery;
+            suspendedJumpPhaseElapsed = index - descendingEnd + 1;
+            suspendedJumpPhaseDuration = configuredJumpRecovery;
+            Height = 0f;
+            return 0f;
+        }
+
+        private float JumpHeightAtProcessedElapsed(
+            int elapsed,
+            float heightOffset)
+        {
+            int index = Mathf.Max(0, elapsed - 1);
+
+            int anticipationEnd = configuredJumpAnticipation;
+            int airEnd = anticipationEnd + configuredJumpAir;
+            int descendingEnd = airEnd + configuredJumpDescending;
+
+            if (index < anticipationEnd || index >= descendingEnd)
+                return 0f;
+
+            if (index < airEnd)
+            {
+                int phaseElapsed = index - anticipationEnd + 1;
+                float progress = configuredJumpAir <= 1
+                    ? 1f
+                    : Mathf.Clamp01(
+                        (float)(phaseElapsed - 1) /
+                        (configuredJumpAir - 1));
+
+                return Mathf.Max(
+                    0f,
+                    configuredJumpHeight * Ease(progress) +
+                    heightOffset);
+            }
+
+            int descendingElapsed = index - airEnd + 1;
+            float descendingProgress = configuredJumpDescending <= 1
+                ? 1f
+                : Mathf.Clamp01(
+                    (float)(descendingElapsed - 1) /
+                    (configuredJumpDescending - 1));
+
+            return Mathf.Max(
+                0f,
+                configuredJumpHeight * (1f - Ease(descendingProgress)) +
+                heightOffset);
+        }
+
+        private void FinishAirAttack()
+        {
+            bool usedCustomAirMovement =
+                CurrentAttack != null &&
+                CurrentAttack.useCustomAirMovement;
+
+            CurrentAttack = null;
+            CurrentAttackPhase = AttackPhase.None;
+            Phase = BunnyPhase.None;
+            PhaseElapsed = 0;
+            PhaseDuration = 0;
+            airAttackLastOffset = Vector2.zero;
+
+            if (!hasSuspendedJump)
+            {
+                FinishGroundedAttack();
+                return;
+            }
+
+            // Custom air movement modifies the vertical offset of the
+            // remaining jump arc. When following the jump trajectory, the
+            // jump context has already advanced naturally during the attack.
+            jumpHeightOffset = usedCustomAirMovement
+                ? suspendedJumpHeightOffset +
+                  (Height - suspendedJumpStartHeight)
+                : suspendedJumpHeightOffset;
+
+            hasSuspendedJump = false;
+
+            if (Height <= 0.001f)
+            {
+                FinishGroundedAttack();
+                return;
+            }
+
+            Elapsed = suspendedJumpElapsed;
+            Duration = suspendedJumpDuration;
+            jumpAirDirection = suspendedJumpAirDirection;
+            CurrentJumpPhase = suspendedJumpPhase;
+            PhaseElapsed = suspendedJumpPhaseElapsed;
+            PhaseDuration = suspendedJumpPhaseDuration;
+            Change(FighterState.Jump);
+        }
+
+        private void FinishGroundedAttack()
+        {
+            Elapsed = 0;
+            Duration = 0;
+            Height = 0f;
+            Distance = 0f;
+            StepDirection = 0;
+            jumpHeightOffset = 0f;
+            hasSuspendedJump = false;
+            CurrentJumpPhase = JumpPhase.None;
+            CurrentAttack = null;
+            CurrentAttackPhase = AttackPhase.None;
+            Phase = BunnyPhase.None;
+            PhaseElapsed = 0;
+            PhaseDuration = 0;
+            Change(FighterState.Idle);
         }
 
         // ================================================================
@@ -1028,6 +1314,8 @@ namespace LandOfFire.BunnyStep
             int direction,
             int knockdownTicks)
         {
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
             CurrentAttack = null;
 
             CurrentAttackPhase =
@@ -1089,6 +1377,8 @@ namespace LandOfFire.BunnyStep
             FighterState state,
             int duration)
         {
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
             CurrentAttack = null;
 
             CurrentAttackPhase =
@@ -1194,6 +1484,8 @@ namespace LandOfFire.BunnyStep
 
             Distance = 0;
             Height = 0;
+            jumpHeightOffset = 0f;
+            hasSuspendedJump = false;
 
             Phase =
                 BunnyPhase.None;
@@ -1258,6 +1550,18 @@ namespace LandOfFire.BunnyStep
             configuredJumpHeight = 0;
             configuredJumpAirControl = 0;
             jumpAirDirection = 0;
+            jumpHeightOffset = 0f;
+            hasSuspendedJump = false;
+            suspendedJumpElapsed = 0;
+            suspendedJumpDuration = 0;
+            suspendedJumpAirDirection = 0;
+            suspendedJumpPhase = JumpPhase.None;
+            suspendedJumpPhaseElapsed = 0;
+            suspendedJumpPhaseDuration = 0;
+            suspendedJumpHeightOffset = 0f;
+            suspendedJumpStartHeight = 0f;
+            airAttackFacing = 1;
+            airAttackLastOffset = Vector2.zero;
 
             CurrentJumpPhase = JumpPhase.None;
 
@@ -1305,6 +1609,7 @@ namespace LandOfFire.BunnyStep
             {
                 if (IsStepping ||
                     IsJumping ||
+                    IsAirAttacking ||
                     IsHurt ||
                     IsFlyingHurt)
                 {
@@ -1326,6 +1631,8 @@ namespace LandOfFire.BunnyStep
             float height,
             BunnyTiming timing)
         {
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
             CurrentAttack = null;
 
             CurrentAttackPhase =
@@ -1388,6 +1695,12 @@ namespace LandOfFire.BunnyStep
 
         private void FinishTimedState()
         {
+            if (IsAirAttacking)
+            {
+                FinishAirAttack();
+                return;
+            }
+
             if (State ==
                 FighterState.FlyingHurt)
             {
@@ -1415,6 +1728,8 @@ namespace LandOfFire.BunnyStep
 
             Distance = 0;
             Height = 0;
+            jumpHeightOffset = 0f;
+            hasSuspendedJump = false;
 
             Phase =
                 BunnyPhase.None;

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9afab96fe893a574e956c12a637dbac2, type: 3}
-  m_Name: New Fighter Moveset
+  m_Name: MOVESET_IVAN
   m_EditorClassIdentifier: 
   commands:
   - sequence: 000000000000000002000000

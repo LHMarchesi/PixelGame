@@ -28,13 +28,50 @@ namespace LandOfFire.BunnyStep
         [Min(1)]
         public int recoveryTicks = 8;
 
-        [Header("Ventana de impacto")]
+        [Header("Ventana de impacto (ticks del ataque)")]
 
-        public bool hitDuringSmear = true;
-        public bool hitDuringPose;
+        [Tooltip("Desactiva este golpe si el movimiento no debe tener hitbox.")]
+        public bool useHitbox = true;
 
-        [Tooltip(
-            "Offset local desde la raíz; X se invierte con el facing.")]
+        [Tooltip("Para ataques terrestres: activado usa Start/End; desactivado conserva la ventana antigua por Smear/Pose. AirAttack siempre usa la ventana por ticks.")]
+        public bool useTickHitWindow = false;
+
+        [Min(1)]
+        [Tooltip("Primer tick activo de la hitbox (inclusive), contando desde el primer tick de Anticipation.")]
+        public int hitboxStartTick = 5;
+
+        [Min(1)]
+        [Tooltip("Último tick activo de la hitbox (inclusive), contando desde el primer tick de Anticipation.")]
+        public int hitboxEndTick = 5;
+
+        // Compatibilidad con AttackMoveData creados antes de la ventana por ticks.
+        // Solo se consultan cuando useTickHitWindow está desactivado.
+        [HideInInspector] public bool hitDuringSmear = true;
+        [HideInInspector] public bool hitDuringPose;
+
+        [Header("Movimiento aéreo por fase")]
+
+        [Tooltip("Activado: reemplaza la trayectoria vertical del Jump por el movimiento aéreo personalizado de este ataque. Desactivado: continúa la trayectoria normal del Jump y conserva el control aéreo horizontal. En este modo se ignoran los vectores personalizados.")]
+        public bool useCustomAirMovement = true;
+
+        [Tooltip("Desplazamiento total aplicado durante Anticipation. X positivo avanza hacia el facing; Y positivo sube.")]
+        public Vector2 airAnticipationMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Smear. X positivo avanza hacia el facing; Y positivo sube.")]
+        public Vector2 airSmearMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Pose. X positivo avanza hacia el facing; Y positivo sube.")]
+        public Vector2 airPoseMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Recovery. X positivo avanza hacia el facing; Y positivo sube.")]
+        public Vector2 airRecoveryMovement;
+
+        [Header("Hitbox")]
+
+        [Tooltip("Si está activo durante AirAttack, la hitbox acompaña la altura visual actual del luchador. hitboxOffset se aplica desde ese punto. Desactivalo para mantener la hitbox relativa a la raíz física.")]
+        public bool followAirborneHeight = true;
+
+        [Tooltip("Offset local desde el punto de anclaje. X se invierte con el facing. En AirAttack, si Follow Airborne Height está activo, este offset se suma a la altura visual del salto.")]
         public Vector2 hitboxOffset =
             new Vector2(1f, 1f);
 
@@ -152,13 +189,36 @@ namespace LandOfFire.BunnyStep
             RecoveryTicks;
 
         public bool HasHitbox(
-            AttackPhase phase)
+            AttackPhase phase,
+            int attackElapsedTick,
+            bool forceTickWindow = false)
         {
+            if (!useHitbox)
+                return false;
+
+            if (useTickHitWindow || forceTickWindow)
+            {
+                int firstTick = Mathf.Max(1, hitboxStartTick);
+                int lastTick = Mathf.Max(1, hitboxEndTick);
+
+                return lastTick >= firstTick &&
+                       attackElapsedTick >= firstTick &&
+                       attackElapsedTick <= lastTick;
+            }
+
             return
-                phase == AttackPhase.Smear &&
-                hitDuringSmear ||
-                phase == AttackPhase.Pose &&
-                hitDuringPose;
+                phase == AttackPhase.Smear && hitDuringSmear ||
+                phase == AttackPhase.Pose && hitDuringPose;
+        }
+
+        public bool HasHitbox(AttackPhase phase)
+        {
+            if (!useHitbox)
+                return false;
+
+            return
+                phase == AttackPhase.Smear && hitDuringSmear ||
+                phase == AttackPhase.Pose && hitDuringPose;
         }
 
         public int CancelStartTick =>

@@ -26,6 +26,7 @@ namespace LandOfFire.BunnyStep
         public void Show(
             AttackMoveData attack,
             int facing,
+            float airborneHeight,
             Color color)
         {
             if (attack == null ||
@@ -43,7 +44,7 @@ namespace LandOfFire.BunnyStep
             debugObject.transform.localPosition =
                 new Vector3(
                     offset.x * facing,
-                    offset.y,
+                    offset.y + airborneHeight,
                     0f);
 
             debugObject.transform.localRotation =

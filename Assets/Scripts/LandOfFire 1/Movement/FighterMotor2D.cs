@@ -561,12 +561,12 @@ namespace LandOfFire.BunnyStep
             {
                 ClearAttackBuffer();
 
-                if (Machine.TryStartAttack(
-                    move))
-                {
-                    combat.BeginAttack(
-                        move);
-                }
+                bool started = Machine.IsJumping
+                    ? Machine.TryStartAirAttack(move, facing)
+                    : Machine.TryStartAttack(move);
+
+                if (started)
+                    combat.BeginAttack(move);
 
                 return;
             }
@@ -589,7 +589,8 @@ namespace LandOfFire.BunnyStep
                 ClearAttackBuffer();
 
                 if (Machine.TryCancelAttack(
-                    move))
+                    move,
+                    facing))
                 {
                     combat.BeginAttack(
                         move);
@@ -650,7 +651,8 @@ namespace LandOfFire.BunnyStep
                 return;
 
             if (Machine.TryCancelAttack(
-                move))
+                move,
+                facing))
             {
                 combat.BeginAttack(
                     move);
@@ -669,7 +671,8 @@ namespace LandOfFire.BunnyStep
 
             // Ataque normal L/M/H.
             return combat.MoveFor(
-                command.Attack);
+                command.Attack,
+                Machine.IsJumping || Machine.IsAirAttacking);
         }
 
         private void ClearAttackBuffer()

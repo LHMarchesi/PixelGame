@@ -42,6 +42,16 @@ namespace LandOfFire.BunnyStep
                 ? input.Direction
                 : 0;
 
+        public override void ConfigureMovement(
+            FighterMovementProfile profile)
+        {
+            if (recognizer == null || profile == null)
+                return;
+
+            recognizer.SetDoubleTapTicks(
+                profile.doubleTapTicks);
+        }
+
         public override void ProcessInput(
      int facing,
      long tick)

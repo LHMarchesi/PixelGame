@@ -437,6 +437,13 @@ namespace LandOfFire.BunnyStep
 
         private void ConfigureMachine()
         {
+            Machine.ConfigureWalk(
+                RuntimeProfile.walkSpeed,
+                RuntimeProfile.allowBackwardWalk);
+
+            if (commands != null)
+                commands.ConfigureMovement(RuntimeProfile);
+
             Machine.ConfigureJump(
                 RuntimeProfile.jumpAnticipationTicks,
                 RuntimeProfile.jumpAirTicks,

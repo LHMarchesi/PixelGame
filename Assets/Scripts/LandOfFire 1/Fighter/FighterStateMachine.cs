@@ -23,7 +23,8 @@ namespace LandOfFire.BunnyStep
         FlyingHurt,
         Knockdown,
         Reset,
-        Jump
+        Jump,
+        Walk
     }
 
     public enum BunnyPhase
@@ -90,6 +91,9 @@ namespace LandOfFire.BunnyStep
                     PhaseElapsed - 1) /
                   (PhaseDuration - 1);
 
+        public bool IsWalking =>
+            State == FighterState.Walk;
+
         public bool IsStepping =>
             State == FighterState.BunnyForward ||
             State == FighterState.BunnyBackward ||
@@ -101,6 +105,11 @@ namespace LandOfFire.BunnyStep
         private BunnyTiming bunnyTiming;
 
         private BunnyTiming configuredLoopTiming;
+
+        // Ground walk is evaluated in deterministic 60 Hz ticks.
+        private float configuredWalkSpeed;
+        private bool allowBackwardWalk;
+        private int walkDirection;
 
         public bool IsHurt =>
             State == FighterState.Hurt;
@@ -326,6 +335,17 @@ namespace LandOfFire.BunnyStep
                 loopTiming;
         }
 
+        public void ConfigureWalk(
+            float speedUnitsPerSecond,
+            bool canWalkBackward)
+        {
+            configuredWalkSpeed =
+                Mathf.Max(0f, speedUnitsPerSecond);
+
+            allowBackwardWalk =
+                canWalkBackward;
+        }
+
         public void ConfigureJump(
             int anticipationTicks,
             int airTicks,
@@ -348,7 +368,8 @@ namespace LandOfFire.BunnyStep
                 return false;
 
             if (State != FighterState.Idle &&
-                State != FighterState.Guard)
+                State != FighterState.Guard &&
+                State != FighterState.Walk)
                 return false;
 
             Elapsed = 0;
@@ -454,7 +475,8 @@ namespace LandOfFire.BunnyStep
 
             return
                 State == FighterState.Idle ||
-                State == FighterState.Guard;
+                State == FighterState.Guard ||
+                State == FighterState.Walk;
         }
 
         // ================================================================
@@ -513,45 +535,32 @@ namespace LandOfFire.BunnyStep
                 State != FighterState.Reset &&
                 Elapsed >= Duration)
             {
-                bool forward =
-                    State == FighterState.BunnyForward ||
-                    State == FighterState.BunnyForwardLoop;
-
-                // Mantener Forward después de un Bunny
-                // continúa el desplazamiento.
-                if (forward &&
-                    heldDirection == newFacing)
-                {
-                    StartBunny(
-                        FighterState.BunnyForwardLoop,
-                        newFacing,
-                        configuredLoopTotal,
-                        configuredLoopDistance,
-                        configuredLoopHeight,
-                        configuredLoopTiming);
-
-                    return;
-                }
-
                 FinishTimedState();
             }
 
             // ============================================================
-            // IDLE / GUARD
+            // GROUNDED STANCE: IDLE / WALK / GUARD
             // ============================================================
 
             if (!IsTimed)
             {
-                Phase =
-                    BunnyPhase.None;
-
+                Phase = BunnyPhase.None;
                 PhaseElapsed = 0;
                 PhaseDuration = 0;
+                walkDirection = heldDirection;
 
-                Change(
-                    heldDirection == -newFacing
-                        ? FighterState.Guard
-                        : FighterState.Idle);
+                if (heldDirection == -newFacing && !allowBackwardWalk)
+                {
+                    Change(FighterState.Guard);
+                }
+                else if (heldDirection != 0)
+                {
+                    Change(FighterState.Walk);
+                }
+                else
+                {
+                    Change(FighterState.Idle);
+                }
             }
         }
 
@@ -561,6 +570,12 @@ namespace LandOfFire.BunnyStep
 
         public float Advance()
         {
+            if (State == FighterState.Walk)
+            {
+                const float TickSeconds = 1f / 60f;
+                return configuredWalkSpeed * TickSeconds * walkDirection;
+            }
+
             if (!IsTimed)
                 return 0;
 
@@ -947,8 +962,12 @@ namespace LandOfFire.BunnyStep
             if (IsStepping && !move.allowBunnyCancel)
                 return false;
 
-            if (State != FighterState.Idle && !IsStepping)
+            if (State != FighterState.Idle &&
+                State != FighterState.Walk &&
+                !IsStepping)
+            {
                 return false;
+            }
 
             return StartAttack(move, false, 1);
         }
@@ -1576,6 +1595,10 @@ namespace LandOfFire.BunnyStep
             configuredLoopTotal = 0;
             configuredLoopDistance = 0;
             configuredLoopHeight = 0;
+
+            configuredWalkSpeed = 0f;
+            allowBackwardWalk = false;
+            walkDirection = 0;
 
             flyingHurtDistance = 0;
             flyingHurtMaxHeight = 0;

@@ -4,9 +4,8 @@
 // contra las secuencias definidas en FighterMoveset.
 //
 // Soporta:
-// - Bunny Forward
-// - Bunny Backward
-// - Bunny Forward Loop
+// - Bunny Forward (doble tap hacia adelante)
+// - Bunny Backward (doble tap hacia atrás)
 // - ataques L/M/H normales
 // - ataques especiales con AttackMoveData propio
 //
@@ -23,6 +22,11 @@ namespace LandOfFire.BunnyStep
         {
             public FighterInputToken Token;
             public long Tick;
+
+            // Keep the orientation that was active when this sequence
+            // started. A target/facing update between the two taps must
+            // not turn the same physical direction into the opposite token.
+            public int Facing;
         }
 
         private readonly List<FighterCommandDefinition>
@@ -39,7 +43,7 @@ namespace LandOfFire.BunnyStep
 
         private int sequenceGapTicks = 12;
 
-        private int doubleTapTicks = 20;
+        private int doubleTapTicks = 12;
 
         // ================================================================
         // CONFIGURATION
@@ -56,7 +60,7 @@ namespace LandOfFire.BunnyStep
                     1,
                     gapTicks);
 
-            doubleTapTicks = 20;
+            doubleTapTicks = 12;
 
             AddDefaultCommands();
 
@@ -82,9 +86,25 @@ namespace LandOfFire.BunnyStep
                     continue;
                 }
 
+                // Bunny directions are reserved double-tap commands.
+                // Do not let a Moveset entry with a higher priority
+                // accidentally remap Back,Back to BunnyForward (or vice versa).
+                if (definition.commandType ==
+                        FighterCommandType.BunnyForward ||
+                    definition.commandType ==
+                        FighterCommandType.BunnyBackward)
+                {
+                    continue;
+                }
+
                 definitions.Add(
                     definition);
             }
+        }
+
+        public void SetDoubleTapTicks(int ticks)
+        {
+            doubleTapTicks = Mathf.Max(1, ticks);
         }
 
         // ================================================================
@@ -93,17 +113,12 @@ namespace LandOfFire.BunnyStep
 
         private void AddDefaultCommands()
         {
+            // Bunny is now triggered by a forward double tap.
             definitions.Add(
                 Create(
+                    FighterInputToken.Forward,
                     FighterInputToken.Forward,
                     FighterCommandType.BunnyForward,
-                    -1000));
-
-            definitions.Add(
-                Create(
-                    FighterInputToken.Forward,
-                    FighterInputToken.Forward,
-                    FighterCommandType.BunnyForwardLoop,
                     -1000));
 
             definitions.Add(
@@ -219,14 +234,33 @@ namespace LandOfFire.BunnyStep
                 if (input.Direction == 0)
                     return;
 
+                // Resolve both taps against the facing captured by the
+                // first tap. This keeps a double tap consistent even if the
+                // opponent crosses the fighter during the tap window.
+                int sequenceFacing =
+                    facing >= 0 ? 1 : -1;
+
+                if (buffer.Count > 0 &&
+                    IsBunnyCandidate())
+                {
+                    sequenceFacing =
+                        buffer[0].Facing;
+                }
+
                 FighterInputToken token =
                     DirectionToToken(
                         input.Direction,
-                        facing);
+                        sequenceFacing);
+
+                Debug.Log(
+                    $"[FighterCommandRecognizer] Direction press " +
+                    $"world={input.Direction}, facing={sequenceFacing}, " +
+                    $"token={token}, tick={tick}");
 
                 PushToken(
                     token,
-                    tick);
+                    tick,
+                    sequenceFacing);
 
                 return;
             }
@@ -248,7 +282,8 @@ namespace LandOfFire.BunnyStep
 
                     PushToken(
                         FighterInputToken.Light,
-                        tick);
+                        tick,
+                        facing);
 
                     break;
 
@@ -256,7 +291,8 @@ namespace LandOfFire.BunnyStep
 
                     PushToken(
                         FighterInputToken.Medium,
-                        tick);
+                        tick,
+                        facing);
 
                     break;
 
@@ -264,7 +300,8 @@ namespace LandOfFire.BunnyStep
 
                     PushToken(
                         FighterInputToken.Heavy,
-                        tick);
+                        tick,
+                        facing);
 
                     break;
             }
@@ -272,7 +309,8 @@ namespace LandOfFire.BunnyStep
 
         private void PushToken(
             FighterInputToken token,
-            long tick)
+            long tick,
+            int facing)
         {
             if (buffer.Count > 0)
             {
@@ -300,7 +338,10 @@ namespace LandOfFire.BunnyStep
                         token,
 
                     Tick =
-                        tick
+                        tick,
+
+                    Facing =
+                        facing >= 0 ? 1 : -1
                 });
 
             ResolveBuffer();
@@ -713,6 +754,14 @@ namespace LandOfFire.BunnyStep
                     AttackMove =
                         definition.attackMove
                 };
+
+            if (definition.commandType == FighterCommandType.BunnyForward ||
+                definition.commandType == FighterCommandType.BunnyBackward)
+            {
+                Debug.Log(
+                    $"[FighterCommandRecognizer] Recognized " +
+                    $"{definition.commandType}");
+            }
 
             commands.Enqueue(
                 command);

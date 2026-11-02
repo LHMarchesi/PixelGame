@@ -7,6 +7,14 @@ namespace LandOfFire.BunnyStep
     public sealed class FighterMovementProfile :
         ScriptableObject
     {
+        [Header("Ground Walk")]
+
+        [Min(0f), Tooltip("Velocidad de caminata en unidades por segundo.")]
+        public float walkSpeed = 2.5f;
+
+        [Tooltip("Si está activo, mantener atrás camina hacia atrás en lugar de activar Guard.")]
+        public bool allowBackwardWalk = false;
+
         [Header("Adelante")]
 
         public BunnyTiming forwardTiming =
@@ -22,9 +30,7 @@ namespace LandOfFire.BunnyStep
         public float forwardHeight = .3f;
 
 
-        [Header(
-            "Adelante sostenido: usa solo Flight y Recovery " +
-            "(Preparation se ignora)")]
+        [Header("Bunny Forward Loop (opcional desde FighterMoveset)")]
 
         public BunnyTiming forwardLoopTiming =
             new BunnyTiming(0, 7, 3);
@@ -83,7 +89,9 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public float backwardHeight = .25f;
 
-        [Min(1)]
+        [Header("Bunny Step Input")]
+
+        [Min(1), Tooltip("Máximo de ticks entre las dos pulsaciones para ejecutar Bunny Forward o Bunny Backward.")]
         public int doubleTapTicks = 12;
 
 
@@ -130,6 +138,13 @@ namespace LandOfFire.BunnyStep
         public PhaseAnimation idle =
             new PhaseAnimation(
                 "Idle");
+
+        public PhaseAnimation walk =
+            new PhaseAnimation("Walk")
+            {
+                playback = PhasePlayback.Loop,
+                loopTicks = 24
+            };
 
         public PhaseAnimation jumpAnticipation =
             new PhaseAnimation(
@@ -187,6 +202,9 @@ namespace LandOfFire.BunnyStep
 
                 case FighterState.Guard:
                     return guard;
+
+                case FighterState.Walk:
+                    return walk != null ? walk : idle;
 
                 case FighterState.Jump:
                     switch (jumpPhase)

@@ -3269,7 +3269,7 @@ MonoBehaviour:
   mediumAttack: {fileID: 11400000, guid: 22fee837a9c9eac4ebdccd1c3ec8477f, type: 2}
   heavyAttack: {fileID: 11400000, guid: a1ac90390247ab444a30ac035ca4437d, type: 2}
   airLightAttack: {fileID: 11400000, guid: 0de7c8c2ec8d2ef43b36b80d772b1b36, type: 2}
-  airMediumAttack: {fileID: 11400000, guid: 0de7c8c2ec8d2ef43b36b80d772b1b36, type: 2}
+  airMediumAttack: {fileID: 11400000, guid: 4e4f4ef332b17134d87725a74cebfb0e, type: 2}
   airHeavyAttack: {fileID: 0}
   hurtboxLayers:
     serializedVersion: 2

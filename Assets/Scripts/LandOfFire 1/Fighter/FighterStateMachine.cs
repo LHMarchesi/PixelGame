@@ -203,6 +203,8 @@ namespace LandOfFire.BunnyStep
         private int configuredJumpAir;
         private int configuredJumpDescending;
         private int configuredJumpRecovery;
+        private int configuredAirAttackInputStartTick = 12;
+        private int configuredAirAttackInputEndTick = 24;
         private float configuredJumpHeight;
         private float configuredJumpAirControl;
         private int jumpAirDirection;
@@ -352,12 +354,23 @@ namespace LandOfFire.BunnyStep
             int descendingTicks,
             int recoveryTicks,
             float height,
-            float airControl)
+            float airControl,
+            int airAttackInputStartTick,
+            int airAttackInputEndTick)
         {
             configuredJumpAnticipation = Mathf.Max(1, anticipationTicks);
             configuredJumpAir = Mathf.Max(1, airTicks);
             configuredJumpDescending = Mathf.Max(1, descendingTicks);
             configuredJumpRecovery = Mathf.Max(1, recoveryTicks);
+
+            configuredAirAttackInputStartTick =
+                Mathf.Max(1, airAttackInputStartTick);
+
+            configuredAirAttackInputEndTick =
+                Mathf.Max(
+                    configuredAirAttackInputStartTick,
+                    airAttackInputEndTick);
+
             configuredJumpHeight = Mathf.Max(0, height);
             configuredJumpAirControl = Mathf.Max(0, airControl);
         }
@@ -979,13 +992,40 @@ namespace LandOfFire.BunnyStep
             if (move == null || !IsJumping || Height <= 0.001f)
                 return false;
 
-            if (CurrentJumpPhase != JumpPhase.Air &&
-                CurrentJumpPhase != JumpPhase.Descending)
-            {
+            if (!IsAirAttackInputWindowOpen())
                 return false;
-            }
 
             return StartAttack(move, true, facing);
+        }
+
+        private bool IsAirAttackInputWindowOpen()
+        {
+            if (!IsJumping)
+                return false;
+
+            // The input window uses one continuous tick timeline beginning
+            // on the first tick of JumpPhase.Air. Descending continues that
+            // timeline instead of restarting its counter.
+            int airborneTick;
+
+            switch (CurrentJumpPhase)
+            {
+                case JumpPhase.Air:
+                    airborneTick = PhaseElapsed;
+                    break;
+
+                case JumpPhase.Descending:
+                    airborneTick =
+                        configuredJumpAir + PhaseElapsed;
+                    break;
+
+                default:
+                    return false;
+            }
+
+            return
+                airborneTick >= configuredAirAttackInputStartTick &&
+                airborneTick <= configuredAirAttackInputEndTick;
         }
 
         public bool TryCancelAttack(AttackMoveData move)

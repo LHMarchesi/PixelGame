@@ -16,8 +16,18 @@ MonoBehaviour:
   smearTicks: 10
   poseTicks: 15
   recoveryTicks: 10
+  useHitbox: 1
+  useTickHitWindow: 0
+  hitboxStartTick: 5
+  hitboxEndTick: 5
   hitDuringSmear: 0
   hitDuringPose: 1
+  useCustomAirMovement: 0
+  airAnticipationMovement: {x: 0, y: 0}
+  airSmearMovement: {x: 0, y: 0}
+  airPoseMovement: {x: 0, y: 0}
+  airRecoveryMovement: {x: 0, y: 0}
+  followAirborneHeight: 0
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 65

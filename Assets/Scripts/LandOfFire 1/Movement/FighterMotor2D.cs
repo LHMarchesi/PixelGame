@@ -450,7 +450,9 @@ namespace LandOfFire.BunnyStep
                 RuntimeProfile.jumpDescendingTicks,
                 RuntimeProfile.jumpRecoveryTicks,
                 RuntimeProfile.jumpHeight,
-                RuntimeProfile.jumpAirControl);
+                RuntimeProfile.jumpAirControl,
+                RuntimeProfile.airAttackInputStartTick,
+                RuntimeProfile.airAttackInputEndTick);
 
             Machine.ConfigureBunny(
                 RuntimeProfile.forwardTiming.Total,

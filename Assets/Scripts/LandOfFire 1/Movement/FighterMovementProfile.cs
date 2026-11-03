@@ -59,6 +59,24 @@ namespace LandOfFire.BunnyStep
         [Min(1)]
         public int jumpRecoveryTicks = 3;
 
+        [Header("Air Attack Input Window")]
+
+        [Min(1)]
+        [Tooltip(
+            "Primer tick en el que se acepta un Air Attack. " +
+            "El conteo comienza en el primer tick de JumpPhase.Air: " +
+            "1..jumpAirTicks son Air y los siguientes pertenecen a Descending. " +
+            "Usá jumpAirTicks para abrir desde el ápice, o jumpAirTicks + 1 " +
+            "para abrir solamente durante Descending.")]
+        public int airAttackInputStartTick = 12;
+
+        [Min(1)]
+        [Tooltip(
+            "Último tick inclusivo en el que se acepta el primer Air Attack. " +
+            "Se cuenta desde el primer tick de JumpPhase.Air y puede extenderse " +
+            "hasta el final de Descending.")]
+        public int airAttackInputEndTick = 24;
+
         [Min(0)]
         public float jumpHeight = 1.2f;
 

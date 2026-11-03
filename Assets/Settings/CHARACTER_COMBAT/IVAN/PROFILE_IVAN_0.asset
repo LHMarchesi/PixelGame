@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 413f9b0bb8caf974da97275efdb0345c, type: 3}
   m_Name: PROFILE_IVAN_0
   m_EditorClassIdentifier: 
+  walkSpeed: 2.5
+  allowBackwardWalk: 0
   forwardTiming:
     preparation: 10
     flight: 20
@@ -30,6 +32,8 @@ MonoBehaviour:
   jumpAirTicks: 15
   jumpDescendingTicks: 20
   jumpRecoveryTicks: 10
+  airAttackInputStartTick: 10
+  airAttackInputEndTick: 24
   jumpHeight: 12
   jumpAirControl: 0.25
   resetTicks: 20
@@ -72,6 +76,10 @@ MonoBehaviour:
     stateName: Base Layer.Idle
     playback: 1
     loopTicks: 60
+  walk:
+    stateName: Base Layer.Walk
+    playback: 1
+    loopTicks: 24
   jumpAnticipation:
     stateName: Base Layer.JumpAnticipation
     playback: 0

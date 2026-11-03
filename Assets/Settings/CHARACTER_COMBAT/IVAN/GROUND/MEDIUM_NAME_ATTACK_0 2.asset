@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
+  m_Name: MEDIUM_NAME_ATTACK_0 2
+  m_EditorClassIdentifier: 
+  anticipationTicks: 20
+  smearTicks: 10
+  poseTicks: 10
+  recoveryTicks: 20
+  useHitbox: 1
+  useTickHitWindow: 0
+  hitboxStartTick: 5
+  hitboxEndTick: 5
+  hitDuringSmear: 0
+  hitDuringPose: 1
+  useCustomAirMovement: 1
+  airAnticipationMovement: {x: 0, y: 0}
+  airSmearMovement: {x: 0, y: 0}
+  airPoseMovement: {x: 0, y: 0}
+  airRecoveryMovement: {x: 0, y: 0}
+  followAirborneHeight: 1
+  hitboxOffset: {x: 6, y: 1}
+  hitboxSize: {x: 5, y: 8}
+  damage: 100
+  hitstunTicks: 18
+  hitstopTicks: 10
+  hitPushback: 2.5
+  guardPushback: 7
+  lethalHit: 1
+  flyingHurtTicks: 24
+  flyingHurtDistance: 3
+  flyingHurtHeight: 1.5
+  lethalHitKnockdownTicks: 30
+  showHitboxDebug: 1
+  cancelStartTick: 8
+  cancelEndTick: 15
+  cancelBufferTicks: 2
+  allowBunnyCancel: 0
+  anticipation:
+    stateName: Base Layer.MediumAnticipation
+    playback: 0
+    loopTicks: 30
+  smear:
+    stateName: Base Layer.MediumSmear
+    playback: 0
+    loopTicks: 30
+  pose:
+    stateName: Base Layer.MediumPose
+    playback: 0
+    loopTicks: 30
+  recovery:
+    stateName: Base Layer.MediumRecovery
+    playback: 0
+    loopTicks: 30

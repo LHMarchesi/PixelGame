@@ -14,6 +14,7 @@ namespace LandOfFire.BunnyStep
     {
         Idle,
         Guard,
+        BlockRecovery,
         BunnyForward,
         BunnyBackward,
         BunnyForwardLoop,
@@ -108,7 +109,6 @@ namespace LandOfFire.BunnyStep
 
         // Ground walk is evaluated in deterministic 60 Hz ticks.
         private float configuredWalkSpeed;
-        private bool allowBackwardWalk;
         private int walkDirection;
 
         public bool IsHurt =>
@@ -135,6 +135,7 @@ namespace LandOfFire.BunnyStep
 
         public bool IsTimed =>
             IsStepping ||
+            State == FighterState.BlockRecovery ||
             IsJumping ||
             IsHurt ||
             IsFlyingHurt ||
@@ -344,8 +345,9 @@ namespace LandOfFire.BunnyStep
             configuredWalkSpeed =
                 Mathf.Max(0f, speedUnitsPerSecond);
 
-            allowBackwardWalk =
-                canWalkBackward;
+            // Back is always a movement input now. Guard is evaluated
+            // reactively by FighterCombat2D only on the impact tick.
+            // Keep the parameter for compatibility with existing callers.
         }
 
         public void ConfigureJump(
@@ -562,11 +564,10 @@ namespace LandOfFire.BunnyStep
                 PhaseDuration = 0;
                 walkDirection = heldDirection;
 
-                if (heldDirection == -newFacing && !allowBackwardWalk)
-                {
-                    Change(FighterState.Guard);
-                }
-                else if (heldDirection != 0)
+                // Holding Back means walking backwards by default.
+                // Guard is no longer a persistent stance: the combat
+                // resolver checks Back on the exact impact tick.
+                if (heldDirection != 0)
                 {
                     Change(FighterState.Walk);
                 }
@@ -715,6 +716,19 @@ namespace LandOfFire.BunnyStep
                 return IsAirAttacking
                     ? AdvanceAirAttackMovement()
                     : 0f;
+            }
+
+            // ============================================================
+            // BLOCK RECOVERY
+            // ============================================================
+
+            if (State == FighterState.BlockRecovery)
+            {
+                Phase = BunnyPhase.None;
+                PhaseElapsed = Elapsed;
+                PhaseDuration = Duration;
+                Height = 0f;
+                return 0f;
             }
 
             // ============================================================
@@ -1348,6 +1362,16 @@ namespace LandOfFire.BunnyStep
         // HURT
         // ================================================================
 
+        public void EnterBlockRecovery(int duration)
+        {
+            if (duration <= 0)
+                return;
+
+            StartTimedState(
+                FighterState.BlockRecovery,
+                duration);
+        }
+
         public void EnterHurt(
             int duration)
         {
@@ -1637,7 +1661,6 @@ namespace LandOfFire.BunnyStep
             configuredLoopHeight = 0;
 
             configuredWalkSpeed = 0f;
-            allowBackwardWalk = false;
             walkDirection = 0;
 
             flyingHurtDistance = 0;

@@ -12,8 +12,8 @@ namespace LandOfFire.BunnyStep
         [Min(0f), Tooltip("Velocidad de caminata en unidades por segundo.")]
         public float walkSpeed = 2.5f;
 
-        [Tooltip("Si está activo, mantener atrás camina hacia atrás en lugar de activar Guard.")]
-        public bool allowBackwardWalk = false;
+        [Tooltip("LEGACY: Back ahora siempre camina hacia atrás. Guard se activa reactivamente en el tick del impacto.")]
+        public bool allowBackwardWalk = true;
 
         [Header("Adelante")]
 
@@ -184,6 +184,10 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "Guard");
 
+        public PhaseAnimation blockRecovery =
+            new PhaseAnimation(
+                "Guard");
+
         public PhaseAnimation hurt =
             new PhaseAnimation(
                 "Hurt");
@@ -220,6 +224,9 @@ namespace LandOfFire.BunnyStep
 
                 case FighterState.Guard:
                     return guard;
+
+                case FighterState.BlockRecovery:
+                    return blockRecovery != null ? blockRecovery : guard;
 
                 case FighterState.Walk:
                     return walk != null ? walk : idle;

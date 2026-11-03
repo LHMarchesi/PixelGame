@@ -57,9 +57,35 @@ namespace LandOfFire.BunnyStep
         public FighterStateMachine Machine { get; } =
             new FighterStateMachine();
 
-        public bool GuardRequested =>
-            Machine.State ==
-            FighterState.Guard;
+        // Back is read as a defensive intent only when a blockable
+        // impact is actually resolved. It does not put the fighter into
+        // Guard while there is no incoming hit.
+        public bool IsHoldingBackAgainst(FighterMotor2D attacker)
+        {
+            if (!ready || attacker == null ||
+                !attacker.isActiveAndEnabled ||
+                commands == null || !commands.isActiveAndEnabled)
+            {
+                return false;
+            }
+
+            if (Machine.State != FighterState.Idle &&
+                Machine.State != FighterState.Walk &&
+                Machine.State != FighterState.Guard)
+            {
+                return false;
+            }
+
+            float toAttacker = attacker.BodyPosition.x - BodyPosition.x;
+            if (Mathf.Abs(toAttacker) > .001f)
+            {
+                int directionToAttacker = toAttacker > 0f ? 1 : -1;
+                if (directionToAttacker != facing)
+                    return false;
+            }
+
+            return commands.Direction == -facing;
+        }
 
         public bool CanReceiveCombatHit =>
             ready &&
@@ -690,6 +716,45 @@ namespace LandOfFire.BunnyStep
 
             bufferedAttack =
                 default(FighterCommand);
+        }
+
+        // ================================================================
+        // BLOCK / BLOCK RECOVERY
+        // ================================================================
+
+        public bool ReceiveBlockedHit(int blockRecoveryTicks)
+        {
+            if (!ready || !isActiveAndEnabled)
+                return false;
+
+            // A zero value deliberately leaves the fighter controllable.
+            // If Back is still held, the next impact tick can be guarded too.
+            if (blockRecoveryTicks <= 0)
+                return true;
+
+            if (Machine.State != FighterState.Idle &&
+                Machine.State != FighterState.Walk &&
+                Machine.State != FighterState.Guard)
+            {
+                return false;
+            }
+
+            Machine.EnterBlockRecovery(blockRecoveryTicks);
+
+            if (commands != null)
+                commands.ClearCommands();
+
+            ClearAttackBuffer();
+            accumulated = 0;
+            poseTick = 0;
+            SetVelocity(Vector2.zero);
+
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
+
+            return true;
         }
 
         // ================================================================

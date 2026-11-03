@@ -262,13 +262,17 @@ namespace LandOfFire.BunnyStep
                 // ========================================================
 
                 bool blocked =
-                    target.GuardRequested;
+                    move.canBeBlocked &&
+                    target.IsHoldingBackAgainst(owner);
 
                 if (blocked)
                 {
                     target.ApplyPushback(
                         move.guardPushback,
                         facing);
+
+                    target.ReceiveBlockedHit(
+                        move.blockRecoveryTicks);
 
                     owner.ApplyHitstop(
                         move.hitstopTicks);

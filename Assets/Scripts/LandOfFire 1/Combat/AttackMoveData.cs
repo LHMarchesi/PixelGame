@@ -9,11 +9,68 @@ using UnityEngine;
 
 namespace LandOfFire.BunnyStep
 {
+    public enum AttackCategory
+    {
+        Light,
+        Medium,
+        Heavy
+    }
+
     [CreateAssetMenu(
         menuName = "Land of Fire/Combat/Attack Move")]
     public sealed class AttackMoveData :
         ScriptableObject
     {
+        [Header("Categoría y Telegraph")]
+
+        [Tooltip("Categoría usada para identificar visualmente el ataque. Light = azul, Medium = naranja, Heavy = rojo.")]
+        public AttackCategory category = AttackCategory.Light;
+
+        [Tooltip("Activa una señal visual breve antes del impacto.")]
+        public bool showTelegraph;
+
+        [Min(1)]
+        [Tooltip("Tick exacto en el que aparece el Telegraph. Se cuenta desde el primer tick de Anticipation.")]
+        public int telegraphStartTick = 1;
+
+        [Min(0)]
+        [Tooltip("Cantidad de ticks que permanece visible. No depende de la ventana de Parry ni de la carga de Hold.")]
+        public int telegraphDurationTicks;
+
+        [Tooltip("Permite reemplazar el color predeterminado de la categoría.")]
+        public bool useCustomTelegraphColor;
+
+        public Color customTelegraphColor = Color.cyan;
+
+        public Color TelegraphColor
+        {
+            get
+            {
+                if (useCustomTelegraphColor)
+                    return customTelegraphColor;
+
+                switch (category)
+                {
+                    case AttackCategory.Medium:
+                        return new Color(1f, 0.48f, 0.08f, 1f);
+                    case AttackCategory.Heavy:
+                        return new Color(0.95f, 0.12f, 0.12f, 1f);
+                    default:
+                        return new Color(0.12f, 0.55f, 1f, 1f);
+                }
+            }
+        }
+
+        public bool IsTelegraphActive(int attackElapsedTick)
+        {
+            if (!showTelegraph || telegraphDurationTicks <= 0)
+                return false;
+
+            int start = Mathf.Max(1, telegraphStartTick);
+            int endExclusive = start + telegraphDurationTicks;
+            return attackElapsedTick >= start && attackElapsedTick < endExclusive;
+        }
+
         [Header("Duración por fase (ticks a 60 Hz)")]
 
         [Min(1)]
@@ -103,6 +160,13 @@ namespace LandOfFire.BunnyStep
             "Distancia de pushback cuando el rival está cubriendo.")]
         [Min(0)]
         public float guardPushback = .04f;
+
+        [Tooltip("Si está desactivado, Back no puede bloquear este ataque. Usar para Heavy/Aura y strikes especiales que no admiten Guard.")]
+        public bool canBeBlocked = true;
+
+        [Min(0)]
+        [Tooltip("Ticks durante los que el defensor no puede actuar después de bloquear este ataque. 0 = sin BlockRecovery.")]
+        public int blockRecoveryTicks;
 
         [Header("Lethal Hit")]
 

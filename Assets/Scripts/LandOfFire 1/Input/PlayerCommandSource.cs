@@ -63,13 +63,7 @@ namespace LandOfFire.BunnyStep
                 input.TryReadInput(
                     out FighterInputEvent inputEvent))
             {
-                Debug.Log(
-                    $"[PlayerCommandSource] INPUT " +
-                    $"Type={inputEvent.Type} " +
-                    $"Direction={inputEvent.Direction} " +
-                    $"Attack={inputEvent.Attack} " +
-                    $"Tick={tick}");
-
+               
                 recognizer.Push(
                     inputEvent,
                     facing,

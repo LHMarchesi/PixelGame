@@ -188,6 +188,19 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "Guard");
 
+        [Header("Parry")]
+        public PhaseAnimation parry =
+            new PhaseAnimation("Parry");
+
+        public PhaseAnimation parryWhiff =
+            new PhaseAnimation("Hurt");
+
+        public PhaseAnimation parryStun =
+            new PhaseAnimation("Hurt");
+
+        public PhaseAnimation parryRecovery =
+            new PhaseAnimation("Guard");
+
         public PhaseAnimation hurt =
             new PhaseAnimation(
                 "Hurt");
@@ -227,6 +240,18 @@ namespace LandOfFire.BunnyStep
 
                 case FighterState.BlockRecovery:
                     return blockRecovery != null ? blockRecovery : guard;
+
+                case FighterState.Parry:
+                    return parry != null ? parry : guard;
+
+                case FighterState.ParryWhiff:
+                    return parryWhiff != null ? parryWhiff : hurt;
+
+                case FighterState.ParryStun:
+                    return parryStun != null ? parryStun : hurt;
+
+                case FighterState.ParryRecovery:
+                    return parryRecovery != null ? parryRecovery : guard;
 
                 case FighterState.Walk:
                     return walk != null ? walk : idle;

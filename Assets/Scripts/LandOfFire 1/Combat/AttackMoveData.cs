@@ -16,6 +16,15 @@ namespace LandOfFire.BunnyStep
         Heavy
     }
 
+    public enum AttackClashGroup
+    {
+        MatchCategory,
+        None,
+        Light,
+        Medium,
+        Heavy
+    }
+
     [CreateAssetMenu(
         menuName = "Land of Fire/Combat/Attack Move")]
     public sealed class AttackMoveData :
@@ -25,6 +34,29 @@ namespace LandOfFire.BunnyStep
 
         [Tooltip("Categoría usada para identificar visualmente el ataque. Light = azul, Medium = naranja, Heavy = rojo.")]
         public AttackCategory category = AttackCategory.Light;
+
+        [Header("Clash")]
+        [Tooltip("MatchCategory usa la categoría del ataque. None desactiva el Clash para este movimiento. Las categorías Light/Medium/Heavy permiten configurar explícitamente el grupo.")]
+        public AttackClashGroup clashGroup = AttackClashGroup.MatchCategory;
+
+        public AttackClashGroup ResolvedClashGroup
+        {
+            get
+            {
+                if (clashGroup != AttackClashGroup.MatchCategory)
+                    return clashGroup;
+
+                switch (category)
+                {
+                    case AttackCategory.Medium:
+                        return AttackClashGroup.Medium;
+                    case AttackCategory.Heavy:
+                        return AttackClashGroup.Heavy;
+                    default:
+                        return AttackClashGroup.Light;
+                }
+            }
+        }
 
         [Tooltip("Activa una señal visual breve antes del impacto.")]
         public bool showTelegraph;
@@ -105,6 +137,29 @@ namespace LandOfFire.BunnyStep
         // Solo se consultan cuando useTickHitWindow está desactivado.
         [HideInInspector] public bool hitDuringSmear = true;
         [HideInInspector] public bool hitDuringPose;
+
+        [Header("Parry")]
+
+        [Min(1)]
+        [Tooltip("Primer tick inclusivo en el que este ataque puede ser parreado. Se cuenta desde el primer tick de Anticipation.")]
+        public int parryWindowStartTick = 5;
+
+        [Min(1)]
+        [Tooltip("Último tick inclusivo en el que este ataque puede ser parreado. Se cuenta desde el primer tick de Anticipation.")]
+        public int parryWindowEndTick = 5;
+
+        [Min(1)]
+        [Tooltip("Duración del ParryStun aplicado al atacante cuando un Parry normal tiene éxito.")]
+        public int parryStunTicks = 18;
+
+        public bool IsParryWindowActive(int attackElapsedTick)
+        {
+            int start = Mathf.Max(1, parryWindowStartTick);
+            int end = Mathf.Max(1, parryWindowEndTick);
+            return end >= start &&
+                   attackElapsedTick >= start &&
+                   attackElapsedTick <= end;
+        }
 
         [Header("Movimiento aéreo por fase")]
 

@@ -21,7 +21,17 @@ namespace LandOfFire.BunnyStep
         BunnyForward,
         BunnyBackward,
         BunnyForwardLoop,
-        Attack
+        Attack,
+        Parry
+    }
+
+    public enum ParryInputType
+    {
+        Imperfect,
+        PerfectLight,
+        PerfectMedium,
+        PerfectHeavy,
+        Invalid
     }
 
     public struct FighterCommand
@@ -34,6 +44,16 @@ namespace LandOfFire.BunnyStep
         // el AttackCommand genérico.
         public AttackMoveData AttackMove;
 
+        public ParryInputType ParryInput;
+
+        public static FighterCommand Parry(ParryInputType inputType)
+        {
+            return new FighterCommand
+            {
+                Type = FighterCommandType.Parry,
+                ParryInput = inputType
+            };
+        }
 
         public static FighterCommand Jump =>
             new FighterCommand

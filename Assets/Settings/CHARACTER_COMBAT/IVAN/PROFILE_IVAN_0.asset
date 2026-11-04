@@ -100,6 +100,26 @@ MonoBehaviour:
     stateName: Base Layer.Guard
     playback: 1
     loopTicks: 60
+  blockRecovery:
+    stateName: Base Layer.Guard
+    playback: 0
+    loopTicks: 30
+  parry:
+    stateName: Base Layer.Parry
+    playback: 0
+    loopTicks: 30
+  parryWhiff:
+    stateName: Base Layer.ParryWhiff
+    playback: 0
+    loopTicks: 30
+  parryStun:
+    stateName: Base Layer.ParryStun
+    playback: 0
+    loopTicks: 30
+  parryRecovery:
+    stateName: Base Layer.ParryRecovery
+    playback: 0
+    loopTicks: 30
   hurt:
     stateName: Base Layer.Hurt
     playback: 0

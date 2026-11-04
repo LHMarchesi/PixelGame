@@ -12,6 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
   m_Name: LIGHT_NAME_ATTACK_0
   m_EditorClassIdentifier: 
+  category: 0
+  clashGroup: 0
+  showTelegraph: 1
+  telegraphStartTick: 2
+  telegraphDurationTicks: 10
+  useCustomTelegraphColor: 0
+  customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
   anticipationTicks: 5
   smearTicks: 10
   poseTicks: 15
@@ -22,6 +29,9 @@ MonoBehaviour:
   hitboxEndTick: 5
   hitDuringSmear: 0
   hitDuringPose: 1
+  parryWindowStartTick: 3
+  parryWindowEndTick: 15
+  parryStunTicks: 18
   useCustomAirMovement: 0
   airAnticipationMovement: {x: 0, y: 0}
   airSmearMovement: {x: 0, y: 0}
@@ -35,6 +45,8 @@ MonoBehaviour:
   hitstopTicks: 8
   hitPushback: 0.08
   guardPushback: 0.04
+  canBeBlocked: 1
+  blockRecoveryTicks: 0
   lethalHit: 0
   flyingHurtTicks: 24
   flyingHurtDistance: 3

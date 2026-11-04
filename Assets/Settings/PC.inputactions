@@ -108,6 +108,62 @@
             ]
         },
         {
+            "name": "Parry_P1",
+            "id": "a4e40559-99b2-41da-81f8-638eea7fcccf",
+            "actions": [
+                {
+                    "name": "Parry",
+                    "type": "Button",
+                    "id": "fdbed89a-0eb9-451e-86d6-7d5c11c25c68",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "b37f3ed7-f12a-4e1c-9e03-f1e40deeb6b8",
+                    "path": "<Keyboard>/p",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Parry",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Parry_P2",
+            "id": "97de057a-724d-47d2-a1dc-d7c049c2aa03",
+            "actions": [
+                {
+                    "name": "Parry",
+                    "type": "Button",
+                    "id": "e26ec075-562e-4c1b-b42e-3d24ddec8aec",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d09a3b9b-da9d-4be7-a4a1-6e0ef4121144",
+                    "path": "<Keyboard>/h",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Parry",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
             "name": "Jump_P2",
             "id": "273cc192-a937-4bf8-ae2c-5133c52f31e1",
             "actions": [

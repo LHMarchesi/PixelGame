@@ -49,6 +49,11 @@ namespace LandOfFire.BunnyStep
         [SerializeField]
         private InputActionReference heavyAttack;
 
+        [Header("Parry")]
+        [Tooltip("P solo = Parry imperfecto. P + ataque = Parry perfecto de esa categoría.")]
+        [SerializeField]
+        private InputActionReference parry;
+
         [SerializeField]
         private InputActionReference jump;
 
@@ -72,6 +77,7 @@ namespace LandOfFire.BunnyStep
         private InputAction lightAction;
         private InputAction mediumAction;
         private InputAction heavyAction;
+        private InputAction parryAction;
         private InputAction jumpAction;
 
         public int Direction { get; private set; }
@@ -202,6 +208,8 @@ namespace LandOfFire.BunnyStep
                     "<Keyboard>/l",
                     ReadHeavy);
 
+            parryAction = CreateParryAction();
+
             jumpAction =
                 CreateJumpAction();
         }
@@ -228,6 +236,30 @@ namespace LandOfFire.BunnyStep
             createdAction.performed += ReadJump;
             createdAction.Enable();
 
+            return createdAction;
+        }
+
+        private InputAction CreateParryAction()
+        {
+            InputAction createdAction;
+
+            if (parry != null && parry.action != null)
+            {
+                createdAction = parry.action.Clone();
+            }
+            else
+            {
+                createdAction = new InputAction(
+                    "Parry",
+                    InputActionType.Button,
+                    "<Keyboard>/p");
+
+                if (enableGamepad)
+                    createdAction.AddBinding("<Gamepad>/rightShoulder");
+            }
+
+            createdAction.performed += ReadParry;
+            createdAction.Enable();
             return createdAction;
         }
 
@@ -275,25 +307,153 @@ namespace LandOfFire.BunnyStep
         private void ReadLight(
             InputAction.CallbackContext context)
         {
-            inputBuffer.Enqueue(
-                FighterInputEvent.AttackPress(
-                    AttackCommand.Light));
+            QueueAttackOrParry(AttackCommand.Light);
         }
 
         private void ReadMedium(
             InputAction.CallbackContext context)
         {
-            inputBuffer.Enqueue(
-                FighterInputEvent.AttackPress(
-                    AttackCommand.Medium));
+            QueueAttackOrParry(AttackCommand.Medium);
         }
 
         private void ReadHeavy(
             InputAction.CallbackContext context)
         {
+            QueueAttackOrParry(AttackCommand.Heavy);
+        }
+
+        private void ReadParry(InputAction.CallbackContext context)
+        {
+            QueueParryOrChord();
+        }
+
+        private void QueueAttackOrParry(AttackCommand attack)
+        {
+            int frame = Time.frameCount;
+            bool parryRequested =
+                IsActionPressed(parryAction) ||
+                HasQueuedEvent(frame, FighterInputEventType.Parry);
+
+            if (!parryRequested)
+            {
+                inputBuffer.Enqueue(FighterInputEvent.AttackPress(attack));
+                return;
+            }
+
+            QueueParryChord(frame, attack);
+        }
+
+        private void QueueParryOrChord()
+        {
+            int frame = Time.frameCount;
+            if (HasAnyAttackModifier(frame))
+            {
+                QueueParryChord(frame, null);
+                return;
+            }
+
+            // Keep P as a pending imperfect input for the current input
+            // frame. If L/M/H is pressed in that same frame, the later
+            // callback upgrades it into a perfect chord.
+            RemoveQueuedButtonEvents(frame);
             inputBuffer.Enqueue(
-                FighterInputEvent.AttackPress(
-                    AttackCommand.Heavy));
+                FighterInputEvent.ParryPress(ParryInputType.Imperfect));
+        }
+
+        private void QueueParryChord(int frame, AttackCommand? forcedAttack)
+        {
+            bool light = IsActionPressed(lightAction) || HasQueuedAttack(frame, AttackCommand.Light);
+            bool medium = IsActionPressed(mediumAction) || HasQueuedAttack(frame, AttackCommand.Medium);
+            bool heavy = IsActionPressed(heavyAction) || HasQueuedAttack(frame, AttackCommand.Heavy);
+
+            if (forcedAttack.HasValue)
+            {
+                switch (forcedAttack.Value)
+                {
+                    case AttackCommand.Light: light = true; break;
+                    case AttackCommand.Medium: medium = true; break;
+                    case AttackCommand.Heavy: heavy = true; break;
+                }
+            }
+
+            int count = (light ? 1 : 0) + (medium ? 1 : 0) + (heavy ? 1 : 0);
+            ParryInputType inputType;
+
+            if (count > 1)
+                inputType = ParryInputType.Invalid;
+            else if (light)
+                inputType = ParryInputType.PerfectLight;
+            else if (medium)
+                inputType = ParryInputType.PerfectMedium;
+            else if (heavy)
+                inputType = ParryInputType.PerfectHeavy;
+            else
+                inputType = ParryInputType.Imperfect;
+
+            RemoveQueuedButtonEvents(frame);
+            inputBuffer.Enqueue(FighterInputEvent.ParryPress(inputType));
+        }
+
+        private bool HasAnyAttackModifier(int frame)
+        {
+            return IsActionPressed(lightAction) ||
+                   IsActionPressed(mediumAction) ||
+                   IsActionPressed(heavyAction) ||
+                   HasQueuedAttack(frame, AttackCommand.Light) ||
+                   HasQueuedAttack(frame, AttackCommand.Medium) ||
+                   HasQueuedAttack(frame, AttackCommand.Heavy);
+        }
+
+        private bool HasQueuedAttack(int frame, AttackCommand attack)
+        {
+            foreach (FighterInputEvent queued in inputBuffer)
+            {
+                if (queued.InputFrame == frame &&
+                    queued.Type == FighterInputEventType.Attack &&
+                    queued.Attack == attack)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool HasQueuedEvent(int frame, FighterInputEventType type)
+        {
+            foreach (FighterInputEvent queued in inputBuffer)
+            {
+                if (queued.InputFrame == frame && queued.Type == type)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsActionPressed(InputAction inputAction)
+        {
+            return inputAction != null && inputAction.enabled && inputAction.IsPressed();
+        }
+
+        private void RemoveQueuedButtonEvents(int frame)
+        {
+            if (inputBuffer.Count == 0)
+                return;
+
+            Queue<FighterInputEvent> retained = new Queue<FighterInputEvent>(inputBuffer.Count);
+            while (inputBuffer.Count > 0)
+            {
+                FighterInputEvent queued = inputBuffer.Dequeue();
+                bool remove = queued.InputFrame == frame &&
+                    (queued.Type == FighterInputEventType.Attack ||
+                     queued.Type == FighterInputEventType.Parry);
+
+                if (!remove)
+                    retained.Enqueue(queued);
+            }
+
+            while (retained.Count > 0)
+                inputBuffer.Enqueue(retained.Dequeue());
         }
 
         private void ReadJump(
@@ -351,6 +511,10 @@ namespace LandOfFire.BunnyStep
             DisposeAttackAction(
                 ref heavyAction,
                 ReadHeavy);
+
+            DisposeAttackAction(
+                ref parryAction,
+                ReadParry);
 
             DisposeAttackAction(
                 ref jumpAction,

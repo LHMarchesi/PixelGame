@@ -111,11 +111,22 @@ namespace LandOfFire.BunnyStep
         private Rigidbody2D body;
         private PhysicsMaterial2D material;
 
-        private double accumulated;
         private long tick;
 
         private int poseTick;
         private int hitstopRemaining;
+
+        // Motion accumulated by the shared 60 Hz combat coordinator during
+        // the current Unity FixedUpdate frame.
+        private float coordinatedFrameDelta;
+        private float coordinatedLastTickDelta;
+        private bool pausedThisStep;
+        private bool resumedThisStep;
+        private bool coordinatedFrozen;
+        private bool advancedThisTick;
+
+        internal bool CanCollectAttackThisTick =>
+            ready && !frozen && advancedThisTick;
 
         private bool ready;
 
@@ -127,14 +138,16 @@ namespace LandOfFire.BunnyStep
 
         private FighterCommand bufferedAttack;
 
+        // A Parry is only a pending one-tick intent until the shared
+        // resolver confirms a matching incoming strike on this exact tick.
+        private bool hasPendingParry;
+        private ParryInputType pendingParryInput;
+
         // ---------------------------------------------------------------
         // Pushback
         // ---------------------------------------------------------------
 
         private float pendingPushback;
-
-        private const double TickSeconds =
-            1.0 / 60.0;
 
         private const RigidbodyConstraints2D GroundConstraints =
             RigidbodyConstraints2D.FreezePositionY |
@@ -261,15 +274,20 @@ namespace LandOfFire.BunnyStep
 
             ConfigureMachine();
 
-            accumulated = 0;
             tick = 0;
 
             poseTick = 0;
             hitstopRemaining = 0;
 
             pendingPushback = 0;
+            coordinatedFrameDelta = 0f;
+            coordinatedLastTickDelta = 0f;
+            pausedThisStep = false;
+            resumedThisStep = false;
 
             ClearAttackBuffer();
+            hasPendingParry = false;
+            pendingParryInput = default;
 
             if (combat != null)
                 combat.CancelAttack();
@@ -279,167 +297,150 @@ namespace LandOfFire.BunnyStep
 
             SetVelocity(
                 Vector2.zero);
+
+            FighterCombatResolver.Register(this);
         }
 
-        private void FixedUpdate()
+        // FighterCombatResolver owns the fixed-tick loop. Keeping fighter
+        // simulation out of individual FixedUpdate methods is what lets all
+        // combatants collect their contacts before any result is applied.
+        internal void BeginCoordinatedFrame()
+        {
+            coordinatedFrameDelta = 0f;
+            coordinatedLastTickDelta = 0f;
+            pausedThisStep = false;
+            resumedThisStep = false;
+            coordinatedFrozen = frozen;
+
+            if (!ready || !frozen)
+                return;
+
+            body.constraints = RigidbodyConstraints2D.FreezeAll;
+            SetVelocity(Vector2.zero);
+            pendingPushback = 0f;
+            ClearAttackBuffer();
+
+            if (commands != null)
+                commands.ClearCommands();
+        }
+
+        /// <summary>Advances exactly one shared 60 Hz simulation tick.</summary>
+        internal void AdvanceCoordinatedTick()
+        {
+            coordinatedLastTickDelta = 0f;
+            advancedThisTick = false;
+            if (!ready || frozen)
+                return;
+
+            if (hitstopRemaining > 0)
+            {
+                hitstopRemaining--;
+                pausedThisStep = true;
+                tick++;
+                return;
+            }
+
+            resumedThisStep = true;
+            float delta = 0f;
+
+            if (Mathf.Abs(pendingPushback) > 0.0001f)
+            {
+                delta += pendingPushback;
+                pendingPushback = 0f;
+            }
+
+            if (!Machine.IsTimed && facingTarget != null)
+            {
+                float difference = facingTarget.position.x - body.position.x;
+                if (Mathf.Abs(difference) > .001f)
+                    facing = difference > 0 ? 1 : -1;
+            }
+
+            bool hasCommands = commands != null && commands.isActiveAndEnabled;
+            ConfigureMachine();
+
+            FighterState before = Machine.State;
+            Machine.BeginTick(
+                facing,
+                hasCommands ? commands.Direction : 0);
+
+            if (hasCommands)
+            {
+                commands.ProcessInput(facing, tick);
+                ProcessRecognizedCommands();
+                TryExecuteBufferedAttack();
+            }
+            else if (commands != null)
+            {
+                commands.ClearCommands();
+                ClearAttackBuffer();
+            }
+
+            poseTick = before == Machine.State ? poseTick + 1 : 0;
+            delta += Machine.Advance();
+
+            // Keep the Parry intent alive only while the Parry state is
+            // active. If its animation expires, the state machine has
+            // already transitioned to ParryWhiff and the intent must not
+            // leak into later states.
+            if (Machine.State != FighterState.Parry && hasPendingParry)
+                ClearPendingParry();
+
+            advancedThisTick = true;
+            coordinatedLastTickDelta = delta;
+            coordinatedFrameDelta += delta;
+            tick++;
+        }
+
+        internal void EndCoordinatedFrame(float fixedDeltaTime)
         {
             if (!ready)
                 return;
 
-            if (frozen)
-            {
-                body.constraints =
-                    RigidbodyConstraints2D.FreezeAll;
+            bool stopped = coordinatedFrozen || hitstopRemaining > 0 ||
+                           (pausedThisStep && !resumedThisStep);
 
-                SetVelocity(
-                    Vector2.zero);
+            body.constraints = stopped
+                ? RigidbodyConstraints2D.FreezeAll
+                : GroundConstraints;
 
-                accumulated = 0;
+            SetVelocity(stopped
+                ? Vector2.zero
+                : new Vector2(coordinatedFrameDelta / Mathf.Max(.000001f, fixedDeltaTime), 0f));
 
-                pendingPushback = 0;
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
+        }
 
-                ClearAttackBuffer();
-
-                if (commands != null)
-                    commands.ClearCommands();
-
+        internal void CancelAttackForClash()
+        {
+            if (!ready || !Machine.IsAttacking)
                 return;
-            }
 
-            accumulated +=
-                Time.fixedDeltaTime;
+            coordinatedFrameDelta -= coordinatedLastTickDelta;
+            coordinatedLastTickDelta = 0f;
+            Machine.CancelAttackToIdle();
 
-            float delta = 0;
+            if (combat != null)
+                combat.CancelAttack();
 
-            bool pausedThisStep = false;
-            bool resumedThisStep = false;
+            if (commands != null)
+                commands.ClearCommands();
 
-            while (
-                accumulated + 1e-9 >=
-                TickSeconds)
-            {
-                accumulated -=
-                    TickSeconds;
+            ClearAttackBuffer();
+            pendingPushback = 0f;
+            poseTick = 0;
+            SetVelocity(Vector2.zero);
 
-                if (hitstopRemaining > 0)
-                {
-                    hitstopRemaining--;
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
 
-                    pausedThisStep = true;
-
-                    tick++;
-
-                    continue;
-                }
-
-                resumedThisStep = true;
-
-                if (Mathf.Abs(
-                    pendingPushback) >
-                    0.0001f)
-                {
-                    delta +=
-                        pendingPushback;
-
-                    pendingPushback = 0f;
-                }
-
-                if (!Machine.IsTimed &&
-                    facingTarget != null)
-                {
-                    float difference =
-                        facingTarget.position.x -
-                        body.position.x;
-
-                    if (Mathf.Abs(
-                        difference) >
-                        .001f)
-                    {
-                        facing =
-                            difference > 0
-                                ? 1
-                                : -1;
-                    }
-                }
-
-                bool hasCommands =
-                    commands != null &&
-                    commands.isActiveAndEnabled;
-
-                ConfigureMachine();
-
-                FighterState before =
-                    Machine.State;
-
-                Machine.BeginTick(
-                    facing,
-                    hasCommands
-                        ? commands.Direction
-                        : 0);
-
-                if (hasCommands)
-                {
-                    commands.ProcessInput(
-                        facing,
-                        tick);
-
-                    ProcessRecognizedCommands();
-
-                    TryExecuteBufferedAttack();
-                }
-                else if (commands != null)
-                {
-                    commands.ClearCommands();
-                    ClearAttackBuffer();
-                }
-
-                poseTick =
-                    before == Machine.State
-                        ? poseTick + 1
-                        : 0;
-
-                delta +=
-                    Machine.Advance();
-
-                if (combat != null)
-                {
-                    combat.ResolveTick(
-                        Machine,
-                        facing);
-                }
-
-                tick++;
-            }
-
-            bool stopped =
-                hitstopRemaining > 0 ||
-                (pausedThisStep &&
-                 !resumedThisStep);
-
-            body.constraints =
-                stopped
-                    ? RigidbodyConstraints2D.FreezeAll
-                    : GroundConstraints;
-
-            SetVelocity(
-                stopped
-                    ? Vector2.zero
-                    : new Vector2(
-                        delta /
-                        Time.fixedDeltaTime,
-                        0));
-
-            currentState =
-                Machine.State;
-
-            currentPhase =
-                Machine.Phase;
-
-            currentJumpPhase =
-                Machine.CurrentJumpPhase;
-
-            currentAttackPhase =
-                Machine.CurrentAttackPhase;
+            if (presentation != null)
+                presentation.Render(Machine, RuntimeProfile, facing, 0);
         }
 
         private void LateUpdate()
@@ -520,36 +521,167 @@ namespace LandOfFire.BunnyStep
                 {
                     case FighterCommandType.Jump:
 
-                        ExecuteJump();
+                        if (!hasPendingParry)
+                            ExecuteJump();
 
                         break;
 
                     case FighterCommandType.Attack:
 
-                        HandleAttackInput(
-                            command);
+                        if (!hasPendingParry)
+                            HandleAttackInput(command);
+
+                        break;
+
+                    case FighterCommandType.Parry:
+
+                        HandleParryInput(command.ParryInput);
 
                         break;
 
                     case FighterCommandType.BunnyForward:
 
-                        ExecuteBunnyForward();
+                        if (!hasPendingParry)
+                            ExecuteBunnyForward();
 
                         break;
 
                     case FighterCommandType.BunnyBackward:
 
-                        ExecuteBunnyBackward();
+                        if (!hasPendingParry)
+                            ExecuteBunnyBackward();
 
                         break;
 
                     case FighterCommandType.BunnyForwardLoop:
 
-                        ExecuteBunnyForwardLoop();
+                        if (!hasPendingParry)
+                            ExecuteBunnyForwardLoop();
 
                         break;
                 }
             }
+        }
+
+        private void HandleParryInput(ParryInputType inputType)
+        {
+            if (hasPendingParry || !ready || !isActiveAndEnabled || combat == null)
+                return;
+
+            // Parry cannot interrupt an attack, a Bunny, a Jump, Hurt,
+            // or any other timed action. It is available only from a
+            // grounded neutral state (Idle/Walk/Guard).
+            if (Machine.IsAttacking || Machine.IsTimed ||
+                (Machine.State != FighterState.Idle &&
+                 Machine.State != FighterState.Walk &&
+                 Machine.State != FighterState.Guard))
+            {
+                return;
+            }
+
+            hasPendingParry = true;
+            pendingParryInput = inputType;
+
+            // Pressing P immediately enters a dedicated Parry state so its
+            // Animator clip is rendered. The shared resolver still validates
+            // the attempt only against contacts collected on this exact tick.
+            Machine.EnterParryAttempt(
+                combat.parryAttemptTicks,
+                combat.parryWhiffRecoveryTicks);
+
+            ClearAttackBuffer();
+            poseTick = 0;
+        }
+
+        internal bool TryGetActiveParry(out ParryInputType inputType)
+        {
+            // Pressing Parry starts a short active state. Do not consume the
+            // intent on its first tick: the incoming hitbox may overlap a few
+            // ticks later while the Parry animation is still active.
+            if (!hasPendingParry || Machine.State != FighterState.Parry)
+            {
+                inputType = default;
+                return false;
+            }
+
+            inputType = pendingParryInput;
+            return true;
+        }
+
+        private void ClearPendingParry()
+        {
+            hasPendingParry = false;
+            pendingParryInput = default;
+        }
+
+        public void ReceiveParryWhiff(int recoveryTicks)
+        {
+            if (!ready || !isActiveAndEnabled || Machine.IsAttacking)
+                return;
+
+            Machine.EnterParryWhiff(recoveryTicks);
+            ClearAfterParryTransition();
+        }
+
+        public void ReceiveParrySuccess(int recoveryTicks, bool perfect)
+        {
+            if (!ready || !isActiveAndEnabled)
+                return;
+
+            // Keep the Parry state active for its configured animation.
+            // Once the animation ends, perfect returns to Idle and imperfect
+            // transitions into ParryRecovery.
+            Machine.ResolveParrySuccess(perfect, recoveryTicks);
+            ClearAfterParryTransition();
+        }
+
+        private void ClearAfterParryTransition()
+        {
+            ClearPendingParry();
+
+            if (commands != null)
+                commands.ClearCommands();
+
+            ClearAttackBuffer();
+            pendingPushback = 0f;
+            poseTick = 0;
+            SetVelocity(Vector2.zero);
+
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
+        }
+
+        internal void CancelAttackForParry(int parryStunTicks)
+        {
+            if (!ready || !Machine.IsAttacking)
+                return;
+
+            coordinatedFrameDelta -= coordinatedLastTickDelta;
+            coordinatedLastTickDelta = 0f;
+            Machine.EnterParryStun(parryStunTicks);
+
+            if (combat != null)
+                combat.CancelAttack();
+
+            hasPendingParry = false;
+            pendingParryInput = default;
+            if (commands != null)
+                commands.ClearCommands();
+
+            ClearAttackBuffer();
+            pendingPushback = 0f;
+            poseTick = 0;
+            SetVelocity(Vector2.zero);
+
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
+
+            if (presentation != null)
+                presentation.Render(Machine, RuntimeProfile, facing, 0);
         }
 
         private void ExecuteJump()
@@ -601,7 +733,7 @@ namespace LandOfFire.BunnyStep
                     : Machine.TryStartAttack(move);
 
                 if (started)
-                    combat.BeginAttack(move);
+                    combat.BeginAttack(move, command.AttackMove != null);
 
                 return;
             }
@@ -628,7 +760,8 @@ namespace LandOfFire.BunnyStep
                     facing))
                 {
                     combat.BeginAttack(
-                        move);
+                        move,
+                        command.AttackMove != null);
                 }
 
                 return;
@@ -648,7 +781,7 @@ namespace LandOfFire.BunnyStep
 
         private void TryExecuteBufferedAttack()
         {
-            if (!hasBufferedAttack)
+            if (hasPendingParry || !hasBufferedAttack)
                 return;
 
             if (!Machine.IsAttacking)
@@ -690,7 +823,8 @@ namespace LandOfFire.BunnyStep
                 facing))
             {
                 combat.BeginAttack(
-                    move);
+                    move,
+                    command.AttackMove != null);
             }
         }
 
@@ -745,7 +879,6 @@ namespace LandOfFire.BunnyStep
                 commands.ClearCommands();
 
             ClearAttackBuffer();
-            accumulated = 0;
             poseTick = 0;
             SetVelocity(Vector2.zero);
 
@@ -767,6 +900,10 @@ namespace LandOfFire.BunnyStep
             if (!CanReceiveCombatHit)
                 return false;
 
+            // A real hit interrupts an unsuccessful Parry attempt. Clear
+            // its latched input so it cannot survive into Hurt or Idle.
+            ClearPendingParry();
+
             int hurtTicks =
                 durationTicks > 0
                     ? durationTicks
@@ -785,7 +922,6 @@ namespace LandOfFire.BunnyStep
 
             ClearAttackBuffer();
 
-            accumulated = 0;
             poseTick = 0;
 
             SetVelocity(
@@ -829,6 +965,8 @@ namespace LandOfFire.BunnyStep
             if (!CanReceiveCombatHit)
                 return false;
 
+            ClearPendingParry();
+
             Machine.EnterFlyingHurt(
                 flyingTicks,
                 flyingDistance,
@@ -844,7 +982,6 @@ namespace LandOfFire.BunnyStep
 
             ClearAttackBuffer();
 
-            accumulated = 0;
             poseTick = 0;
 
             SetVelocity(
@@ -962,6 +1099,8 @@ namespace LandOfFire.BunnyStep
 
         private void OnDisable()
         {
+            FighterCombatResolver.Unregister(this);
+
             if (!ready)
                 return;
 
@@ -977,12 +1116,20 @@ namespace LandOfFire.BunnyStep
             pendingPushback = 0;
 
             ClearAttackBuffer();
+            hasPendingParry = false;
+            pendingParryInput = default;
 
             if (combat != null)
                 combat.CancelAttack();
 
             if (commands != null)
                 commands.ClearCommands();
+
+            coordinatedFrameDelta = 0f;
+            coordinatedLastTickDelta = 0f;
+            pausedThisStep = false;
+            resumedThisStep = false;
+            advancedThisTick = false;
 
             if (presentation != null)
                 presentation.ResetHeight();

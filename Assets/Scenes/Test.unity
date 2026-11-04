@@ -763,6 +763,7 @@ MonoBehaviour:
   lightAttack: {fileID: 1474411616853430664, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   mediumAttack: {fileID: 8597092648802249200, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   heavyAttack: {fileID: 6416528158117169522, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
+  parry: {fileID: 4677256237423645787, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   jump: {fileID: 6375074299686011388, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   useArrowKeys: 0
   enableGamepad: 0
@@ -858,6 +859,10 @@ MonoBehaviour:
   hurtboxLayers:
     serializedVersion: 2
     m_Bits: 64
+  startingParrySlots: 2
+  parryAttemptTicks: 6
+  parryRecoveryTicks: 4
+  parryWhiffRecoveryTicks: 18
 --- !u!4 &502439212
 Transform:
   m_ObjectHideFlags: 0
@@ -3249,6 +3254,7 @@ MonoBehaviour:
   lightAttack: {fileID: 6120781037467993532, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   mediumAttack: {fileID: 5570255605881732705, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   heavyAttack: {fileID: 4749814748645914262, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
+  parry: {fileID: -8462345649215992080, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   jump: {fileID: -2014982410276787342, guid: 83a44ab4f1fbc1448ace7384c1b29179, type: 3}
   useArrowKeys: 1
   enableGamepad: 0
@@ -3274,6 +3280,10 @@ MonoBehaviour:
   hurtboxLayers:
     serializedVersion: 2
     m_Bits: 64
+  startingParrySlots: 100
+  parryAttemptTicks: 20
+  parryRecoveryTicks: 20
+  parryWhiffRecoveryTicks: 18
 --- !u!114 &2136306436
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -80,8 +80,8 @@ namespace LandOfFire.BunnyStep
                 if (definition.sequence.Count == 0)
                     continue;
 
-                if (definition.commandType ==
-                    FighterCommandType.None)
+                if (definition.commandType == FighterCommandType.None ||
+                    definition.commandType == FighterCommandType.Parry)
                 {
                     continue;
                 }
@@ -273,6 +273,14 @@ namespace LandOfFire.BunnyStep
                 commands.Enqueue(
                     FighterCommand.Jump);
 
+                return;
+            }
+
+            // Parry is a one-tick defensive command, not a token in the
+            // Moveset sequence buffer. It must reach the motor immediately.
+            if (input.Type == FighterInputEventType.Parry)
+            {
+                commands.Enqueue(FighterCommand.Parry(input.ParryInput));
                 return;
             }
 

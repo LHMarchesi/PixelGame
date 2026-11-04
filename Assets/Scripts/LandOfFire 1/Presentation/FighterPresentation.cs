@@ -43,11 +43,12 @@ namespace LandOfFire.BunnyStep
                 int hash = Animator.StringToHash(path);
                 if (!string.IsNullOrEmpty(path) && animator.HasState(0, hash))
                 {
-                    bool blockRecovery = machine.State == FighterState.BlockRecovery;
-                    int elapsed = blockRecovery || machine.IsHurt ? machine.Elapsed :
+                    bool combatTimed = machine.State == FighterState.BlockRecovery ||
+                                       machine.IsHurt || machine.IsParryState;
+                    int elapsed = combatTimed ? machine.Elapsed :
                         machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :
                         poseTick + 1;
-                    int duration = blockRecovery || machine.IsHurt ? machine.Duration :
+                    int duration = combatTimed ? machine.Duration :
                         machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseDuration :
                         settings.loopTicks;
                     animator.Play(hash, 0, settings.Sample(elapsed, duration));

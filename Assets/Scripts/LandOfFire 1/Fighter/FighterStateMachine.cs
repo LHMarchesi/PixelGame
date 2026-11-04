@@ -25,7 +25,11 @@ namespace LandOfFire.BunnyStep
         Knockdown,
         Reset,
         Jump,
-        Walk
+        Walk,
+        Parry,
+        ParryWhiff,
+        ParryStun,
+        ParryRecovery
     }
 
     public enum BunnyPhase
@@ -123,6 +127,21 @@ namespace LandOfFire.BunnyStep
         public bool IsResetting =>
             State == FighterState.Reset;
 
+        public bool IsParrying =>
+            State == FighterState.Parry;
+
+        public bool IsParryWhiff =>
+            State == FighterState.ParryWhiff;
+
+        public bool IsParryStun =>
+            State == FighterState.ParryStun;
+
+        public bool IsParryRecovery =>
+            State == FighterState.ParryRecovery;
+
+        public bool IsParryState =>
+            IsParrying || IsParryWhiff || IsParryStun || IsParryRecovery;
+
         public bool IsAttacking =>
             State == FighterState.Attack ||
             State == FighterState.AirAttack;
@@ -136,6 +155,7 @@ namespace LandOfFire.BunnyStep
         public bool IsTimed =>
             IsStepping ||
             State == FighterState.BlockRecovery ||
+            IsParryState ||
             IsJumping ||
             IsHurt ||
             IsFlyingHurt ||
@@ -260,6 +280,14 @@ namespace LandOfFire.BunnyStep
         // ================================================================
 
         private int configuredResetTicks = 20;
+
+        // Parry attempt outcome is resolved by the shared combat resolver on
+        // the exact input tick. The Parry state remains visible for its
+        // animation before branching to ParryWhiff / ParryRecovery / Idle.
+        private int configuredParryWhiffRecoveryTicks = 18;
+        private bool parrySuccessResolved;
+        private bool parrySuccessPerfect;
+        private int parrySuccessRecoveryTicks;
 
         // ================================================================
         // CONFIGURATION
@@ -1340,6 +1368,18 @@ namespace LandOfFire.BunnyStep
             Change(FighterState.Jump);
         }
 
+        /// <summary>
+        /// Cancels the current attack immediately and returns to Idle.
+        /// Used only when a shared-tick Clash has already been confirmed.
+        /// </summary>
+        public void CancelAttackToIdle()
+        {
+            if (!IsAttacking)
+                return;
+
+            FinishGroundedAttack();
+        }
+
         private void FinishGroundedAttack()
         {
             Elapsed = 0;
@@ -1370,6 +1410,58 @@ namespace LandOfFire.BunnyStep
             StartTimedState(
                 FighterState.BlockRecovery,
                 duration);
+        }
+
+        public void EnterParryAttempt(
+            int attemptDurationTicks,
+            int whiffRecoveryTicks)
+        {
+            configuredParryWhiffRecoveryTicks =
+                Mathf.Max(1, whiffRecoveryTicks);
+
+            parrySuccessResolved = false;
+            parrySuccessPerfect = false;
+            parrySuccessRecoveryTicks = 0;
+
+            StartTimedState(
+                FighterState.Parry,
+                Mathf.Max(1, attemptDurationTicks));
+        }
+
+        /// <summary>
+        /// Marks a successful Parry. The fighter remains in the Parry state
+        /// for the configured Parry animation duration. When that animation
+        /// ends, perfect Parry returns to Idle and imperfect Parry enters
+        /// its configured recovery state.
+        /// </summary>
+        public void ResolveParrySuccess(bool perfect, int recoveryTicks)
+        {
+            if (State != FighterState.Parry)
+                return;
+
+            parrySuccessResolved = true;
+            parrySuccessPerfect = perfect;
+            parrySuccessRecoveryTicks = Mathf.Max(0, recoveryTicks);
+            // Do not shorten Duration: the Parry animation must finish before
+            // branching to perfect control or imperfect ParryRecovery.
+        }
+
+        public void EnterParryWhiff(int duration)
+        {
+            StartTimedState(FighterState.ParryWhiff, Mathf.Max(1, duration));
+        }
+
+        public void EnterParryStun(int duration)
+        {
+            StartTimedState(FighterState.ParryStun, Mathf.Max(1, duration));
+        }
+
+        public void EnterParryRecovery(int duration)
+        {
+            if (duration <= 0)
+                return;
+
+            StartTimedState(FighterState.ParryRecovery, duration);
         }
 
         public void EnterHurt(
@@ -1683,6 +1775,10 @@ namespace LandOfFire.BunnyStep
             autoGetUp = true;
 
             configuredResetTicks = 20;
+            configuredParryWhiffRecoveryTicks = 18;
+            parrySuccessResolved = false;
+            parrySuccessPerfect = false;
+            parrySuccessRecoveryTicks = 0;
         }
 
         // ================================================================
@@ -1781,6 +1877,53 @@ namespace LandOfFire.BunnyStep
 
         private void FinishTimedState()
         {
+            if (State == FighterState.Parry)
+            {
+                bool succeeded = parrySuccessResolved;
+                bool perfect = parrySuccessPerfect;
+                int recoveryTicks = parrySuccessRecoveryTicks;
+                int whiffTicks = configuredParryWhiffRecoveryTicks;
+
+                parrySuccessResolved = false;
+                parrySuccessPerfect = false;
+                parrySuccessRecoveryTicks = 0;
+
+                if (succeeded)
+                {
+                    if (!perfect && recoveryTicks > 0)
+                    {
+                        StartTimedState(
+                            FighterState.ParryRecovery,
+                            recoveryTicks);
+                    }
+                    else
+                    {
+                        // Perfect Parry grants control on this next tick.
+                        Change(FighterState.Idle);
+                        Elapsed = 0;
+                        Duration = 0;
+                        Distance = 0f;
+                        Height = 0f;
+                        Phase = BunnyPhase.None;
+                        PhaseElapsed = 0;
+                        PhaseDuration = 0;
+                        CurrentAttack = null;
+                        CurrentAttackPhase = AttackPhase.None;
+                    }
+
+                    return;
+                }
+
+                // A Parry with no valid confirmation finishes its own pose
+                // first, then enters the vulnerable ParryWhiff state. If a
+                // real hit arrived on the attempt tick, normal hit resolution
+                // interrupts Parry directly into Hurt instead.
+                StartTimedState(
+                    FighterState.ParryWhiff,
+                    whiffTicks);
+                return;
+            }
+
             if (IsAirAttacking)
             {
                 FinishAirAttack();

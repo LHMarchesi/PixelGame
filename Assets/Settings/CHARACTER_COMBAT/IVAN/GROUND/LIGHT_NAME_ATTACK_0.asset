@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   category: 0
   clashGroup: 0
-  showTelegraph: 1
+  showTelegraph: 0
   telegraphStartTick: 2
   telegraphDurationTicks: 10
   useCustomTelegraphColor: 0
@@ -43,6 +43,15 @@ MonoBehaviour:
   damage: 65
   hitstunTicks: 18
   hitstopTicks: 8
+  allowHoldAttack: 1
+  holdMinChargeTicks: 6
+  holdMaxChargeTicks: 30
+  blockBreakRequiredChargeTicks: 24
+  guardBreakDurationTicks: 24
+  guardBreakDamage: 10
+  guardBreakPushback: 0.55
+  holdHitPushback: 0.18
+  holdForwardDashDistance: 0.12
   hitPushback: 0.08
   guardPushback: 0.04
   canBeBlocked: 1

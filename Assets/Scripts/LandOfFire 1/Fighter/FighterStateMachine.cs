@@ -15,6 +15,7 @@ namespace LandOfFire.BunnyStep
         Idle,
         Guard,
         BlockRecovery,
+        GuardBreak,
         BunnyForward,
         BunnyBackward,
         BunnyForwardLoop,
@@ -88,6 +89,17 @@ namespace LandOfFire.BunnyStep
 
         public AttackMoveData CurrentAttack { get; private set; }
 
+        // Hold charge extends Anticipation without changing the shared tick rate.
+        public int HoldChargeTicks { get; private set; }
+
+        public int CombatAttackElapsedTick =>
+            Mathf.Max(0, Elapsed - HoldChargeTicks);
+
+        public bool IsHoldAttackCharged =>
+            CurrentAttack != null &&
+            CurrentAttack.allowHoldAttack &&
+            HoldChargeTicks >= CurrentAttack.HoldMinChargeTicks;
+
         public float PhaseProgress =>
             PhaseDuration <= 1
                 ? 0
@@ -155,6 +167,7 @@ namespace LandOfFire.BunnyStep
         public bool IsTimed =>
             IsStepping ||
             State == FighterState.BlockRecovery ||
+            State == FighterState.GuardBreak ||
             IsParryState ||
             IsJumping ||
             IsHurt ||
@@ -205,6 +218,8 @@ namespace LandOfFire.BunnyStep
         private int attackSmear;
         private int attackPose;
         private int attackRecovery;
+        private bool holdChargeRequested;
+        private bool holdChargeButtonHeld;
 
         private float attackStartHeight;
 
@@ -699,6 +714,21 @@ namespace LandOfFire.BunnyStep
 
             if (IsAttacking)
             {
+                // Hold charge starts only after the base Anticipation has
+                // completed. Each additional held tick extends Anticipation
+                // by one tick, so releasing advances into Smear on the next
+                // simulation tick. The effective combat timeline subtracts
+                // these extra ticks; Telegraph deliberately keeps absolute time.
+                if (holdChargeRequested && holdChargeButtonHeld &&
+                    CurrentAttack != null && CurrentAttack.allowHoldAttack &&
+                    index >= attackAnticipation &&
+                    HoldChargeTicks < CurrentAttack.HoldMaxChargeTicks)
+                {
+                    HoldChargeTicks++;
+                    attackAnticipation++;
+                    Duration++;
+                }
+
                 if (index < attackAnticipation)
                 {
                     SetAttackPhase(
@@ -750,7 +780,8 @@ namespace LandOfFire.BunnyStep
             // BLOCK RECOVERY
             // ============================================================
 
-            if (State == FighterState.BlockRecovery)
+            if (State == FighterState.BlockRecovery ||
+                State == FighterState.GuardBreak)
             {
                 Phase = BunnyPhase.None;
                 PhaseElapsed = Elapsed;
@@ -1002,8 +1033,14 @@ namespace LandOfFire.BunnyStep
         // ATTACK START
         // ================================================================
 
+        public bool TryStartAttack(AttackMoveData move)
+        {
+            return TryStartAttack(move, false);
+        }
+
         public bool TryStartAttack(
-            AttackMoveData move)
+            AttackMoveData move,
+            bool requestHoldCharge)
         {
             if (move == null || IsAttacking)
                 return false;
@@ -1011,7 +1048,8 @@ namespace LandOfFire.BunnyStep
             if (IsHurt || IsFlyingHurt || IsKnockdown || IsResetting)
                 return false;
 
-            if (State == FighterState.Guard)
+            if (State == FighterState.Guard ||
+                State == FighterState.GuardBreak)
                 return false;
 
             if (IsStepping && !move.allowBunnyCancel)
@@ -1024,12 +1062,20 @@ namespace LandOfFire.BunnyStep
                 return false;
             }
 
-            return StartAttack(move, false, 1);
+            return StartAttack(move, false, 1, requestHoldCharge);
         }
 
         public bool TryStartAirAttack(
             AttackMoveData move,
             int facing)
+        {
+            return TryStartAirAttack(move, facing, false);
+        }
+
+        public bool TryStartAirAttack(
+            AttackMoveData move,
+            int facing,
+            bool requestHoldCharge)
         {
             if (move == null || !IsJumping || Height <= 0.001f)
                 return false;
@@ -1037,7 +1083,7 @@ namespace LandOfFire.BunnyStep
             if (!IsAirAttackInputWindowOpen())
                 return false;
 
-            return StartAttack(move, true, facing);
+            return StartAttack(move, true, facing, requestHoldCharge);
         }
 
         private bool IsAirAttackInputWindowOpen()
@@ -1072,23 +1118,42 @@ namespace LandOfFire.BunnyStep
 
         public bool TryCancelAttack(AttackMoveData move)
         {
-            return TryCancelAttack(move, 1);
+            return TryCancelAttack(move, 1, false);
         }
 
         public bool TryCancelAttack(
             AttackMoveData move,
             int facing)
         {
+            return TryCancelAttack(move, facing, false);
+        }
+
+        public bool TryCancelAttack(
+            AttackMoveData move,
+            int facing,
+            bool requestHoldCharge)
+        {
             if (move == null || !IsAttacking || !IsAttackCancelWindow)
                 return false;
 
-            return StartAttack(move, IsAirAttacking, facing);
+            return StartAttack(move, IsAirAttacking, facing, requestHoldCharge);
+        }
+
+        public void UpdateHoldAttackInput(bool isButtonHeld)
+        {
+            holdChargeButtonHeld =
+                isButtonHeld &&
+                holdChargeRequested &&
+                IsAttacking &&
+                CurrentAttack != null &&
+                CurrentAttack.allowHoldAttack;
         }
 
         private bool StartAttack(
             AttackMoveData move,
             bool aerial,
-            int facing)
+            int facing,
+            bool requestHoldCharge)
         {
             if (aerial)
             {
@@ -1138,6 +1203,9 @@ namespace LandOfFire.BunnyStep
             }
 
             attackAnticipation = move.AnticipationTicks;
+            holdChargeRequested = requestHoldCharge && move.allowHoldAttack;
+            holdChargeButtonHeld = holdChargeRequested;
+            HoldChargeTicks = 0;
             attackSmear = move.SmearTicks;
             attackPose = move.PoseTicks;
             attackRecovery = move.RecoveryTicks;
@@ -1335,6 +1403,9 @@ namespace LandOfFire.BunnyStep
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
             PhaseDuration = 0;
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
             airAttackLastOffset = Vector2.zero;
 
             if (!hasSuspendedJump)
@@ -1395,6 +1466,9 @@ namespace LandOfFire.BunnyStep
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
             PhaseDuration = 0;
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
             Change(FighterState.Idle);
         }
 
@@ -1410,6 +1484,13 @@ namespace LandOfFire.BunnyStep
             StartTimedState(
                 FighterState.BlockRecovery,
                 duration);
+        }
+
+        public void EnterGuardBreak(int duration)
+        {
+            StartTimedState(
+                FighterState.GuardBreak,
+                Mathf.Max(1, duration));
         }
 
         public void EnterParryAttempt(
@@ -1552,6 +1633,9 @@ namespace LandOfFire.BunnyStep
             FighterState state,
             int duration)
         {
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentAttack = null;
@@ -1711,6 +1795,9 @@ namespace LandOfFire.BunnyStep
             attackSmear = 0;
             attackPose = 0;
             attackRecovery = 0;
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
 
             attackStartHeight = 0;
             hurtStartHeight = 0;

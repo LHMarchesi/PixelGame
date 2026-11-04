@@ -82,6 +82,21 @@ namespace LandOfFire.BunnyStep
 
         public int Direction { get; private set; }
 
+        public bool IsAttackHeld(AttackCommand attack)
+        {
+            switch (attack)
+            {
+                case AttackCommand.Light:
+                    return IsActionPressed(lightAction);
+                case AttackCommand.Medium:
+                    return IsActionPressed(mediumAction);
+                case AttackCommand.Heavy:
+                    return IsActionPressed(heavyAction);
+                default:
+                    return false;
+            }
+        }
+
         // ================================================================
         // UNITY
         // ================================================================

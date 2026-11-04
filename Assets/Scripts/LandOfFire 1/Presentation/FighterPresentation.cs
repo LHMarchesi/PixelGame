@@ -44,6 +44,7 @@ namespace LandOfFire.BunnyStep
                 if (!string.IsNullOrEmpty(path) && animator.HasState(0, hash))
                 {
                     bool combatTimed = machine.State == FighterState.BlockRecovery ||
+                                       machine.State == FighterState.GuardBreak ||
                                        machine.IsHurt || machine.IsParryState;
                     int elapsed = combatTimed ? machine.Elapsed :
                         machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :

@@ -125,6 +125,46 @@ namespace LandOfFire.BunnyStep
         private float desiredCenterY;
 
         // ================================================================
+        // IMPACT SHAKE
+        // ================================================================
+
+        [Header("Impact Shake")]
+
+        [SerializeField]
+        private bool enableImpactShake = true;
+
+        [SerializeField, Min(0f)]
+        private float maxImpactShakeAmplitude = 0.45f;
+
+        [SerializeField, Min(1f)]
+        private float impactShakeFrequency = 42f;
+
+        private float impactShakeAmplitude;
+        private float impactShakeDuration;
+        private float impactShakeElapsed;
+        private float impactShakePhase;
+        private Vector3 appliedShakeOffset;
+
+        /// <summary>
+        /// Adds a short camera shake for a confirmed combat event.
+        /// The offset is removed before camera tracking is calculated, so
+        /// shake never accumulates into the camera's follow position.
+        /// </summary>
+        public void AddImpactShake(float amplitude, float duration)
+        {
+            if (!enableImpactShake || amplitude <= 0f || duration <= 0f)
+                return;
+
+            impactShakeAmplitude = Mathf.Clamp(
+                impactShakeAmplitude + amplitude,
+                0f,
+                Mathf.Max(0f, maxImpactShakeAmplitude));
+            impactShakeDuration = Mathf.Max(impactShakeDuration, duration);
+            impactShakeElapsed = 0f;
+            impactShakePhase = Time.unscaledTime * 13.7f;
+        }
+
+        // ================================================================
         // UNITY
         // ================================================================
 
@@ -193,11 +233,14 @@ namespace LandOfFire.BunnyStep
             float centerX,
             float centerY)
         {
+            Vector3 baseCameraPosition =
+                cameraTarget.position - appliedShakeOffset;
+
             float currentX =
-                cameraTarget.position.x;
+                baseCameraPosition.x;
 
             float currentY =
-                cameraTarget.position.y;
+                baseCameraPosition.y;
 
             float deltaX =
                 centerX - currentX;
@@ -254,7 +297,7 @@ namespace LandOfFire.BunnyStep
         private void UpdatePosition()
         {
             Vector3 current =
-                cameraTarget.position;
+                cameraTarget.position - appliedShakeOffset;
 
             float newX =
                 Mathf.SmoothDamp(
@@ -270,11 +313,37 @@ namespace LandOfFire.BunnyStep
                     ref verticalVelocity,
                     verticalSmoothTime);
 
-            cameraTarget.position =
-                new Vector3(
-                    newX,
-                    newY,
-                    current.z);
+            Vector3 basePosition = new Vector3(
+                newX,
+                newY,
+                current.z);
+
+            appliedShakeOffset = CalculateImpactShakeOffset();
+            cameraTarget.position = basePosition + appliedShakeOffset;
+        }
+
+        private Vector3 CalculateImpactShakeOffset()
+        {
+            if (impactShakeAmplitude <= 0f || impactShakeDuration <= 0f ||
+                impactShakeElapsed >= impactShakeDuration)
+            {
+                impactShakeAmplitude = 0f;
+                impactShakeDuration = 0f;
+                return Vector3.zero;
+            }
+
+            impactShakeElapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(
+                impactShakeElapsed / Mathf.Max(0.0001f, impactShakeDuration));
+            float envelope = (1f - progress) * (1f - progress);
+            float phase = impactShakePhase +
+                          impactShakeElapsed * impactShakeFrequency * Mathf.PI * 2f;
+
+            float x = Mathf.Sin(phase) * impactShakeAmplitude * envelope;
+            float y = Mathf.Sin(phase * 1.73f + 0.85f) *
+                      impactShakeAmplitude * 0.58f * envelope;
+
+            return new Vector3(x, y, 0f);
         }
 
         // ================================================================

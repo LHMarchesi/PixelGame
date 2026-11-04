@@ -12,19 +12,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
   m_Name: HEAVY_NAME_ATTACK_0 2
   m_EditorClassIdentifier: 
+  category: 0
+  clashGroup: 0
+  showTelegraph: 0
+  telegraphStartTick: 1
+  telegraphDurationTicks: 0
+  useCustomTelegraphColor: 0
+  customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
   anticipationTicks: 10
   smearTicks: 20
   poseTicks: 10
   recoveryTicks: 20
+  useHitbox: 1
+  useTickHitWindow: 0
+  hitboxStartTick: 5
+  hitboxEndTick: 5
   hitDuringSmear: 0
   hitDuringPose: 1
+  parryWindowStartTick: 5
+  parryWindowEndTick: 5
+  parryStunTicks: 18
+  useCustomAirMovement: 1
+  airAnticipationMovement: {x: 0, y: 0}
+  airSmearMovement: {x: 0, y: 0}
+  airPoseMovement: {x: 0, y: 0}
+  airRecoveryMovement: {x: 0, y: 0}
+  followAirborneHeight: 1
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 80
   hitstunTicks: 18
   hitstopTicks: 20
+  allowHoldAttack: 1
+  holdMinChargeTicks: 6
+  holdMaxChargeTicks: 30
+  blockBreakRequiredChargeTicks: 24
+  guardBreakDurationTicks: 24
+  guardBreakDamage: 10
+  guardBreakPushback: 0.55
+  holdHitPushback: 0.18
+  holdForwardDashDistance: 0.12
   hitPushback: 0.08
   guardPushback: 0.04
+  canBeBlocked: 1
+  blockRecoveryTicks: 0
   lethalHit: 1
   flyingHurtTicks: 45
   flyingHurtDistance: 25

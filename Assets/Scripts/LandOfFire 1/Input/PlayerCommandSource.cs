@@ -42,6 +42,11 @@ namespace LandOfFire.BunnyStep
                 ? input.Direction
                 : 0;
 
+        public override bool IsAttackHeld(AttackCommand attack)
+        {
+            return input != null && input.IsAttackHeld(attack);
+        }
+
         public override void ConfigureMovement(
             FighterMovementProfile profile)
         {
@@ -63,7 +68,13 @@ namespace LandOfFire.BunnyStep
                 input.TryReadInput(
                     out FighterInputEvent inputEvent))
             {
-               
+                Debug.Log(
+                    $"[PlayerCommandSource] INPUT " +
+                    $"Type={inputEvent.Type} " +
+                    $"Direction={inputEvent.Direction} " +
+                    $"Attack={inputEvent.Attack} " +
+                    $"Tick={tick}");
+
                 recognizer.Push(
                     inputEvent,
                     facing,

@@ -18,6 +18,7 @@ namespace LandOfFire.BunnyStep
         public AttackMoveData Move;
         public int Facing;
         public int AttackElapsedTick;
+        public int HoldChargeTicks;
         public bool IsMovesetSpecial;
         public bool ForceLethal;
     }
@@ -243,6 +244,11 @@ namespace LandOfFire.BunnyStep
 
                 defender.ReceiveParrySuccess(
                     defenderCombat.parryRecoveryTicks,
+                    perfect);
+
+                CombatFeedbackController.TriggerParry(
+                    defender,
+                    incoming.Attacker,
                     perfect);
             }
         }
@@ -544,6 +550,12 @@ namespace LandOfFire.BunnyStep
 
             if (second.Attacker != null && second.Attacker != first.Attacker)
                 second.Attacker.CancelAttackForClash();
+
+            // Presentation and Clash hitstop are triggered only after the
+            // resolver has committed to a single Clash result.
+            CombatFeedbackController.TriggerClash(
+                first.Attacker,
+                second.Attacker);
         }
 
         private int FindReverseCandidate(

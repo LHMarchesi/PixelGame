@@ -204,6 +204,48 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public int hitstopTicks = 3;
 
+        [Header("Hold Attack")]
+
+        [Tooltip("Permite mantener el botón de este ataque para extender su Anticipation y cargarlo. Solo se aplica a ataques normales L/M/H, no a comandos especiales de Moveset.")]
+        public bool allowHoldAttack;
+
+        [Min(1)]
+        [Tooltip("Cantidad mínima de ticks de carga adicionales (después de la Anticipation base) para que el ataque obtenga sus propiedades de Hold.")]
+        public int holdMinChargeTicks = 6;
+
+        [Min(1)]
+        [Tooltip("Máxima cantidad de ticks de carga adicionales. Al alcanzar este valor, el ataque se libera automáticamente.")]
+        public int holdMaxChargeTicks = 30;
+
+        [Min(0)]
+        [Tooltip("Carga necesaria para romper Guard. 0 desactiva Block Break para este ataque.")]
+        public int blockBreakRequiredChargeTicks = 24;
+
+        [Min(1)]
+        [Tooltip("Duración del estado GuardBreak aplicado al defensor.")]
+        public int guardBreakDurationTicks = 24;
+
+        [Min(0)]
+        [Tooltip("Daño adicional al daño base del ataque cuando un Hold Attack cargado rompe Guard.")]
+        public int guardBreakDamage = 10;
+
+        [Min(0)]
+        [Tooltip("Pushback adicional al guardPushback normal cuando recibe GuardBreak. Se aplica al inicio del estado.")]
+        public float guardBreakPushback = .55f;
+
+        [Min(0)]
+        [Tooltip("Pushback adicional contra un rival que recibe un Hold Attack cargado sin bloquear.")]
+        public float holdHitPushback = .18f;
+
+        [Min(0)]
+        [Tooltip("Pequeño desplazamiento hacia delante del atacante cuando un Hold Attack cargado conecta sin ser bloqueado.")]
+        public float holdForwardDashDistance = .12f;
+
+        public int HoldMinChargeTicks => Mathf.Clamp(
+            holdMinChargeTicks, 1, HoldMaxChargeTicks);
+
+        public int HoldMaxChargeTicks => Mathf.Max(1, holdMaxChargeTicks);
+
         [Header("Pushback")]
 
         [Tooltip(

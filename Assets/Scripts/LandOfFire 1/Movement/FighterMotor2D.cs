@@ -143,6 +143,12 @@ namespace LandOfFire.BunnyStep
         private bool hasPendingParry;
         private ParryInputType pendingParryInput;
 
+        // Tracks which standard attack button must remain held to charge
+        // the current Hold Attack. Moveset-defined command sequences do not
+        // opt into button charging.
+        private bool hasHoldAttackInput;
+        private AttackCommand holdAttackInput;
+
         // ---------------------------------------------------------------
         // Pushback
         // ---------------------------------------------------------------
@@ -288,6 +294,7 @@ namespace LandOfFire.BunnyStep
             ClearAttackBuffer();
             hasPendingParry = false;
             pendingParryInput = default;
+            ClearHoldAttackInput();
 
             if (combat != null)
                 combat.CancelAttack();
@@ -376,8 +383,15 @@ namespace LandOfFire.BunnyStep
                 ClearAttackBuffer();
             }
 
+            bool holdButtonHeld = hasHoldAttackInput &&
+                hasCommands &&
+                commands.IsAttackHeld(holdAttackInput);
+            Machine.UpdateHoldAttackInput(holdButtonHeld);
+
             poseTick = before == Machine.State ? poseTick + 1 : 0;
             delta += Machine.Advance();
+            if (!Machine.IsAttacking)
+                ClearHoldAttackInput();
 
             // Keep the Parry intent alive only while the Parry state is
             // active. If its animation expires, the state machine has
@@ -422,6 +436,7 @@ namespace LandOfFire.BunnyStep
             coordinatedFrameDelta -= coordinatedLastTickDelta;
             coordinatedLastTickDelta = 0f;
             Machine.CancelAttackToIdle();
+            ClearHoldAttackInput();
 
             if (combat != null)
                 combat.CancelAttack();
@@ -638,6 +653,7 @@ namespace LandOfFire.BunnyStep
         private void ClearAfterParryTransition()
         {
             ClearPendingParry();
+            ClearHoldAttackInput();
 
             if (commands != null)
                 commands.ClearCommands();
@@ -661,6 +677,7 @@ namespace LandOfFire.BunnyStep
             coordinatedFrameDelta -= coordinatedLastTickDelta;
             coordinatedLastTickDelta = 0f;
             Machine.EnterParryStun(parryStunTicks);
+            ClearHoldAttackInput();
 
             if (combat != null)
                 combat.CancelAttack();
@@ -728,12 +745,16 @@ namespace LandOfFire.BunnyStep
             {
                 ClearAttackBuffer();
 
+                bool requestHoldCharge = command.AttackMove == null;
                 bool started = Machine.IsJumping
-                    ? Machine.TryStartAirAttack(move, facing)
-                    : Machine.TryStartAttack(move);
+                    ? Machine.TryStartAirAttack(move, facing, requestHoldCharge)
+                    : Machine.TryStartAttack(move, requestHoldCharge);
 
                 if (started)
+                {
                     combat.BeginAttack(move, command.AttackMove != null);
+                    SetHoldAttackInput(command);
+                }
 
                 return;
             }
@@ -757,11 +778,13 @@ namespace LandOfFire.BunnyStep
 
                 if (Machine.TryCancelAttack(
                     move,
-                    facing))
+                    facing,
+                    command.AttackMove == null))
                 {
                     combat.BeginAttack(
                         move,
                         command.AttackMove != null);
+                    SetHoldAttackInput(command);
                 }
 
                 return;
@@ -820,11 +843,13 @@ namespace LandOfFire.BunnyStep
 
             if (Machine.TryCancelAttack(
                 move,
-                facing))
+                facing,
+                command.AttackMove == null))
             {
                 combat.BeginAttack(
                     move,
                     command.AttackMove != null);
+                SetHoldAttackInput(command);
             }
         }
 
@@ -842,6 +867,19 @@ namespace LandOfFire.BunnyStep
             return combat.MoveFor(
                 command.Attack,
                 Machine.IsJumping || Machine.IsAirAttacking);
+        }
+
+        private void SetHoldAttackInput(FighterCommand command)
+        {
+            hasHoldAttackInput = command.AttackMove == null;
+            holdAttackInput = command.Attack;
+        }
+
+        private void ClearHoldAttackInput()
+        {
+            hasHoldAttackInput = false;
+            holdAttackInput = default;
+            Machine.UpdateHoldAttackInput(false);
         }
 
         private void ClearAttackBuffer()
@@ -890,6 +928,37 @@ namespace LandOfFire.BunnyStep
             return true;
         }
 
+        public bool ReceiveGuardBreak(int durationTicks)
+        {
+            if (!ready || !isActiveAndEnabled || !CanReceiveCombatHit)
+                return false;
+
+            ClearPendingParry();
+            ClearHoldAttackInput();
+            Machine.EnterGuardBreak(durationTicks);
+
+            if (combat != null)
+                combat.CancelAttack();
+
+            if (commands != null)
+                commands.ClearCommands();
+
+            ClearAttackBuffer();
+            pendingPushback = 0f;
+            poseTick = 0;
+            SetVelocity(Vector2.zero);
+
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
+
+            if (presentation != null)
+                presentation.Render(Machine, RuntimeProfile, facing, 0);
+
+            return true;
+        }
+
         // ================================================================
         // NORMAL HURT
         // ================================================================
@@ -903,6 +972,7 @@ namespace LandOfFire.BunnyStep
             // A real hit interrupts an unsuccessful Parry attempt. Clear
             // its latched input so it cannot survive into Hurt or Idle.
             ClearPendingParry();
+            ClearHoldAttackInput();
 
             int hurtTicks =
                 durationTicks > 0
@@ -966,6 +1036,7 @@ namespace LandOfFire.BunnyStep
                 return false;
 
             ClearPendingParry();
+            ClearHoldAttackInput();
 
             Machine.EnterFlyingHurt(
                 flyingTicks,
@@ -1118,6 +1189,7 @@ namespace LandOfFire.BunnyStep
             ClearAttackBuffer();
             hasPendingParry = false;
             pendingParryInput = default;
+            ClearHoldAttackInput();
 
             if (combat != null)
                 combat.CancelAttack();

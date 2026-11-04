@@ -24,13 +24,13 @@ MonoBehaviour:
   poseTicks: 10
   recoveryTicks: 20
   useHitbox: 1
-  useTickHitWindow: 0
-  hitboxStartTick: 5
-  hitboxEndTick: 5
+  useTickHitWindow: 1
+  hitboxStartTick: 30
+  hitboxEndTick: 40
   hitDuringSmear: 0
   hitDuringPose: 1
-  parryWindowStartTick: 15
-  parryWindowEndTick: 30
+  parryWindowStartTick: 1
+  parryWindowEndTick: 40
   parryStunTicks: 18
   useCustomAirMovement: 1
   airAnticipationMovement: {x: 0, y: 0}
@@ -43,6 +43,15 @@ MonoBehaviour:
   damage: 100
   hitstunTicks: 18
   hitstopTicks: 10
+  allowHoldAttack: 1
+  holdMinChargeTicks: 6
+  holdMaxChargeTicks: 30
+  blockBreakRequiredChargeTicks: 24
+  guardBreakDurationTicks: 24
+  guardBreakDamage: 10
+  guardBreakPushback: 0.55
+  holdHitPushback: 0.18
+  holdForwardDashDistance: 0.12
   hitPushback: 2.5
   guardPushback: 7
   canBeBlocked: 1

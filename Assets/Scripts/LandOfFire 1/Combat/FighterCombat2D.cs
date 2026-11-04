@@ -194,9 +194,10 @@ namespace LandOfFire.BunnyStep
             if (currentMove != move)
                 BeginAttack(move);
 
+            int combatElapsedTick = machine.CombatAttackElapsedTick;
             bool hitboxActive = move.HasHitbox(
                 machine.CurrentAttackPhase,
-                machine.Elapsed,
+                combatElapsedTick,
                 machine.IsAirAttacking);
 
             float airborneHeight =
@@ -256,7 +257,8 @@ namespace LandOfFire.BunnyStep
                     Health = health,
                     Move = move,
                     Facing = facing,
-                    AttackElapsedTick = machine.Elapsed,
+                    AttackElapsedTick = combatElapsedTick,
+                    HoldChargeTicks = machine.HoldChargeTicks,
                     IsMovesetSpecial = currentAttackIsMovesetSpecial,
                     ForceLethal = forceCurrentAttackLethal
                 });
@@ -289,9 +291,36 @@ namespace LandOfFire.BunnyStep
             AttackMoveData move = candidate.Move;
             FighterMotor2D target = candidate.Target;
 
+            bool chargedHold = IsChargedHold(candidate);
+
             if (allowBlock && move.canBeBlocked &&
                 target.IsHoldingBackAgainst(owner))
             {
+                bool causesGuardBreak = chargedHold &&
+                    move.blockBreakRequiredChargeTicks > 0 &&
+                    candidate.HoldChargeTicks >= Mathf.Max(
+                        move.HoldMinChargeTicks,
+                        move.blockBreakRequiredChargeTicks);
+
+                if (causesGuardBreak)
+                {
+                    bool broken = target.ReceiveGuardBreak(
+                        move.guardBreakDurationTicks);
+                    if (!broken)
+                        return false;
+
+                    candidate.Health.TakeDamage(move.damage + move.guardBreakDamage);
+                    target.ApplyPushback(
+                        move.guardPushback + move.guardBreakPushback,
+                        candidate.Facing);
+                    owner.ApplyHitstop(move.hitstopTicks);
+                    target.ApplyHitstop(move.hitstopTicks);
+                    hitThisAttack.Add(target);
+                    HitConfirmed?.Invoke(target, move);
+                    CombatFeedbackController.TriggerGuardBreak(target);
+                    return true;
+                }
+
                 bool blocked = target.ReceiveBlockedHit(move.blockRecoveryTicks);
                 if (!blocked)
                     return false;
@@ -319,7 +348,14 @@ namespace LandOfFire.BunnyStep
             {
                 accepted = target.ReceiveConfirmedHit(move.HurtTicks);
                 if (accepted)
-                    target.ApplyPushback(move.hitPushback, candidate.Facing);
+                {
+                    float extraHoldPushback = chargedHold
+                        ? move.holdHitPushback
+                        : 0f;
+                    target.ApplyPushback(
+                        move.hitPushback + extraHoldPushback,
+                        candidate.Facing);
+                }
             }
 
             if (!accepted)
@@ -327,10 +363,19 @@ namespace LandOfFire.BunnyStep
 
             hitThisAttack.Add(target);
             candidate.Health.TakeDamage(move.damage);
+            if (chargedHold && move.holdForwardDashDistance > 0f)
+                owner.ApplyPushback(move.holdForwardDashDistance, candidate.Facing);
             owner.ApplyHitstop(move.hitstopTicks);
             target.ApplyHitstop(move.hitstopTicks);
             HitConfirmed?.Invoke(target, move);
             return true;
+        }
+
+        private static bool IsChargedHold(FighterHitCandidate candidate)
+        {
+            return candidate.Move != null &&
+                   candidate.Move.allowHoldAttack &&
+                   candidate.HoldChargeTicks >= candidate.Move.HoldMinChargeTicks;
         }
 
         internal void RegisterParriedTarget(FighterMotor2D target)

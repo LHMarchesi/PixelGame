@@ -420,6 +420,9 @@ MonoBehaviour:
   verticalSmoothTime: 0.3
   zoomOutSmoothTime: 0.15
   zoomInSmoothTime: 0.35
+  enableImpactShake: 1
+  maxImpactShakeAmplitude: 0.45
+  impactShakeFrequency: 42
 --- !u!4 &119814887
 Transform:
   m_ObjectHideFlags: 0
@@ -634,6 +637,98 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 21.4, y: 12, z: 0}
   m_LocalScale: {x: 0.74322975, y: 0.74322975, z: 0.74322975}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &476799916
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 476799918}
+  - component: {fileID: 476799917}
+  m_Layer: 0
+  m_Name: FeedBackController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &476799917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476799916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8067f238da6f1a4ea9fa425d0ef086f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clashHitstopTicks: 4
+  clashColor: {r: 0.35, g: 0.78, b: 1, a: 1}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  clashEffectDuration: 0.88
+  flashDuration: 0.55
+  clashVerticalOffset: 0.55
+  flashStartScale: 0.35
+  flashEndScale: 1.75
+  ringStartScale: 0.25
+  ringEndScale: 2.65
+  sortingOrderOffset: 30
+  sparkCount: 16
+  sparkLifetimeMin: 0.16
+  sparkLifetimeMax: 0.3
+  sparkSpeedMin: 2
+  sparkSpeedMax: 5
+  sparkSizeMin: 3
+  sparkSizeMax: 5
+  fightCamera: {fileID: 119814886}
+  cameraShakeAmplitude: 1.25
+  cameraShakeDuration: 0.85
+  perfectParryHitstopTicks: 3
+  imperfectParryHitstopTicks: 1
+  perfectParryShakeAmplitude: 0.12
+  perfectParryShakeDuration: 0.12
+  imperfectParryShakeAmplitude: 0.045
+  imperfectParryShakeDuration: 0.08
+  perfectParryColor: {r: 1, g: 0.9639284, b: 0.3803922, a: 1}
+  imperfectParryColor: {r: 0.57811266, g: 0.8784314, b: 0.36078435, a: 1}
+  parryFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  perfectParryEffectDuration: 0.23
+  imperfectParryEffectDuration: 0.16
+  perfectParrySparkCount: 10
+  imperfectParrySparkCount: 5
+  showCombatCallouts: 1
+  calloutFont: {fileID: 0}
+  calloutFontSize: 64
+  calloutCharacterSize: 0.075
+  calloutVerticalOffset: 2
+  calloutRiseDistance: 0.45
+  calloutDuration: 0.72
+  calloutStartScale: 0.72
+  calloutEndScale: 1
+  calloutSortingOrderOffset: 100
+  clashCalloutColor: {r: 0.52, g: 0.88, b: 1, a: 1}
+  parryCalloutColor: {r: 0.4, g: 0.72, b: 1, a: 1}
+  perfectParryCalloutColor: {r: 0.75, g: 0.97, b: 1, a: 1}
+  guardBreakCalloutColor: {r: 1, g: 0.38, b: 0.22, a: 1}
+--- !u!4 &476799918
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476799916}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -15, y: 2.35, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -859,6 +954,7 @@ MonoBehaviour:
   hurtboxLayers:
     serializedVersion: 2
     m_Bits: 64
+  clashTimingToleranceTicks: 2
   startingParrySlots: 2
   parryAttemptTicks: 6
   parryRecoveryTicks: 4
@@ -3280,6 +3376,7 @@ MonoBehaviour:
   hurtboxLayers:
     serializedVersion: 2
     m_Bits: 64
+  clashTimingToleranceTicks: 2
   startingParrySlots: 100
   parryAttemptTicks: 20
   parryRecoveryTicks: 20
@@ -3335,3 +3432,4 @@ SceneRoots:
   - {fileID: 1669091467}
   - {fileID: 215518576}
   - {fileID: 1453138101}
+  - {fileID: 476799918}

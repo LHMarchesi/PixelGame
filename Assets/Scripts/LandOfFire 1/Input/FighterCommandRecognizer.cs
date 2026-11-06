@@ -27,6 +27,8 @@ namespace LandOfFire.BunnyStep
             // started. A target/facing update between the two taps must
             // not turn the same physical direction into the opposite token.
             public int Facing;
+            public int DirectionModifier;
+            public int InputFrame;
         }
 
         private readonly List<FighterCommandDefinition>
@@ -83,6 +85,14 @@ namespace LandOfFire.BunnyStep
                 if (definition.commandType == FighterCommandType.None ||
                     definition.commandType == FighterCommandType.Parry)
                 {
+                    continue;
+                }
+
+                if (definition.commandType == FighterCommandType.AutoCombo &&
+                    definition.autoCombo == null)
+                {
+                    Debug.LogWarning(
+                        "[FighterCommandRecognizer] AutoCombo command skipped because its AutoComboData is missing.");
                     continue;
                 }
 
@@ -257,10 +267,15 @@ namespace LandOfFire.BunnyStep
                     $"world={input.Direction}, facing={sequenceFacing}, " +
                     $"token={token}, tick={tick}");
 
+                if (IsDirectionModifierForPendingAutoCombo(token))
+                    return;
+
                 PushToken(
                     token,
                     tick,
-                    sequenceFacing);
+                    sequenceFacing,
+                    0,
+                    input.InputFrame);
 
                 return;
             }
@@ -288,8 +303,9 @@ namespace LandOfFire.BunnyStep
             {
                 case AttackCommand.Light:
 
-                    PushToken(
+                    PushAttackToken(
                         FighterInputToken.Light,
+                        input,
                         tick,
                         facing);
 
@@ -297,8 +313,9 @@ namespace LandOfFire.BunnyStep
 
                 case AttackCommand.Medium:
 
-                    PushToken(
+                    PushAttackToken(
                         FighterInputToken.Medium,
+                        input,
                         tick,
                         facing);
 
@@ -306,8 +323,9 @@ namespace LandOfFire.BunnyStep
 
                 case AttackCommand.Heavy:
 
-                    PushToken(
+                    PushAttackToken(
                         FighterInputToken.Heavy,
+                        input,
                         tick,
                         facing);
 
@@ -315,10 +333,86 @@ namespace LandOfFire.BunnyStep
             }
         }
 
+        private void PushAttackToken(
+            FighterInputToken token,
+            FighterInputEvent input,
+            long tick,
+            int facing)
+        {
+            int normalizedFacing = facing >= 0 ? 1 : -1;
+            int directionModifier = input.Direction == 0
+                ? 0
+                : input.Direction * normalizedFacing;
+
+            // Directional steps at the beginning of a command remain real
+            // sequence tokens. A direction pressed after an existing Auto
+            // Combo prefix is captured as a chord by the Direction handler.
+            PushToken(
+                token,
+                tick,
+                normalizedFacing,
+                directionModifier,
+                input.InputFrame);
+        }
+
+        private bool IsDirectionModifierForPendingAutoCombo(
+            FighterInputToken directionToken)
+        {
+            if (buffer.Count == 0)
+                return false;
+
+            for (int i = 0; i < definitions.Count; i++)
+            {
+                FighterCommandDefinition definition = definitions[i];
+                if (definition == null || definition.autoCombo == null ||
+                    definition.sequence == null ||
+                    definition.sequence.Count <= buffer.Count)
+                {
+                    continue;
+                }
+
+                if (!MatchesPrefix(definition, buffer, buffer.Count))
+                    continue;
+
+                // Consume a direction as a chord only when the next button
+                // step explicitly requires that relative direction. Otherwise
+                // it remains a real sequence token and cannot be silently
+                // ignored by an unrelated Auto Combo prefix.
+                int nextIndex = buffer.Count;
+                if (!IsAttackToken(definition.sequence[nextIndex]) ||
+                    definition.directionRequirements == null ||
+                    nextIndex >= definition.directionRequirements.Count)
+                {
+                    continue;
+                }
+
+                FighterInputDirectionRequirement requirement =
+                    definition.directionRequirements[nextIndex];
+                if ((requirement == FighterInputDirectionRequirement.Forward &&
+                     directionToken == FighterInputToken.Forward) ||
+                    (requirement == FighterInputDirectionRequirement.Back &&
+                     directionToken == FighterInputToken.Back))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsAttackToken(FighterInputToken token)
+        {
+            return token == FighterInputToken.Light ||
+                   token == FighterInputToken.Medium ||
+                   token == FighterInputToken.Heavy;
+        }
+
         private void PushToken(
             FighterInputToken token,
             long tick,
-            int facing)
+            int facing,
+            int directionModifier = 0,
+            int inputFrame = -1)
         {
             if (buffer.Count > 0)
             {
@@ -349,7 +443,10 @@ namespace LandOfFire.BunnyStep
                         tick,
 
                     Facing =
-                        facing >= 0 ? 1 : -1
+                        facing >= 0 ? 1 : -1,
+
+                    DirectionModifier = directionModifier,
+                    InputFrame = inputFrame
                 });
 
             ResolveBuffer();
@@ -438,8 +535,7 @@ namespace LandOfFire.BunnyStep
                     IsPrefix(
                         buffer);
 
-                if (exact != null &&
-                    isPrefix)
+                if (isPrefix)
                 {
                     return;
                 }
@@ -524,7 +620,7 @@ namespace LandOfFire.BunnyStep
                 }
 
                 if (MatchesPrefix(
-                    definition.sequence,
+                    definition,
                     tokens,
                     tokens.Count))
                 {
@@ -619,7 +715,7 @@ namespace LandOfFire.BunnyStep
                 }
 
                 if (!MatchesPrefix(
-                    definition.sequence,
+                    definition,
                     buffer,
                     length))
                 {
@@ -659,7 +755,7 @@ namespace LandOfFire.BunnyStep
                 }
 
                 if (!MatchesPrefix(
-                    definition.sequence,
+                    definition,
                     tokens,
                     tokens.Count))
                 {
@@ -697,7 +793,7 @@ namespace LandOfFire.BunnyStep
                 }
 
                 if (MatchesPrefix(
-                    definition.sequence,
+                    definition,
                     tokens,
                     length))
                 {
@@ -709,35 +805,54 @@ namespace LandOfFire.BunnyStep
         }
 
         private static bool MatchesPrefix(
-            List<FighterInputToken> sequence,
+            FighterCommandDefinition definition,
             List<BufferedToken> tokens,
             int length)
         {
-            if (sequence == null ||
-                tokens == null)
-            {
-                return false;
-            }
-
-            if (sequence.Count < length ||
+            if (definition == null || definition.sequence == null ||
+                tokens == null || definition.sequence.Count < length ||
                 tokens.Count < length)
             {
                 return false;
             }
 
-            for (
-                int i = 0;
-                i < length;
-                i++)
+            for (int i = 0; i < length; i++)
             {
-                if (sequence[i] !=
-                    tokens[i].Token)
+                if (definition.sequence[i] != tokens[i].Token)
+                    return false;
+
+                if (!DirectionRequirementMatches(
+                    definition, i, tokens[i].DirectionModifier))
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        private static bool DirectionRequirementMatches(
+            FighterCommandDefinition definition,
+            int sequenceIndex,
+            int directionModifier)
+        {
+            if (definition.directionRequirements == null ||
+                sequenceIndex >= definition.directionRequirements.Count)
+            {
+                return true;
+            }
+
+            switch (definition.directionRequirements[sequenceIndex])
+            {
+                case FighterInputDirectionRequirement.Neutral:
+                    return directionModifier == 0;
+                case FighterInputDirectionRequirement.Forward:
+                    return directionModifier > 0;
+                case FighterInputDirectionRequirement.Back:
+                    return directionModifier < 0;
+                default:
+                    return true;
+            }
         }
 
         // ================================================================
@@ -760,11 +875,15 @@ namespace LandOfFire.BunnyStep
                         definition.attack,
 
                     AttackMove =
-                        definition.attackMove
+                        definition.attackMove,
+
+                    AutoCombo =
+                        definition.autoCombo
                 };
 
             if (definition.commandType == FighterCommandType.BunnyForward ||
-                definition.commandType == FighterCommandType.BunnyBackward)
+                definition.commandType == FighterCommandType.BunnyBackward ||
+                definition.commandType == FighterCommandType.AutoCombo)
             {
                 Debug.Log(
                     $"[FighterCommandRecognizer] Recognized " +

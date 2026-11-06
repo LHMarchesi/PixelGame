@@ -50,12 +50,13 @@ namespace LandOfFire.BunnyStep
         }
 
         public static FighterInputEvent AttackPress(
-            AttackCommand attack)
+            AttackCommand attack,
+            int heldDirection = 0)
         {
             return new FighterInputEvent
             {
                 Type = FighterInputEventType.Attack,
-                Direction = 0,
+                Direction = Mathf.Clamp(heldDirection, -1, 1),
                 Attack = attack,
                 ParryInput = default,
                 InputFrame = UnityEngine.Time.frameCount

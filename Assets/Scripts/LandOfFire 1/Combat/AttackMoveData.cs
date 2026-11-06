@@ -309,6 +309,13 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public int cancelBufferTicks = 2;
 
+        [Tooltip("Allows this SingleMove to cancel into an Auto Combo during its existing Pose cancel window.")]
+        public bool allowAutoComboCancel;
+
+        [Range(0f, 100f)]
+        [Tooltip("Percentage of the target Auto Combo startup ticks skipped when this move cancels into it.")]
+        public float cancelStartupSkipPercent;
+
         [Header("Entrada")]
 
         public bool allowBunnyCancel;

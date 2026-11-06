@@ -41,6 +41,8 @@ namespace LandOfFire.BunnyStep
             public float RiseDistance;
             public float StartScale;
             public float EndScale;
+            public float PeakScale;
+            public bool UsePunchScale;
         }
 
         private static CombatFeedbackController instance;
@@ -202,6 +204,31 @@ namespace LandOfFire.BunnyStep
         [SerializeField]
         private Color guardBreakCalloutColor = new Color(1f, 0.38f, 0.22f, 1f);
 
+        [Header("Auto Combo - Hit Numbers")]
+        [SerializeField]
+        private bool showAutoComboHitNumbers = true;
+
+        [SerializeField, Min(0.05f)]
+        private float autoComboNumberDuration = 0.58f;
+
+        [SerializeField, Min(0.1f)]
+        private float autoComboNumberScale = 1.5f;
+
+        [SerializeField, Min(0f)]
+        private float autoComboNumberVerticalOffset = 0.28f;
+
+        [SerializeField, Min(0f)]
+        private float autoComboNumberHorizontalSpread = 0.12f;
+
+        [SerializeField]
+        private Color autoComboLightNumberColor = new Color(0.22f, 0.86f, 1f, 1f);
+
+        [SerializeField]
+        private Color autoComboMediumNumberColor = new Color(1f, 0.61f, 0.16f, 1f);
+
+        [SerializeField]
+        private Color autoComboHeavyNumberColor = new Color(1f, 0.25f, 0.22f, 1f);
+
         private readonly List<ClashEffect> activeEffects =
             new List<ClashEffect>(4);
 
@@ -291,6 +318,21 @@ namespace LandOfFire.BunnyStep
                 return;
 
             controller.PlayGuardBreak(defender);
+        }
+
+        public static void TriggerAutoComboImpact(
+            FighterMotor2D defender,
+            int impactNumber,
+            AttackCategory category)
+        {
+            if (defender == null || impactNumber <= 0)
+                return;
+
+            CombatFeedbackController controller = EnsureInstance();
+            if (controller == null)
+                return;
+
+            controller.PlayAutoComboImpact(defender, impactNumber, category);
         }
 
         private static CombatFeedbackController EnsureInstance()
@@ -449,15 +491,60 @@ namespace LandOfFire.BunnyStep
                 1.08f);
         }
 
+        private void PlayAutoComboImpact(
+            FighterMotor2D defender,
+            int impactNumber,
+            AttackCategory category)
+        {
+            Color numberColor;
+            switch (category)
+            {
+                case AttackCategory.Medium:
+                    numberColor = autoComboMediumNumberColor;
+                    break;
+                case AttackCategory.Heavy:
+                    numberColor = autoComboHeavyNumberColor;
+                    break;
+                default:
+                    numberColor = autoComboLightNumberColor;
+                    break;
+            }
+
+            // Alternate the number slightly around the target so rapid hits
+            // remain legible instead of stacking in one exact screen point.
+            float side = impactNumber % 2 == 0 ? -1f : 1f;
+            float spread = side * autoComboNumberHorizontalSpread *
+                           Mathf.Ceil(impactNumber * 0.5f);
+            Vector3 position = defender.BodyPosition +
+                Vector2.up * (calloutVerticalOffset + autoComboNumberVerticalOffset) +
+                Vector2.right * spread;
+
+            if (!showAutoComboHitNumbers)
+                return;
+
+            SpawnCallout(
+                impactNumber.ToString(),
+                position,
+                defender,
+                numberColor,
+                autoComboNumberDuration,
+                autoComboNumberScale,
+                true,
+                true);
+        }
+
         private void SpawnCallout(
             string label,
             Vector3 position,
             FighterMotor2D sortingReference,
             Color color,
             float duration,
-            float sizeMultiplier)
+            float sizeMultiplier,
+            bool usePunchScale = false,
+            bool bypassGlobalCalloutToggle = false)
         {
-            if (!showCombatCallouts || string.IsNullOrEmpty(label))
+            if ((!showCombatCallouts && !bypassGlobalCalloutToggle) ||
+                string.IsNullOrEmpty(label))
                 return;
 
             Font font = calloutFont != null ? calloutFont : ResolveCalloutFont();
@@ -522,9 +609,14 @@ namespace LandOfFire.BunnyStep
                 StartPosition = position,
                 Duration = Mathf.Max(0.05f, duration),
                 RiseDistance = Mathf.Max(0.01f, calloutRiseDistance),
-                StartScale = Mathf.Max(0.01f, calloutStartScale),
+                StartScale = usePunchScale
+                    ? Mathf.Max(0.01f, calloutStartScale * 0.45f)
+                    : Mathf.Max(0.01f, calloutStartScale),
                 EndScale = Mathf.Max(0.01f, calloutEndScale) *
-                           Mathf.Max(0.1f, sizeMultiplier)
+                           Mathf.Max(0.1f, sizeMultiplier),
+                PeakScale = Mathf.Max(0.01f, calloutEndScale) *
+                            Mathf.Max(0.1f, sizeMultiplier) * 1.16f,
+                UsePunchScale = usePunchScale
             });
         }
 
@@ -571,11 +663,39 @@ namespace LandOfFire.BunnyStep
                 callout.Root.transform.position = callout.StartPosition +
                     Vector3.up * (callout.RiseDistance * riseProgress);
 
-                float popProgress = Mathf.Clamp01(callout.Elapsed / 0.10f);
-                float pop = Mathf.Lerp(
-                    callout.StartScale,
-                    callout.EndScale,
-                    Mathf.SmoothStep(0f, 1f, popProgress));
+                float pop;
+                if (callout.UsePunchScale)
+                {
+                    // Fast impact pop, slight overshoot, then a short settle.
+                    const float overshootDuration = 0.085f;
+                    const float settleDuration = 0.075f;
+                    if (callout.Elapsed < overshootDuration)
+                    {
+                        float scaleProgress = Mathf.Clamp01(
+                            callout.Elapsed / overshootDuration);
+                        pop = Mathf.Lerp(
+                            callout.StartScale,
+                            callout.PeakScale,
+                            1f - Mathf.Pow(1f - scaleProgress, 3f));
+                    }
+                    else
+                    {
+                        float scaleProgress = Mathf.Clamp01(
+                            (callout.Elapsed - overshootDuration) / settleDuration);
+                        pop = Mathf.Lerp(
+                            callout.PeakScale,
+                            callout.EndScale,
+                            Mathf.SmoothStep(0f, 1f, scaleProgress));
+                    }
+                }
+                else
+                {
+                    float popProgress = Mathf.Clamp01(callout.Elapsed / 0.10f);
+                    pop = Mathf.Lerp(
+                        callout.StartScale,
+                        callout.EndScale,
+                        Mathf.SmoothStep(0f, 1f, popProgress));
+                }
                 callout.Root.transform.localScale = Vector3.one * pop;
 
                 float fadeStart = 0.62f;

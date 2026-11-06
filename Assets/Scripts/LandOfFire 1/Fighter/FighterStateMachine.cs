@@ -23,6 +23,7 @@ namespace LandOfFire.BunnyStep
         Attack,
         AirAttack,
         FlyingHurt,
+        ComboLimitKnockdown,
         Knockdown,
         Reset,
         Jump,
@@ -30,7 +31,8 @@ namespace LandOfFire.BunnyStep
         Parry,
         ParryWhiff,
         ParryStun,
-        ParryRecovery
+        ParryRecovery,
+        AutoCombo
     }
 
     public enum BunnyPhase
@@ -89,6 +91,8 @@ namespace LandOfFire.BunnyStep
 
         public AttackMoveData CurrentAttack { get; private set; }
 
+        public AutoComboData CurrentAutoCombo { get; private set; }
+
         // Hold charge extends Anticipation without changing the shared tick rate.
         public int HoldChargeTicks { get; private set; }
 
@@ -133,6 +137,9 @@ namespace LandOfFire.BunnyStep
         public bool IsFlyingHurt =>
             State == FighterState.FlyingHurt;
 
+        public bool IsComboLimitKnockdown =>
+            State == FighterState.ComboLimitKnockdown;
+
         public bool IsKnockdown =>
             State == FighterState.Knockdown;
 
@@ -158,6 +165,20 @@ namespace LandOfFire.BunnyStep
             State == FighterState.Attack ||
             State == FighterState.AirAttack;
 
+        public bool IsAutoCombo =>
+            State == FighterState.AutoCombo;
+
+        public AutoComboImpactData CurrentAutoComboCancelWindow =>
+            IsAutoCombo && CurrentAutoCombo != null
+                // Elapsed is the last fully simulated Auto Combo tick. A
+                // cancel configured on an impact tick therefore becomes
+                // available only after that impact has been resolved.
+                ? CurrentAutoCombo.FindCancelWindow(Elapsed)
+                : null;
+
+        public bool IsAutoComboCancelWindow =>
+            CurrentAutoComboCancelWindow != null;
+
         public bool IsAirAttacking =>
             State == FighterState.AirAttack;
 
@@ -172,9 +193,11 @@ namespace LandOfFire.BunnyStep
             IsJumping ||
             IsHurt ||
             IsFlyingHurt ||
+            IsComboLimitKnockdown ||
             IsKnockdown ||
             IsResetting ||
-            IsAttacking;
+            IsAttacking ||
+            IsAutoCombo;
 
         public float Progress =>
             IsTimed && Duration > 0
@@ -283,6 +306,12 @@ namespace LandOfFire.BunnyStep
         private float flyingHurtMaxHeight;
         private int flyingHurtKnockdownTicks;
         private float flyingProgress;
+
+        // Combo Limit Knockdown is a separate, lighter fall. It deliberately
+        // has its own movement values and state instead of reusing FlyingHurt.
+        private float comboLimitKnockdownDistance;
+        private float comboLimitKnockdownMaxHeight;
+        private int comboLimitKnockdownGroundTicks;
 
         // ================================================================
         // KNOCKDOWN
@@ -448,6 +477,7 @@ namespace LandOfFire.BunnyStep
             PhaseElapsed = 0;
             PhaseDuration = configuredJumpAnticipation;
             CurrentAttack = null;
+            CurrentAutoCombo = null;
             CurrentAttackPhase = AttackPhase.None;
             flightProgress = 0;
 
@@ -709,6 +739,18 @@ namespace LandOfFire.BunnyStep
             }
 
             // ============================================================
+            // AUTO COMBO
+            // ============================================================
+
+            if (IsAutoCombo)
+            {
+                Phase = BunnyPhase.None;
+                PhaseElapsed = Elapsed;
+                PhaseDuration = Duration;
+                return 0f;
+            }
+
+            // ============================================================
             // ATTACK
             // ============================================================
 
@@ -860,6 +902,38 @@ namespace LandOfFire.BunnyStep
                     (currentDistance -
                      previousDistance) *
                     StepDirection;
+            }
+
+            // ============================================================
+            // COMBO LIMIT KNOCKDOWN (LIGHT FALL)
+            // ============================================================
+
+            if (IsComboLimitKnockdown)
+            {
+                Phase = BunnyPhase.Flight;
+                PhaseDuration = Duration;
+
+                float currentProgress = Duration <= 1
+                    ? 1f
+                    : Mathf.Clamp01((float)(Elapsed - 1) / (Duration - 1));
+
+                float previousProgress = Duration <= 1
+                    ? 0f
+                    : Mathf.Clamp01((float)(Elapsed - 2) / (Duration - 1));
+
+                Height = ArcHeight(
+                    comboLimitKnockdownMaxHeight,
+                    currentProgress);
+
+                float previousDistance =
+                    comboLimitKnockdownDistance * previousProgress;
+                float currentDistance =
+                    comboLimitKnockdownDistance * currentProgress;
+
+                Distance = comboLimitKnockdownDistance;
+                PhaseElapsed = Elapsed;
+
+                return (currentDistance - previousDistance) * StepDirection;
             }
 
             // ============================================================
@@ -1045,7 +1119,8 @@ namespace LandOfFire.BunnyStep
             if (move == null || IsAttacking)
                 return false;
 
-            if (IsHurt || IsFlyingHurt || IsKnockdown || IsResetting)
+            if (IsHurt || IsFlyingHurt || IsComboLimitKnockdown ||
+                IsKnockdown || IsResetting)
                 return false;
 
             if (State == FighterState.Guard ||
@@ -1063,6 +1138,108 @@ namespace LandOfFire.BunnyStep
             }
 
             return StartAttack(move, false, 1, requestHoldCharge);
+        }
+
+        public bool TryStartAutoCombo(AutoComboData combo)
+        {
+            if (combo == null || IsTimed ||
+                (State != FighterState.Idle && State != FighterState.Walk))
+            {
+                return false;
+            }
+
+            return StartAutoCombo(combo, 0f);
+        }
+
+        public bool TryCancelAttackToAutoCombo(AutoComboData combo)
+        {
+            if (combo == null || !IsAttacking || IsAirAttacking ||
+                !IsAttackCancelWindow || CurrentAttack == null ||
+                !CurrentAttack.allowAutoComboCancel)
+            {
+                return false;
+            }
+
+            return StartAutoCombo(
+                combo,
+                CurrentAttack.cancelStartupSkipPercent);
+        }
+
+        public bool TryCancelAutoComboToAttack(
+            AttackMoveData move,
+            int facing,
+            bool requestHoldCharge)
+        {
+            AutoComboImpactData cancel = CurrentAutoComboCancelWindow;
+            if (move == null || cancel == null ||
+                !cancel.AllowsCancelTo(AutoComboCancelTarget.SingleMove))
+            {
+                return false;
+            }
+
+            if (!StartAttack(move, false, facing, requestHoldCharge))
+                return false;
+
+            ApplyAttackStartupSkip(cancel.cancelStartupSkipPercent);
+            return true;
+        }
+
+        public bool TryCancelAutoComboToAutoCombo(AutoComboData combo)
+        {
+            AutoComboImpactData cancel = CurrentAutoComboCancelWindow;
+            if (combo == null || cancel == null ||
+                !cancel.AllowsCancelTo(AutoComboCancelTarget.AutoCombo))
+            {
+                return false;
+            }
+
+            return StartAutoCombo(combo, cancel.cancelStartupSkipPercent);
+        }
+
+        public bool HasFutureAutoComboCancelWindow =>
+            IsAutoCombo && CurrentAutoCombo != null &&
+            CurrentAutoCombo.HasCancelWindowAfterTick(Elapsed + 1);
+
+        private bool StartAutoCombo(
+            AutoComboData combo,
+            float startupSkipPercent)
+        {
+            if (combo == null)
+                return false;
+
+            CurrentAttack = null;
+            CurrentAutoCombo = combo;
+            CurrentAttackPhase = AttackPhase.None;
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
+            CurrentJumpPhase = JumpPhase.None;
+            Phase = BunnyPhase.None;
+            PhaseDuration = combo.DurationTicks;
+            Duration = combo.DurationTicks;
+
+            int skippedTicks = Mathf.RoundToInt(
+                combo.StartupTicks * Mathf.Clamp(startupSkipPercent, 0f, 100f) / 100f);
+            Elapsed = Mathf.Clamp(skippedTicks, 0, Duration - 1);
+            PhaseElapsed = Elapsed;
+            StepDirection = 0;
+            Distance = 0f;
+            Height = 0f;
+
+            Change(FighterState.AutoCombo);
+            return true;
+        }
+
+        private void ApplyAttackStartupSkip(float startupSkipPercent)
+        {
+            if (CurrentAttack == null)
+                return;
+
+            int skippedTicks = Mathf.RoundToInt(
+                attackAnticipation * Mathf.Clamp(startupSkipPercent, 0f, 100f) / 100f);
+            Elapsed = Mathf.Clamp(skippedTicks, 0, Mathf.Max(0, Duration - 1));
         }
 
         public bool TryStartAirAttack(
@@ -1155,6 +1332,8 @@ namespace LandOfFire.BunnyStep
             int facing,
             bool requestHoldCharge)
         {
+            CurrentAutoCombo = null;
+
             if (aerial)
             {
                 // Capture the jump only on the first AirAttack. Air cancels
@@ -1399,6 +1578,7 @@ namespace LandOfFire.BunnyStep
                 CurrentAttack.useCustomAirMovement;
 
             CurrentAttack = null;
+            CurrentAutoCombo = null;
             CurrentAttackPhase = AttackPhase.None;
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
@@ -1445,7 +1625,7 @@ namespace LandOfFire.BunnyStep
         /// </summary>
         public void CancelAttackToIdle()
         {
-            if (!IsAttacking)
+            if (!IsAttacking && !IsAutoCombo)
                 return;
 
             FinishGroundedAttack();
@@ -1462,6 +1642,7 @@ namespace LandOfFire.BunnyStep
             hasSuspendedJump = false;
             CurrentJumpPhase = JumpPhase.None;
             CurrentAttack = null;
+            CurrentAutoCombo = null;
             CurrentAttackPhase = AttackPhase.None;
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
@@ -1573,6 +1754,7 @@ namespace LandOfFire.BunnyStep
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentAttack = null;
+            CurrentAutoCombo = null;
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1625,6 +1807,41 @@ namespace LandOfFire.BunnyStep
                 FighterState.FlyingHurt);
         }
 
+        /// <summary>
+        /// Starts the dedicated light fall used when the global combo-hit
+        /// limit is reached. Its timeline and movement are independent from
+        /// FlyingHurt, then it enters the standard grounded Knockdown state.
+        /// </summary>
+        public void EnterComboLimitKnockdown(
+            int fallTicks,
+            float horizontalDistance,
+            float maxHeight,
+            int groundedKnockdownTicks,
+            int direction)
+        {
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
+            CurrentJumpPhase = JumpPhase.None;
+            CurrentAttack = null;
+            CurrentAttackPhase = AttackPhase.None;
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
+
+            Duration = Mathf.Max(1, fallTicks);
+            Elapsed = 0;
+            StepDirection = direction >= 0 ? 1 : -1;
+            comboLimitKnockdownDistance = Mathf.Max(0f, horizontalDistance);
+            comboLimitKnockdownMaxHeight = Mathf.Max(0f, maxHeight);
+            comboLimitKnockdownGroundTicks = Mathf.Max(1, groundedKnockdownTicks);
+            Distance = comboLimitKnockdownDistance;
+            Height = 0f;
+            Phase = BunnyPhase.Flight;
+            PhaseElapsed = 0;
+            PhaseDuration = Duration;
+            Change(FighterState.ComboLimitKnockdown);
+        }
+
         // ================================================================
         // TIMED STATE
         // ================================================================
@@ -1639,6 +1856,7 @@ namespace LandOfFire.BunnyStep
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentAttack = null;
+            CurrentAutoCombo = null;
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1671,9 +1889,10 @@ namespace LandOfFire.BunnyStep
         // KNOCKDOWN
         // ================================================================
 
-        private void EnterKnockdown()
+        private void EnterKnockdown(int durationOverride = -1)
         {
             CurrentAttack = null;
+            CurrentAutoCombo = null;
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1683,7 +1902,9 @@ namespace LandOfFire.BunnyStep
             Duration =
                 Mathf.Max(
                     1,
-                    flyingHurtKnockdownTicks);
+                    durationOverride > 0
+                        ? durationOverride
+                        : flyingHurtKnockdownTicks);
 
             StepDirection = 0;
             Distance = 0;
@@ -1707,6 +1928,7 @@ namespace LandOfFire.BunnyStep
         private void EnterReset()
         {
             CurrentAttack = null;
+            CurrentAutoCombo = null;
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1790,6 +2012,7 @@ namespace LandOfFire.BunnyStep
                 AttackPhase.None;
 
             CurrentAttack = null;
+            CurrentAutoCombo = null;
 
             attackAnticipation = 0;
             attackSmear = 0;
@@ -1846,6 +2069,9 @@ namespace LandOfFire.BunnyStep
             flyingHurtMaxHeight = 0;
             flyingHurtKnockdownTicks = 0;
             flyingProgress = 0;
+            comboLimitKnockdownDistance = 0f;
+            comboLimitKnockdownMaxHeight = 0f;
+            comboLimitKnockdownGroundTicks = 0;
 
             bunnyTiming =
                 default;
@@ -1880,7 +2106,8 @@ namespace LandOfFire.BunnyStep
                     IsJumping ||
                     IsAirAttacking ||
                     IsHurt ||
-                    IsFlyingHurt)
+                    IsFlyingHurt ||
+                    IsComboLimitKnockdown)
                 {
                     return Height;
                 }
@@ -1903,6 +2130,7 @@ namespace LandOfFire.BunnyStep
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentAttack = null;
+            CurrentAutoCombo = null;
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1964,6 +2192,9 @@ namespace LandOfFire.BunnyStep
 
         private void FinishTimedState()
         {
+            if (IsAutoCombo)
+                CurrentAutoCombo = null;
+
             if (State == FighterState.Parry)
             {
                 bool succeeded = parrySuccessResolved;
@@ -2017,10 +2248,15 @@ namespace LandOfFire.BunnyStep
                 return;
             }
 
-            if (State ==
-                FighterState.FlyingHurt)
+            if (State == FighterState.FlyingHurt)
             {
                 EnterKnockdown();
+                return;
+            }
+
+            if (State == FighterState.ComboLimitKnockdown)
+            {
+                EnterKnockdown(comboLimitKnockdownGroundTicks);
                 return;
             }
 

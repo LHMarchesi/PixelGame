@@ -54,6 +54,11 @@ namespace LandOfFire.BunnyStep
 
         public event Action<FighterMotor2D, AttackMoveData> HitConfirmed;
 
+        // Internal feed to the independent Combo System. Direction is the
+        // attacker's facing captured with the resolved contact. This event is
+        // emitted only for a valid hit/guard break, never for Block or Parry.
+        internal event Action<FighterMotor2D, AttackMoveData, int> ValidImpactConfirmed;
+
         private readonly HashSet<FighterMotor2D> hitThisAttack =
             new HashSet<FighterMotor2D>();
 
@@ -68,6 +73,7 @@ namespace LandOfFire.BunnyStep
         private FighterAttackDebugView debugView;
         private bool forceCurrentAttackLethal;
         private bool currentAttackIsMovesetSpecial;
+        private int activeAutoComboImpactIndex = -1;
         private int availableParrySlots;
 
         private void Awake()
@@ -146,8 +152,22 @@ namespace LandOfFire.BunnyStep
         {
             currentMove = move;
             currentAttackIsMovesetSpecial = isMovesetSpecial;
+            activeAutoComboImpactIndex = -1;
             hitThisAttack.Clear();
             forceCurrentAttackLethal = false;
+        }
+
+        public void BeginAutoCombo()
+        {
+            currentMove = null;
+            currentAttackIsMovesetSpecial = false;
+            activeAutoComboImpactIndex = -1;
+            hitThisAttack.Clear();
+            targetsCollectedThisTick.Clear();
+            forceCurrentAttackLethal = false;
+
+            if (debugView != null)
+                debugView.Hide();
         }
 
         public void SetCurrentAttackLethal(bool lethal)
@@ -165,6 +185,7 @@ namespace LandOfFire.BunnyStep
         {
             currentMove = null;
             currentAttackIsMovesetSpecial = false;
+            activeAutoComboImpactIndex = -1;
             hitThisAttack.Clear();
             targetsCollectedThisTick.Clear();
             forceCurrentAttackLethal = false;
@@ -183,9 +204,15 @@ namespace LandOfFire.BunnyStep
             int facing,
             List<FighterHitCandidate> destination)
         {
+            if (machine.IsAutoCombo && machine.CurrentAutoCombo != null)
+            {
+                CollectAutoComboHitCandidates(machine, facing, destination);
+                return;
+            }
+
             if (!machine.IsAttacking || machine.CurrentAttack == null)
             {
-                if (currentMove != null)
+                if (currentMove != null || activeAutoComboImpactIndex >= 0)
                     CancelAttack();
                 return;
             }
@@ -265,6 +292,88 @@ namespace LandOfFire.BunnyStep
             }
         }
 
+        private void CollectAutoComboHitCandidates(
+            FighterStateMachine machine,
+            int facing,
+            List<FighterHitCandidate> destination)
+        {
+            int impactIndex;
+            AutoComboImpactData impact = machine.CurrentAutoCombo.FindImpactAtTick(
+                machine.Elapsed, out impactIndex);
+
+            if (impact == null || impact.attackMove == null)
+            {
+                if (debugView != null)
+                    debugView.Hide();
+                return;
+            }
+
+            if (activeAutoComboImpactIndex != impactIndex)
+            {
+                activeAutoComboImpactIndex = impactIndex;
+                hitThisAttack.Clear();
+            }
+
+            AttackMoveData move = impact.attackMove;
+            UpdateDebugView(move, move.useHitbox, facing, 0f);
+            if (!move.useHitbox)
+                return;
+
+            Vector2 offset = move.hitboxOffset;
+            Vector2 center = owner.BodyPosition + new Vector2(
+                offset.x * facing,
+                offset.y);
+            Vector2 size = new Vector2(
+                Mathf.Max(.01f, move.hitboxSize.x),
+                Mathf.Max(.01f, move.hitboxSize.y));
+
+            var filter = new ContactFilter2D { useTriggers = true };
+            filter.SetLayerMask(hurtboxLayers);
+            overlapResults.Clear();
+            targetsCollectedThisTick.Clear();
+            Physics2D.OverlapBox(center, size, 0f, filter, overlapResults);
+
+            foreach (Collider2D collider in overlapResults)
+            {
+                if (collider == null)
+                    continue;
+
+                FighterHurtbox2D hurtbox = collider.GetComponent<FighterHurtbox2D>();
+                if (hurtbox == null || !hurtbox.isActiveAndEnabled)
+                    continue;
+
+                FighterMotor2D target = hurtbox.Owner;
+                FighterHealth health = hurtbox.Health;
+                if (target == null || target == owner ||
+                    !target.isActiveAndEnabled || health == null ||
+                    health.CurrentHealth <= 0 || !target.CanReceiveCombatHit ||
+                    hitThisAttack.Contains(target) ||
+                    !targetsCollectedThisTick.Add(target))
+                {
+                    continue;
+                }
+
+                destination.Add(new FighterHitCandidate
+                {
+                    Combat = this,
+                    Attacker = owner,
+                    Target = target,
+                    Health = health,
+                    Move = move,
+                    Facing = facing,
+                    AttackElapsedTick = machine.Elapsed,
+                    HoldChargeTicks = 0,
+                    IsMovesetSpecial = false,
+                    IsAutoCombo = true,
+                    AutoComboImpactIndex = impactIndex,
+                    TriggersComboKnockdown =
+                        machine.CurrentAutoCombo.ShouldTriggerKnockdown(impactIndex) &&
+                        !move.lethalHit,
+                    ForceLethal = false
+                });
+            }
+        }
+
         /// <summary>
         /// Aplica un contacto que ya fue seleccionado por el resolver.
         /// allowBlock=false se usa cuando una prioridad simultánea determina
@@ -317,6 +426,17 @@ namespace LandOfFire.BunnyStep
                     target.ApplyHitstop(move.hitstopTicks);
                     hitThisAttack.Add(target);
                     HitConfirmed?.Invoke(target, move);
+                    ValidImpactConfirmed?.Invoke(target, move, candidate.Facing);
+                    if (candidate.IsAutoCombo)
+                    {
+                        CombatFeedbackController.TriggerAutoComboImpact(
+                            target, candidate.AutoComboImpactIndex + 1, move.category);
+                    }
+                    if (candidate.TriggersComboKnockdown)
+                    {
+                        FighterCombatResolver.QueueAutoComboKnockdown(
+                            target, candidate.Facing);
+                    }
                     CombatFeedbackController.TriggerGuardBreak(target);
                     return true;
                 }
@@ -368,6 +488,17 @@ namespace LandOfFire.BunnyStep
             owner.ApplyHitstop(move.hitstopTicks);
             target.ApplyHitstop(move.hitstopTicks);
             HitConfirmed?.Invoke(target, move);
+            ValidImpactConfirmed?.Invoke(target, move, candidate.Facing);
+            if (candidate.IsAutoCombo)
+            {
+                CombatFeedbackController.TriggerAutoComboImpact(
+                    target, candidate.AutoComboImpactIndex + 1, move.category);
+            }
+            if (candidate.TriggersComboKnockdown)
+            {
+                FighterCombatResolver.QueueAutoComboKnockdown(
+                    target, candidate.Facing);
+            }
             return true;
         }
 
@@ -411,14 +542,18 @@ namespace LandOfFire.BunnyStep
 
         private Color DebugColorFor(AttackMoveData move)
         {
-            if (move == lightAttack)
-                return new Color(.15f, .85f, 1f, .32f);
-            if (move == mediumAttack)
-                return new Color(1f, .85f, .15f, .32f);
-            if (move == heavyAttack)
-                return new Color(1f, .2f, .15f, .32f);
+            if (move == null)
+                return new Color(.65f, .2f, 1f, .32f);
 
-            return new Color(.65f, .2f, 1f, .32f);
+            switch (move.category)
+            {
+                case AttackCategory.Medium:
+                    return new Color(1f, .48f, .08f, .32f);
+                case AttackCategory.Heavy:
+                    return new Color(.95f, .12f, .12f, .32f);
+                default:
+                    return new Color(.12f, .55f, 1f, .32f);
+            }
         }
 
         private void OnDisable()

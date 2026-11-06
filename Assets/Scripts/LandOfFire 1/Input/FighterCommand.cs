@@ -22,7 +22,8 @@ namespace LandOfFire.BunnyStep
         BunnyBackward,
         BunnyForwardLoop,
         Attack,
-        Parry
+        Parry,
+        AutoCombo
     }
 
     public enum ParryInputType
@@ -43,6 +44,8 @@ namespace LandOfFire.BunnyStep
         // Si no es null, este ataque tiene prioridad sobre
         // el AttackCommand genérico.
         public AttackMoveData AttackMove;
+
+        public AutoComboData AutoCombo;
 
         public ParryInputType ParryInput;
 

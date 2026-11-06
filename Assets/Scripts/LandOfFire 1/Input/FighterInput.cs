@@ -351,7 +351,7 @@ namespace LandOfFire.BunnyStep
 
             if (!parryRequested)
             {
-                inputBuffer.Enqueue(FighterInputEvent.AttackPress(attack));
+                inputBuffer.Enqueue(FighterInputEvent.AttackPress(attack, Direction));
                 return;
             }
 

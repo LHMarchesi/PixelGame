@@ -2,6 +2,7 @@
 //
 // Conecta FighterInput con FighterCommandRecognizer.
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -20,6 +21,9 @@ namespace LandOfFire.BunnyStep
         private int commandBufferTicks = 12;
 
         private FighterCommandRecognizer recognizer;
+
+        private readonly List<FighterInputEvent> pendingInputEvents =
+            new List<FighterInputEvent>(8);
 
         private void Awake()
         {
@@ -58,16 +62,58 @@ namespace LandOfFire.BunnyStep
         }
 
         public override void ProcessInput(
-     int facing,
-     long tick)
+            int facing,
+            long tick)
         {
             if (input == null)
                 return;
 
-            while (
-                input.TryReadInput(
-                    out FighterInputEvent inputEvent))
+            pendingInputEvents.Clear();
+            while (input.TryReadInput(out FighterInputEvent inputEvent))
+                pendingInputEvents.Add(inputEvent);
+
+            // Input System callbacks for a simultaneous direction + attack
+            // may arrive in either order. Process same-frame directions first
+            // so Forward+Medium is recognized consistently as one chord.
+            for (int i = 1; i < pendingInputEvents.Count; i++)
             {
+                FighterInputEvent value = pendingInputEvents[i];
+                int j = i - 1;
+                while (j >= 0 && CompareInputEvents(
+                    value, pendingInputEvents[j]) < 0)
+                {
+                    pendingInputEvents[j + 1] = pendingInputEvents[j];
+                    j--;
+                }
+                pendingInputEvents[j + 1] = value;
+            }
+
+            int activeInputFrame = int.MinValue;
+            int sameFrameDirection = int.MinValue;
+
+            for (int i = 0; i < pendingInputEvents.Count; i++)
+            {
+                FighterInputEvent inputEvent = pendingInputEvents[i];
+                if (inputEvent.InputFrame != activeInputFrame)
+                {
+                    activeInputFrame = inputEvent.InputFrame;
+                    sameFrameDirection = int.MinValue;
+                }
+
+                if (inputEvent.Type == FighterInputEventType.Direction)
+                {
+                    sameFrameDirection = inputEvent.Direction;
+                }
+                else if (inputEvent.Type == FighterInputEventType.Attack &&
+                         sameFrameDirection != int.MinValue)
+                {
+                    // The attack callback may run before the Move callback
+                    // in Unity's Input System. Sorting puts the direction
+                    // event first, then we overwrite the captured direction
+                    // so a same-frame Forward+Medium chord is deterministic.
+                    inputEvent.Direction = sameFrameDirection;
+                }
+
                 Debug.Log(
                     $"[PlayerCommandSource] INPUT " +
                     $"Type={inputEvent.Type} " +
@@ -75,14 +121,33 @@ namespace LandOfFire.BunnyStep
                     $"Attack={inputEvent.Attack} " +
                     $"Tick={tick}");
 
-                recognizer.Push(
-                    inputEvent,
-                    facing,
-                    tick);
+                recognizer.Push(inputEvent, facing, tick);
             }
 
-            recognizer.Advance(
-                tick);
+            recognizer.Advance(tick);
+        }
+
+        private static int CompareInputEvents(
+            FighterInputEvent first,
+            FighterInputEvent second)
+        {
+            int frame = first.InputFrame.CompareTo(second.InputFrame);
+            if (frame != 0)
+                return frame;
+
+            int firstPriority = InputEventPriority(first.Type);
+            int secondPriority = InputEventPriority(second.Type);
+            return firstPriority.CompareTo(secondPriority);
+        }
+
+        private static int InputEventPriority(FighterInputEventType type)
+        {
+            switch (type)
+            {
+                case FighterInputEventType.Direction: return 0;
+                case FighterInputEventType.Attack: return 1;
+                default: return 2;
+            }
         }
 
         public override bool TryReadCommand(

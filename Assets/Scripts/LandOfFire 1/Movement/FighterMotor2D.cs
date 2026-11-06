@@ -91,6 +91,7 @@ namespace LandOfFire.BunnyStep
             ready &&
             isActiveAndEnabled &&
             !Machine.IsFlyingHurt &&
+            !Machine.IsComboLimitKnockdown &&
             !Machine.IsKnockdown &&
             !Machine.IsResetting;
 
@@ -430,7 +431,7 @@ namespace LandOfFire.BunnyStep
 
         internal void CancelAttackForClash()
         {
-            if (!ready || !Machine.IsAttacking)
+            if (!ready || (!Machine.IsAttacking && !Machine.IsAutoCombo))
                 return;
 
             coordinatedFrameDelta -= coordinatedLastTickDelta;
@@ -545,6 +546,13 @@ namespace LandOfFire.BunnyStep
 
                         if (!hasPendingParry)
                             HandleAttackInput(command);
+
+                        break;
+
+                    case FighterCommandType.AutoCombo:
+
+                        if (!hasPendingParry)
+                            HandleAutoComboInput(command);
 
                         break;
 
@@ -734,12 +742,31 @@ namespace LandOfFire.BunnyStep
             if (combat == null)
                 return;
 
-            AttackMoveData move =
-                ResolveAttackMove(
-                    command);
-
+            AttackMoveData move = ResolveAttackMove(command);
             if (move == null)
                 return;
+
+            if (Machine.IsAutoCombo)
+            {
+                if (Machine.TryCancelAutoComboToAttack(
+                    move, facing, command.AttackMove == null))
+                {
+                    ClearAttackBuffer();
+                    combat.BeginAttack(move, command.AttackMove != null);
+                    SetHoldAttackInput(command);
+                    return;
+                }
+
+                // Auto Combo inputs can be entered before the configured
+                // impact cancel tick and buffered until that window opens.
+                if (Machine.HasFutureAutoComboCancelWindow)
+                {
+                    bufferedAttack = command;
+                    hasBufferedAttack = true;
+                }
+
+                return;
+            }
 
             if (!Machine.IsAttacking)
             {
@@ -759,14 +786,11 @@ namespace LandOfFire.BunnyStep
                 return;
             }
 
-            AttackMoveData currentAttack =
-                Machine.CurrentAttack;
-
+            AttackMoveData currentAttack = Machine.CurrentAttack;
             if (currentAttack == null)
                 return;
 
-            if (Machine.CurrentAttackPhase ==
-                AttackPhase.Recovery)
+            if (Machine.CurrentAttackPhase == AttackPhase.Recovery)
             {
                 ClearAttackBuffer();
                 return;
@@ -775,30 +799,71 @@ namespace LandOfFire.BunnyStep
             if (Machine.IsAttackCancelWindow)
             {
                 ClearAttackBuffer();
-
                 if (Machine.TryCancelAttack(
-                    move,
-                    facing,
-                    command.AttackMove == null))
+                    move, facing, command.AttackMove == null))
                 {
-                    combat.BeginAttack(
-                        move,
-                        command.AttackMove != null);
+                    combat.BeginAttack(move, command.AttackMove != null);
                     SetHoldAttackInput(command);
+                }
+                return;
+            }
+
+            if (Machine.CurrentAttackPhase == AttackPhase.Pose &&
+                currentAttack.IsCancelBufferWindow(Machine.PhaseElapsed))
+            {
+                bufferedAttack = command;
+                hasBufferedAttack = true;
+            }
+        }
+
+        private void HandleAutoComboInput(FighterCommand command)
+        {
+            if (combat == null || command.AutoCombo == null)
+                return;
+
+            if (Machine.IsAutoCombo)
+            {
+                if (Machine.TryCancelAutoComboToAutoCombo(command.AutoCombo))
+                {
+                    ClearAttackBuffer();
+                    ClearHoldAttackInput();
+                    combat.BeginAutoCombo();
+                }
+                else if (Machine.HasFutureAutoComboCancelWindow)
+                {
+                    bufferedAttack = command;
+                    hasBufferedAttack = true;
                 }
 
                 return;
             }
 
-            if (Machine.CurrentAttackPhase ==
-                    AttackPhase.Pose &&
-                currentAttack.IsCancelBufferWindow(
-                    Machine.PhaseElapsed))
+            if (Machine.IsAttacking)
             {
-                bufferedAttack =
-                    command;
+                if (Machine.TryCancelAttackToAutoCombo(command.AutoCombo))
+                {
+                    ClearAttackBuffer();
+                    ClearHoldAttackInput();
+                    combat.BeginAutoCombo();
+                    return;
+                }
 
-                hasBufferedAttack = true;
+                AttackMoveData current = Machine.CurrentAttack;
+                if (current != null && current.allowAutoComboCancel &&
+                    Machine.CurrentAttackPhase == AttackPhase.Pose)
+                {
+                    bufferedAttack = command;
+                    hasBufferedAttack = true;
+                }
+
+                return;
+            }
+
+            if (Machine.TryStartAutoCombo(command.AutoCombo))
+            {
+                ClearAttackBuffer();
+                ClearHoldAttackInput();
+                combat.BeginAutoCombo();
             }
         }
 
@@ -807,14 +872,59 @@ namespace LandOfFire.BunnyStep
             if (hasPendingParry || !hasBufferedAttack)
                 return;
 
+            if (combat == null)
+            {
+                ClearAttackBuffer();
+                return;
+            }
+
+            FighterCommand command = bufferedAttack;
+
+            if (Machine.IsAutoCombo)
+            {
+                if (!Machine.IsAutoComboCancelWindow)
+                {
+                    if (Machine.Elapsed < Machine.Duration &&
+                        Machine.HasFutureAutoComboCancelWindow)
+                    {
+                        return;
+                    }
+
+                    ClearAttackBuffer();
+                    return;
+                }
+
+                ClearAttackBuffer();
+                if (command.Type == FighterCommandType.AutoCombo &&
+                    command.AutoCombo != null)
+                {
+                    if (Machine.TryCancelAutoComboToAutoCombo(command.AutoCombo))
+                    {
+                        ClearHoldAttackInput();
+                        combat.BeginAutoCombo();
+                    }
+                }
+                else if (command.Type == FighterCommandType.Attack)
+                {
+                    AttackMoveData targetMove = ResolveAttackMove(command);
+                    if (targetMove != null && Machine.TryCancelAutoComboToAttack(
+                        targetMove, facing, command.AttackMove == null))
+                    {
+                        combat.BeginAttack(targetMove, command.AttackMove != null);
+                        SetHoldAttackInput(command);
+                    }
+                }
+
+                return;
+            }
+
             if (!Machine.IsAttacking)
             {
                 ClearAttackBuffer();
                 return;
             }
 
-            if (Machine.CurrentAttackPhase ==
-                AttackPhase.Recovery)
+            if (Machine.CurrentAttackPhase == AttackPhase.Recovery)
             {
                 ClearAttackBuffer();
                 return;
@@ -823,32 +933,28 @@ namespace LandOfFire.BunnyStep
             if (!Machine.IsAttackCancelWindow)
                 return;
 
-            if (combat == null)
+            ClearAttackBuffer();
+            if (command.Type == FighterCommandType.AutoCombo &&
+                command.AutoCombo != null)
             {
-                ClearAttackBuffer();
+                if (Machine.TryCancelAttackToAutoCombo(command.AutoCombo))
+                {
+                    ClearHoldAttackInput();
+                    combat.BeginAutoCombo();
+                }
                 return;
             }
 
-            FighterCommand command =
-                bufferedAttack;
+            if (command.Type != FighterCommandType.Attack)
+                return;
 
-            ClearAttackBuffer();
-
-            AttackMoveData move =
-                ResolveAttackMove(
-                    command);
-
+            AttackMoveData move = ResolveAttackMove(command);
             if (move == null)
                 return;
 
-            if (Machine.TryCancelAttack(
-                move,
-                facing,
-                command.AttackMove == null))
+            if (Machine.TryCancelAttack(move, facing, command.AttackMove == null))
             {
-                combat.BeginAttack(
-                    move,
-                    command.AttackMove != null);
+                combat.BeginAttack(move, command.AttackMove != null);
                 SetHoldAttackInput(command);
             }
         }
@@ -936,6 +1042,59 @@ namespace LandOfFire.BunnyStep
             ClearPendingParry();
             ClearHoldAttackInput();
             Machine.EnterGuardBreak(durationTicks);
+
+            if (combat != null)
+                combat.CancelAttack();
+
+            if (commands != null)
+                commands.ClearCommands();
+
+            ClearAttackBuffer();
+            pendingPushback = 0f;
+            poseTick = 0;
+            SetVelocity(Vector2.zero);
+
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
+
+            if (presentation != null)
+                presentation.Render(Machine, RuntimeProfile, facing, 0);
+
+            return true;
+        }
+
+        // ================================================================
+        // COMBO LIMIT KNOCKDOWN
+        // ================================================================
+
+        /// <summary>
+        /// Forces the dedicated light fall after the shared Combo System has
+        /// evaluated every valid impact for the current tick. Unlike
+        /// ReceiveFlyingHurt, this uses its own profile values and state.
+        /// </summary>
+        public bool ReceiveComboSpecificKnockdown(int direction)
+        {
+            // Auto Combo-specific Knockdown currently shares the dedicated
+            // mild-fall presentation/profile used by the global combo limit.
+            return ReceiveComboLimitKnockdown(direction);
+        }
+
+        public bool ReceiveComboLimitKnockdown(int direction)
+        {
+            if (!ready || !isActiveAndEnabled || RuntimeProfile == null)
+                return false;
+
+            ClearPendingParry();
+            ClearHoldAttackInput();
+
+            Machine.EnterComboLimitKnockdown(
+                RuntimeProfile.comboLimitKnockdownFallTicks,
+                RuntimeProfile.comboLimitKnockdownDistance,
+                RuntimeProfile.comboLimitKnockdownHeight,
+                RuntimeProfile.comboLimitKnockdownGroundTicks,
+                direction);
 
             if (combat != null)
                 combat.CancelAttack();
@@ -1122,6 +1281,7 @@ namespace LandOfFire.BunnyStep
             }
 
             if (Machine.IsFlyingHurt ||
+                Machine.IsComboLimitKnockdown ||
                 Machine.IsKnockdown ||
                 Machine.IsResetting)
             {

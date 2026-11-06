@@ -34,9 +34,11 @@ namespace LandOfFire.BunnyStep
         {
             Initialize();
             if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;
-            PhaseAnimation settings = machine.IsAttacking && machine.CurrentAttack != null
-                ? machine.CurrentAttack.AnimationFor(machine.CurrentAttackPhase)
-                : profile.AnimationFor(machine.State, machine.Phase, machine.CurrentJumpPhase);
+            PhaseAnimation settings = machine.IsAutoCombo && machine.CurrentAutoCombo != null
+                ? machine.CurrentAutoCombo.animation
+                : machine.IsAttacking && machine.CurrentAttack != null
+                    ? machine.CurrentAttack.AnimationFor(machine.CurrentAttackPhase)
+                    : profile.AnimationFor(machine.State, machine.Phase, machine.CurrentJumpPhase);
             if (settings != null && animator != null && animator.runtimeAnimatorController != null)
             {
                 string path = settings.stateName ?? "";
@@ -45,7 +47,8 @@ namespace LandOfFire.BunnyStep
                 {
                     bool combatTimed = machine.State == FighterState.BlockRecovery ||
                                        machine.State == FighterState.GuardBreak ||
-                                       machine.IsHurt || machine.IsParryState;
+                                       machine.IsHurt || machine.IsParryState ||
+                                       machine.IsComboLimitKnockdown || machine.IsAutoCombo;
                     int elapsed = combatTimed ? machine.Elapsed :
                         machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :
                         poseTick + 1;
@@ -61,13 +64,20 @@ namespace LandOfFire.BunnyStep
             {
                 sprite.flipX = spriteFacesRight ? facing < 0 : facing > 0;
 
-                bool telegraphActive =
-                    machine.IsAttacking &&
-                    machine.CurrentAttack != null &&
-                    machine.CurrentAttack.IsTelegraphActive(machine.Elapsed);
+                AttackMoveData telegraphMove = null;
+                if (machine.IsAutoCombo && machine.CurrentAutoCombo != null)
+                {
+                    telegraphMove = machine.CurrentAutoCombo.TelegraphMoveAtTick(
+                        machine.Elapsed);
+                }
+                else if (machine.IsAttacking && machine.CurrentAttack != null &&
+                         machine.CurrentAttack.IsTelegraphActive(machine.Elapsed))
+                {
+                    telegraphMove = machine.CurrentAttack;
+                }
 
-                sprite.color = telegraphActive
-                    ? machine.CurrentAttack.TelegraphColor
+                sprite.color = telegraphMove != null
+                    ? telegraphMove.TelegraphColor
                     : baseSpriteColor;
             }
         }

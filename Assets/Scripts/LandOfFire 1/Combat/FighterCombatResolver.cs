@@ -20,6 +20,9 @@ namespace LandOfFire.BunnyStep
         public int AttackElapsedTick;
         public int HoldChargeTicks;
         public bool IsMovesetSpecial;
+        public bool IsAutoCombo;
+        public int AutoComboImpactIndex;
+        public bool TriggersComboKnockdown;
         public bool ForceLethal;
     }
 
@@ -33,6 +36,12 @@ namespace LandOfFire.BunnyStep
         {
             public FighterHitCandidate Candidate;
             public long CreatedTick;
+        }
+
+        private struct PendingAutoComboKnockdown
+        {
+            public FighterMotor2D Target;
+            public int Direction;
         }
 
         private static FighterCombatResolver instance;
@@ -49,8 +58,43 @@ namespace LandOfFire.BunnyStep
         private readonly List<PendingClashCandidate> pendingClashCandidates =
             new List<PendingClashCandidate>(8);
 
+        private readonly List<PendingAutoComboKnockdown> pendingAutoComboKnockdowns =
+            new List<PendingAutoComboKnockdown>(4);
+
+        private readonly FighterComboSystem comboSystem =
+            new FighterComboSystem();
+
+        [Header("Combo System (global)")]
+        [Min(1)]
+        [Tooltip("Cantidad global de impactos válidos recibidos dentro de la ventana para activar Combo Limit Knockdown.")]
+        public int maxComboHits = 4;
+
+        [Min(1)]
+        [Tooltip("Ventana global de impactos recibidos, medida en ticks a 60 Hz.")]
+        public int comboHitWindowTicks = 120;
+
+        [Tooltip("Si está desactivado, el sistema conserva el contador pero no fuerza Combo Limit Knockdown al alcanzar el límite.")]
+        public bool forceKnockdownOnLimit = true;
+
         private double accumulatedTime;
         private long simulationTick;
+
+        private void Awake()
+        {
+            if (instance != null && instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            instance = this;
+
+            // A scene-placed resolver can expose the global Combo settings in
+            // the Inspector and must survive scene transitions like the
+            // automatically-created coordinator. Keep it on a root object.
+            if (transform.parent == null)
+                DontDestroyOnLoad(gameObject);
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -67,6 +111,14 @@ namespace LandOfFire.BunnyStep
 
             if (!instance.fighters.Contains(fighter))
                 instance.fighters.Add(fighter);
+
+            instance.comboSystem.Register(fighter);
+
+            if (fighter.combat != null)
+            {
+                fighter.combat.ValidImpactConfirmed -= instance.OnValidImpactConfirmed;
+                fighter.combat.ValidImpactConfirmed += instance.OnValidImpactConfirmed;
+            }
         }
 
         public static void Unregister(FighterMotor2D fighter)
@@ -76,6 +128,33 @@ namespace LandOfFire.BunnyStep
 
             instance.fighters.Remove(fighter);
             RemovePendingForFighter(fighter);
+            instance.comboSystem.Unregister(fighter);
+
+            if (fighter.combat != null)
+                fighter.combat.ValidImpactConfirmed -= instance.OnValidImpactConfirmed;
+        }
+
+        private void OnValidImpactConfirmed(
+            FighterMotor2D target,
+            AttackMoveData move,
+            int direction)
+        {
+            comboSystem.QueueValidImpact(target, direction);
+        }
+
+        internal static void QueueAutoComboKnockdown(
+            FighterMotor2D target,
+            int direction)
+        {
+            if (target == null)
+                return;
+
+            EnsureInstance();
+            instance.pendingAutoComboKnockdowns.Add(new PendingAutoComboKnockdown
+            {
+                Target = target,
+                Direction = direction >= 0 ? 1 : -1
+            });
         }
 
         private static void RemovePendingForFighter(FighterMotor2D fighter)
@@ -113,7 +192,15 @@ namespace LandOfFire.BunnyStep
         private void OnDestroy()
         {
             if (instance == this)
+            {
+                for (int i = 0; i < fighters.Count; i++)
+                {
+                    FighterMotor2D fighter = fighters[i];
+                    if (fighter != null && fighter.combat != null)
+                        fighter.combat.ValidImpactConfirmed -= OnValidImpactConfirmed;
+                }
                 instance = null;
+            }
         }
 
         private void FixedUpdate()
@@ -123,6 +210,7 @@ namespace LandOfFire.BunnyStep
             {
                 accumulatedTime = 0d;
                 pendingClashCandidates.Clear();
+                comboSystem.ClearPendingImpacts();
                 return;
             }
 
@@ -149,6 +237,7 @@ namespace LandOfFire.BunnyStep
         private void SimulateSharedTick()
         {
             simulationTick++;
+            pendingAutoComboKnockdowns.Clear();
 
             // Phase 1: advance every fighter before examining any hitbox.
             for (int i = 0; i < fighters.Count; i++)
@@ -192,6 +281,41 @@ namespace LandOfFire.BunnyStep
             // Give an opposite attack landing on the final tolerance tick a
             // chance to Clash before releasing the original pending impact.
             FlushExpiredPendingClashes();
+
+            // The Combo System receives only confirmed hits/guard breaks and
+            // evaluates them after every contact from this shared tick has
+            // finished resolving. This preserves symmetric simultaneous hits.
+            comboSystem.ProcessTick(
+                fighters,
+                simulationTick,
+                maxComboHits,
+                comboHitWindowTicks,
+                forceKnockdownOnLimit);
+
+            // Per-combo knockdowns are evaluated after the global hit limit,
+            // so the globally configured Combo Limit Knockdown wins if both
+            // rules activate for the same defender on this shared tick.
+            ProcessAutoComboKnockdowns();
+        }
+
+        private void ProcessAutoComboKnockdowns()
+        {
+            for (int i = 0; i < pendingAutoComboKnockdowns.Count; i++)
+            {
+                PendingAutoComboKnockdown request = pendingAutoComboKnockdowns[i];
+                FighterMotor2D target = request.Target;
+                if (target == null || !target.isActiveAndEnabled ||
+                    target.Machine.IsComboLimitKnockdown ||
+                    target.Machine.IsKnockdown || target.Machine.IsResetting ||
+                    target.Machine.IsFlyingHurt)
+                {
+                    continue;
+                }
+
+                target.ReceiveComboSpecificKnockdown(request.Direction);
+            }
+
+            pendingAutoComboKnockdowns.Clear();
         }
 
         private void ResolveParryAttempts()
@@ -230,15 +354,16 @@ namespace LandOfFire.BunnyStep
 
                 consumedCandidates[incomingIndex] = true;
 
-                if (!incoming.IsMovesetSpecial)
+                if (!incoming.IsMovesetSpecial && !incoming.IsAutoCombo)
                 {
                     incoming.Attacker.CancelAttackForParry(
                         incoming.Move.parryStunTicks);
                 }
                 else
                 {
-                    // A special Moveset strike is prevented from dealing
-                    // damage, but the sequence and attacker continue.
+                    // Special Moveset strikes and Auto Combo impacts are
+                    // prevented from dealing damage, but their sequence
+                    // continues. A later counter-hit can still interrupt it.
                     incoming.Combat.RegisterParriedTarget(defender);
                 }
 
@@ -596,7 +721,12 @@ namespace LandOfFire.BunnyStep
                 if (fighter == null || !fighter.isActiveAndEnabled)
                 {
                     if (fighter != null)
+                    {
                         RemovePendingForFighter(fighter);
+                        comboSystem.Unregister(fighter);
+                        if (fighter.combat != null)
+                            fighter.combat.ValidImpactConfirmed -= OnValidImpactConfirmed;
+                    }
                     fighters.RemoveAt(i);
                 }
             }

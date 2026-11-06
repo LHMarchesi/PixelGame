@@ -84,6 +84,24 @@ namespace LandOfFire.BunnyStep
         [Tooltip("Desplazamiento horizontal por tick mientras está en Air o Descending.")]
         public float jumpAirControl = .035f;
 
+        [Header("Combo Limit Knockdown")]
+
+        [Min(1)]
+        [Tooltip("Duración en ticks de la caída leve cuando se alcanza el límite global de impactos.")]
+        public int comboLimitKnockdownFallTicks = 12;
+
+        [Min(0f)]
+        [Tooltip("Desplazamiento horizontal total de la caída leve. Se mueve alejándose del atacante.")]
+        public float comboLimitKnockdownDistance = .55f;
+
+        [Min(0f)]
+        [Tooltip("Altura visual máxima de la caída leve.")]
+        public float comboLimitKnockdownHeight = .35f;
+
+        [Min(1)]
+        [Tooltip("Duración en ticks del estado Knockdown en el suelo después de la caída por límite de combo.")]
+        public int comboLimitKnockdownGroundTicks = 24;
+
         [Header("Levantarse")]
 
         [Tooltip(
@@ -212,6 +230,11 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "FlyingHurt");
 
+        [Tooltip("Animación exclusiva de la caída leve por alcanzar el límite global de impactos.")]
+        public PhaseAnimation comboLimitKnockdown =
+            new PhaseAnimation(
+                "ComboLimitKnockdown");
+
         public PhaseAnimation knockdown =
             new PhaseAnimation(
                 "Knockdown");
@@ -282,6 +305,9 @@ namespace LandOfFire.BunnyStep
 
                 case FighterState.FlyingHurt:
                     return flyingHurt;
+
+                case FighterState.ComboLimitKnockdown:
+                    return comboLimitKnockdown;
 
                 case FighterState.Knockdown:
                     return knockdown;

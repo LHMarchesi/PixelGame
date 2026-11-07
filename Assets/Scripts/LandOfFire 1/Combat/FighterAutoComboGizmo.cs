@@ -1,4 +1,4 @@
-// Land of Fire · Editor preview for Auto Combo impact hitboxes.
+// Land of Fire · Editor preview for the hitbox of each sequential Auto Combo attack.
 // Attach optionally to a Fighter root and assign the AutoComboData to preview.
 
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace LandOfFire.BunnyStep
         [Tooltip("Enable or disable the Auto Combo hitbox preview in the Scene view.")]
         public bool showHitboxes = true;
 
-        [Tooltip("When enabled, draw every configured impact. When disabled, draw only Preview Impact Index.")]
+        [Tooltip("When enabled, draw every configured attack. When disabled, draw only Preview Attack Index.")]
         public bool showAllImpacts = true;
 
         [Min(0)]
@@ -28,16 +28,16 @@ namespace LandOfFire.BunnyStep
 
         private void OnDrawGizmosSelected()
         {
-            if (!showHitboxes || autoCombo == null || autoCombo.impacts == null)
+            if (!showHitboxes || autoCombo == null || autoCombo.attacks == null)
                 return;
 
             int facing = previewFacingRight ? 1 : -1;
-            for (int i = 0; i < autoCombo.impacts.Count; i++)
+            for (int i = 0; i < autoCombo.attacks.Count; i++)
             {
                 if (!showAllImpacts && i != previewImpactIndex)
                     continue;
 
-                AutoComboImpactData impact = autoCombo.impacts[i];
+                AutoComboImpactData impact = autoCombo.attacks[i];
                 if (impact == null || impact.attackMove == null ||
                     !impact.attackMove.useHitbox)
                 {

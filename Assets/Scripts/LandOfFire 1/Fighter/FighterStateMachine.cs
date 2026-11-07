@@ -93,6 +93,20 @@ namespace LandOfFire.BunnyStep
 
         public AutoComboData CurrentAutoCombo { get; private set; }
 
+        public AutoComboImpactData CurrentAutoComboAttack { get; private set; }
+
+        public int CurrentAutoComboAttackIndex { get; private set; } = -1;
+
+        public int CurrentAutoComboAttackElapsedTick { get; private set; }
+
+        public bool IsAutoComboTransitioning { get; private set; }
+
+        public PhaseAnimation CurrentAutoComboAnimation { get; private set; }
+
+        public int CurrentAutoComboAnimationElapsedTick { get; private set; }
+
+        public int CurrentAutoComboAnimationDurationTicks { get; private set; }
+
         // Hold charge extends Anticipation without changing the shared tick rate.
         public int HoldChargeTicks { get; private set; }
 
@@ -171,8 +185,8 @@ namespace LandOfFire.BunnyStep
         public AutoComboImpactData CurrentAutoComboCancelWindow =>
             IsAutoCombo && CurrentAutoCombo != null
                 // Elapsed is the last fully simulated Auto Combo tick. A
-                // cancel configured on an impact tick therefore becomes
-                // available only after that impact has been resolved.
+                // cancel configured on an attack-local tick becomes
+                // available only after that tick has been resolved.
                 ? CurrentAutoCombo.FindCancelWindow(Elapsed)
                 : null;
 
@@ -245,6 +259,16 @@ namespace LandOfFire.BunnyStep
         private bool holdChargeButtonHeld;
 
         private float attackStartHeight;
+        private int groundAttackFacing = 1;
+        private Vector2 groundAttackLastOffset;
+
+        // Auto Combo displacement is accumulated independently for each
+        // sequential attack, while the fighter's world position stays continuous.
+        private int currentFacing = 1;
+        private int autoComboMovementFacing = 1;
+        private int autoComboMovementAttackIndex = -1;
+        private float autoComboAttackStartHeight;
+        private Vector2 autoComboAttackLastOffset;
 
         // ================================================================
         // HURT
@@ -575,6 +599,7 @@ namespace LandOfFire.BunnyStep
             int newFacing,
             int heldDirection)
         {
+            currentFacing = newFacing >= 0 ? 1 : -1;
             if (State == FighterState.Jump)
             {
                 jumpAirDirection = heldDirection;
@@ -745,9 +770,8 @@ namespace LandOfFire.BunnyStep
             if (IsAutoCombo)
             {
                 Phase = BunnyPhase.None;
-                PhaseElapsed = Elapsed;
-                PhaseDuration = Duration;
-                return 0f;
+                UpdateAutoComboPresentation();
+                return AdvanceAutoComboMovement();
             }
 
             // ============================================================
@@ -815,7 +839,7 @@ namespace LandOfFire.BunnyStep
 
                 return IsAirAttacking
                     ? AdvanceAirAttackMovement()
-                    : 0f;
+                    : AdvanceGroundAttackMovement();
             }
 
             // ============================================================
@@ -1142,7 +1166,7 @@ namespace LandOfFire.BunnyStep
 
         public bool TryStartAutoCombo(AutoComboData combo)
         {
-            if (combo == null || IsTimed ||
+            if (combo == null || !combo.HasValidAttacks || IsTimed ||
                 (State != FighterState.Idle && State != FighterState.Walk))
             {
                 return false;
@@ -1204,18 +1228,23 @@ namespace LandOfFire.BunnyStep
             AutoComboData combo,
             float startupSkipPercent)
         {
-            if (combo == null)
+            if (combo == null || !combo.HasValidAttacks)
                 return false;
 
             CurrentAttack = null;
             CurrentAutoCombo = combo;
             CurrentAttackPhase = AttackPhase.None;
+            ResetAutoComboPresentation();
             holdChargeRequested = false;
             holdChargeButtonHeld = false;
             HoldChargeTicks = 0;
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentJumpPhase = JumpPhase.None;
+            autoComboMovementFacing = currentFacing;
+            autoComboMovementAttackIndex = -1;
+            autoComboAttackStartHeight = Height;
+            autoComboAttackLastOffset = Vector2.zero;
             Phase = BunnyPhase.None;
             PhaseDuration = combo.DurationTicks;
             Duration = combo.DurationTicks;
@@ -1226,7 +1255,6 @@ namespace LandOfFire.BunnyStep
             PhaseElapsed = Elapsed;
             StepDirection = 0;
             Distance = 0f;
-            Height = 0f;
 
             Change(FighterState.AutoCombo);
             return true;
@@ -1332,7 +1360,16 @@ namespace LandOfFire.BunnyStep
             int facing,
             bool requestHoldCharge)
         {
+            // Preserve a custom Auto Combo height offset when a cancel enters
+            // a regular grounded move. Otherwise clearing CurrentAutoCombo
+            // would make VisualHeight resolve to zero and cause a visible snap.
+            bool wasCancellingSequence = IsAutoCombo || IsAttacking;
+            float inheritedVisualHeight = VisualHeight;
+
             CurrentAutoCombo = null;
+            ResetAutoComboPresentation();
+            groundAttackFacing = facing >= 0 ? 1 : -1;
+            groundAttackLastOffset = Vector2.zero;
 
             if (aerial)
             {
@@ -1376,7 +1413,9 @@ namespace LandOfFire.BunnyStep
             }
             else
             {
-                attackStartHeight = IsStepping ? VisualHeight : 0f;
+                attackStartHeight = wasCancellingSequence
+                    ? inheritedVisualHeight
+                    : (IsStepping ? VisualHeight : 0f);
                 hasSuspendedJump = false;
                 jumpHeightOffset = 0f;
             }
@@ -1447,6 +1486,57 @@ namespace LandOfFire.BunnyStep
             Height = Mathf.Max(0f, attackStartHeight + offset.y);
 
             return horizontalDelta * airAttackFacing;
+        }
+
+        private float AdvanceGroundAttackMovement()
+        {
+            if (CurrentAttack == null || !CurrentAttack.useCustomGroundMovement)
+            {
+                groundAttackLastOffset = Vector2.zero;
+                Height = attackStartHeight;
+                return 0f;
+            }
+
+            Vector2 offset = CurrentAttack.GroundMovementOffset(
+                CurrentAttackPhase,
+                PhaseElapsed,
+                PhaseDuration);
+
+            float horizontalDelta =
+                (offset.x - groundAttackLastOffset.x) * groundAttackFacing;
+
+            groundAttackLastOffset = offset;
+            Height = Mathf.Max(0f, attackStartHeight + offset.y);
+            return horizontalDelta;
+        }
+
+        private float AdvanceAutoComboMovement()
+        {
+            AutoComboImpactData attack = CurrentAutoComboAttack;
+            if (attack == null)
+                return 0f;
+
+            if (CurrentAutoComboAttackIndex != autoComboMovementAttackIndex)
+            {
+                autoComboMovementAttackIndex = CurrentAutoComboAttackIndex;
+                autoComboAttackStartHeight = Height;
+                autoComboAttackLastOffset = Vector2.zero;
+            }
+
+            // During an optional transition delay, the previous attack keeps
+            // its final pose and displacement; no new movement is introduced.
+            if (IsAutoComboTransitioning)
+                return 0f;
+
+            Vector2 offset = attack.MovementOffsetAtTick(
+                CurrentAutoComboAttackElapsedTick);
+
+            float horizontalDelta =
+                (offset.x - autoComboAttackLastOffset.x) * autoComboMovementFacing;
+
+            autoComboAttackLastOffset = offset;
+            Height = Mathf.Max(0f, autoComboAttackStartHeight + offset.y);
+            return horizontalDelta;
         }
 
         private float AdvanceSuspendedJumpTrajectory()
@@ -1650,6 +1740,9 @@ namespace LandOfFire.BunnyStep
             holdChargeRequested = false;
             holdChargeButtonHeld = false;
             HoldChargeTicks = 0;
+            groundAttackLastOffset = Vector2.zero;
+            autoComboMovementAttackIndex = -1;
+            autoComboAttackLastOffset = Vector2.zero;
             Change(FighterState.Idle);
         }
 
@@ -2105,6 +2198,7 @@ namespace LandOfFire.BunnyStep
                 if (IsStepping ||
                     IsJumping ||
                     IsAirAttacking ||
+                    IsAutoCombo ||
                     IsHurt ||
                     IsFlyingHurt ||
                     IsComboLimitKnockdown)
@@ -2113,7 +2207,9 @@ namespace LandOfFire.BunnyStep
                 }
 
                 if (IsAttacking)
-                    return attackStartHeight;
+                    return CurrentAttack != null && CurrentAttack.useCustomGroundMovement
+                        ? Height
+                        : attackStartHeight;
 
                 return 0;
             }
@@ -2175,6 +2271,70 @@ namespace LandOfFire.BunnyStep
             Change(state);
         }
 
+        private void ResetAutoComboPresentation()
+        {
+            CurrentAutoComboAttack = null;
+            CurrentAutoComboAttackIndex = -1;
+            CurrentAutoComboAttackElapsedTick = 0;
+            IsAutoComboTransitioning = false;
+            CurrentAutoComboAnimation = null;
+            CurrentAutoComboAnimationElapsedTick = 0;
+            CurrentAutoComboAnimationDurationTicks = 0;
+        }
+
+        private void UpdateAutoComboPresentation()
+        {
+            ResetAutoComboPresentation();
+            CurrentAttackPhase = AttackPhase.None;
+
+            if (CurrentAutoCombo == null)
+                return;
+
+            AutoComboImpactData attack;
+            int attackIndex;
+            int attackElapsedTick;
+            bool isTransition;
+            if (!CurrentAutoCombo.TryGetAttackAtTick(
+                Elapsed,
+                out attack,
+                out attackIndex,
+                out attackElapsedTick,
+                out isTransition) || attack == null)
+            {
+                PhaseElapsed = Elapsed;
+                PhaseDuration = Duration;
+                return;
+            }
+
+            CurrentAutoComboAttack = attack;
+            CurrentAutoComboAttackIndex = attackIndex;
+            CurrentAutoComboAttackElapsedTick = attackElapsedTick;
+            IsAutoComboTransitioning = isTransition;
+
+            PhaseAnimation animation;
+            int animationElapsed;
+            int animationDuration;
+            AttackPhase phase;
+            if (!attack.TryGetAnimationAtTick(
+                attackElapsedTick,
+                out animation,
+                out animationElapsed,
+                out animationDuration,
+                out phase))
+            {
+                PhaseElapsed = attackElapsedTick;
+                PhaseDuration = attack.AnimationDurationTicks;
+                return;
+            }
+
+            CurrentAutoComboAnimation = animation;
+            CurrentAutoComboAnimationElapsedTick = animationElapsed;
+            CurrentAutoComboAnimationDurationTicks = animationDuration;
+            CurrentAttackPhase = phase;
+            PhaseElapsed = animationElapsed;
+            PhaseDuration = animationDuration;
+        }
+
         private void SetAttackPhase(
             AttackPhase next,
             int localIndex,
@@ -2193,7 +2353,10 @@ namespace LandOfFire.BunnyStep
         private void FinishTimedState()
         {
             if (IsAutoCombo)
+            {
                 CurrentAutoCombo = null;
+                ResetAutoComboPresentation();
+            }
 
             if (State == FighterState.Parry)
             {

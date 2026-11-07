@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: MOVESET_IVAN
   m_EditorClassIdentifier: 
   commands:
-  - sequence: 0000000003000000
-    commandType: 5
+  - sequence: 03000000
+    directionRequirements: 02000000
+    autoCombo: {fileID: 11400000, guid: c4a2825551e639a4cb1650484bffe919, type: 2}
+    commandType: 7
     attack: 1
-    attackMove: {fileID: 11400000, guid: f0036908d46a0604198eec02046da15e, type: 2}
+    attackMove: {fileID: 0}
     priority: 1

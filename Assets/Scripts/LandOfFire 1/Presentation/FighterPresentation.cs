@@ -34,8 +34,8 @@ namespace LandOfFire.BunnyStep
         {
             Initialize();
             if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;
-            PhaseAnimation settings = machine.IsAutoCombo && machine.CurrentAutoCombo != null
-                ? machine.CurrentAutoCombo.animation
+            PhaseAnimation settings = machine.IsAutoCombo
+                ? machine.CurrentAutoComboAnimation
                 : machine.IsAttacking && machine.CurrentAttack != null
                     ? machine.CurrentAttack.AnimationFor(machine.CurrentAttackPhase)
                     : profile.AnimationFor(machine.State, machine.Phase, machine.CurrentJumpPhase);
@@ -45,17 +45,55 @@ namespace LandOfFire.BunnyStep
                 int hash = Animator.StringToHash(path);
                 if (!string.IsNullOrEmpty(path) && animator.HasState(0, hash))
                 {
-                    bool combatTimed = machine.State == FighterState.BlockRecovery ||
-                                       machine.State == FighterState.GuardBreak ||
-                                       machine.IsHurt || machine.IsParryState ||
-                                       machine.IsComboLimitKnockdown || machine.IsAutoCombo;
-                    int elapsed = combatTimed ? machine.Elapsed :
-                        machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :
-                        poseTick + 1;
-                    int duration = combatTimed ? machine.Duration :
-                        machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseDuration :
-                        settings.loopTicks;
-                    animator.Play(hash, 0, settings.Sample(elapsed, duration));
+                    int elapsed;
+                    int duration;
+                    if (machine.IsAutoCombo)
+                    {
+                        // Auto Combo samples the active attack's current phase
+                        // or custom state. Each clip is fitted to its own tick
+                        // duration instead of sampling one combo-wide clip.
+                        elapsed = machine.CurrentAutoComboAnimationElapsedTick;
+                        duration = machine.CurrentAutoComboAnimationDurationTicks;
+                    }
+                    else
+                    {
+                        bool combatTimed = machine.State == FighterState.BlockRecovery ||
+                                           machine.State == FighterState.GuardBreak ||
+                                           machine.IsHurt || machine.IsParryState ||
+                                           machine.IsComboLimitKnockdown;
+                        elapsed = combatTimed ? machine.Elapsed :
+                            machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :
+                            poseTick + 1;
+                        duration = combatTimed ? machine.Duration :
+                            machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseDuration :
+                            settings.loopTicks;
+                    }
+
+                    float normalizedTime;
+                    bool fitCustomAutoComboState = machine.IsAutoCombo &&
+                        machine.CurrentAutoComboAttack != null &&
+                        machine.CurrentAutoComboAttack.animationMode ==
+                            AutoComboAnimationMode.CustomAnimationSequence;
+
+                    if (fitCustomAutoComboState)
+                    {
+                        // Custom Auto Combo states always complete within
+                        // their configured tick count. The Animator is sampled
+                        // directly on the shared 60 Hz timeline, so no frame-
+                        // rate-dependent Animator.speed is required.
+                        normalizedTime = duration <= 1
+                            ? 0f
+                            : Mathf.Min(.99999f,
+                                Mathf.Max(0, elapsed - 1) / (float)(duration - 1));
+                    }
+                    else
+                    {
+                        // Reused AttackMoveData clips keep exactly the same
+                        // playback policy as when the move is input normally.
+                        normalizedTime = settings.Sample(elapsed, duration);
+                    }
+
+                    animator.Play(hash, 0, normalizedTime);
                     animator.Update(0);
                 }
                 else if (warnings.Add(path)) Debug.LogWarning("Falta estado Animator: " + path, this);

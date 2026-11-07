@@ -204,31 +204,6 @@ namespace LandOfFire.BunnyStep
         [SerializeField]
         private Color guardBreakCalloutColor = new Color(1f, 0.38f, 0.22f, 1f);
 
-        [Header("Auto Combo - Hit Numbers")]
-        [SerializeField]
-        private bool showAutoComboHitNumbers = true;
-
-        [SerializeField, Min(0.05f)]
-        private float autoComboNumberDuration = 0.58f;
-
-        [SerializeField, Min(0.1f)]
-        private float autoComboNumberScale = 1.5f;
-
-        [SerializeField, Min(0f)]
-        private float autoComboNumberVerticalOffset = 0.28f;
-
-        [SerializeField, Min(0f)]
-        private float autoComboNumberHorizontalSpread = 0.12f;
-
-        [SerializeField]
-        private Color autoComboLightNumberColor = new Color(0.22f, 0.86f, 1f, 1f);
-
-        [SerializeField]
-        private Color autoComboMediumNumberColor = new Color(1f, 0.61f, 0.16f, 1f);
-
-        [SerializeField]
-        private Color autoComboHeavyNumberColor = new Color(1f, 0.25f, 0.22f, 1f);
-
         private readonly List<ClashEffect> activeEffects =
             new List<ClashEffect>(4);
 
@@ -318,21 +293,6 @@ namespace LandOfFire.BunnyStep
                 return;
 
             controller.PlayGuardBreak(defender);
-        }
-
-        public static void TriggerAutoComboImpact(
-            FighterMotor2D defender,
-            int impactNumber,
-            AttackCategory category)
-        {
-            if (defender == null || impactNumber <= 0)
-                return;
-
-            CombatFeedbackController controller = EnsureInstance();
-            if (controller == null)
-                return;
-
-            controller.PlayAutoComboImpact(defender, impactNumber, category);
         }
 
         private static CombatFeedbackController EnsureInstance()
@@ -489,48 +449,6 @@ namespace LandOfFire.BunnyStep
                 guardBreakCalloutColor,
                 calloutDuration,
                 1.08f);
-        }
-
-        private void PlayAutoComboImpact(
-            FighterMotor2D defender,
-            int impactNumber,
-            AttackCategory category)
-        {
-            Color numberColor;
-            switch (category)
-            {
-                case AttackCategory.Medium:
-                    numberColor = autoComboMediumNumberColor;
-                    break;
-                case AttackCategory.Heavy:
-                    numberColor = autoComboHeavyNumberColor;
-                    break;
-                default:
-                    numberColor = autoComboLightNumberColor;
-                    break;
-            }
-
-            // Alternate the number slightly around the target so rapid hits
-            // remain legible instead of stacking in one exact screen point.
-            float side = impactNumber % 2 == 0 ? -1f : 1f;
-            float spread = side * autoComboNumberHorizontalSpread *
-                           Mathf.Ceil(impactNumber * 0.5f);
-            Vector3 position = defender.BodyPosition +
-                Vector2.up * (calloutVerticalOffset + autoComboNumberVerticalOffset) +
-                Vector2.right * spread;
-
-            if (!showAutoComboHitNumbers)
-                return;
-
-            SpawnCallout(
-                impactNumber.ToString(),
-                position,
-                defender,
-                numberColor,
-                autoComboNumberDuration,
-                autoComboNumberScale,
-                true,
-                true);
         }
 
         private void SpawnCallout(

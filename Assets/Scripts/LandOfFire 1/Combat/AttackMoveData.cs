@@ -161,6 +161,60 @@ namespace LandOfFire.BunnyStep
                    attackElapsedTick <= end;
         }
 
+        [Header("Movimiento terrestre del ataque por fase")]
+
+        [Tooltip("Permite desplazar al luchador durante un ataque terrestre. X positivo avanza hacia el facing; Y positivo eleva la altura visual. Los valores son desplazamientos totales por fase, interpolados durante sus ticks.")]
+        public bool useCustomGroundMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Anticipation. X es relativo al facing; Y es altura visual.")]
+        public Vector2 groundAnticipationMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Smear. Se suma al desplazamiento de Anticipation.")]
+        public Vector2 groundSmearMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Pose. Se suma a las fases anteriores.")]
+        public Vector2 groundPoseMovement;
+
+        [Tooltip("Desplazamiento total aplicado durante Recovery. Se suma a las fases anteriores.")]
+        public Vector2 groundRecoveryMovement;
+
+        public Vector2 GroundMovementOffset(
+            AttackPhase phase,
+            int phaseElapsedTick,
+            int phaseDurationTicks)
+        {
+            if (!useCustomGroundMovement)
+                return Vector2.zero;
+
+            float progress = phaseDurationTicks <= 1
+                ? 1f
+                : Mathf.Clamp01((float)(phaseElapsedTick - 1) / (phaseDurationTicks - 1));
+
+            switch (phase)
+            {
+                case AttackPhase.Anticipation:
+                    return groundAnticipationMovement * progress;
+
+                case AttackPhase.Smear:
+                    return groundAnticipationMovement +
+                           groundSmearMovement * progress;
+
+                case AttackPhase.Pose:
+                    return groundAnticipationMovement +
+                           groundSmearMovement +
+                           groundPoseMovement * progress;
+
+                case AttackPhase.Recovery:
+                    return groundAnticipationMovement +
+                           groundSmearMovement +
+                           groundPoseMovement +
+                           groundRecoveryMovement * progress;
+
+                default:
+                    return Vector2.zero;
+            }
+        }
+
         [Header("Movimiento aéreo por fase")]
 
         [Tooltip("Activado: reemplaza la trayectoria vertical del Jump por el movimiento aéreo personalizado de este ataque. Desactivado: continúa la trayectoria normal del Jump y conserva el control aéreo horizontal. En este modo se ignoran los vectores personalizados.")]

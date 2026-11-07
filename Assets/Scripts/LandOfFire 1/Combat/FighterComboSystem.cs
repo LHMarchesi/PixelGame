@@ -15,6 +15,12 @@ namespace LandOfFire.BunnyStep
             public readonly List<long> receivedHitTicks =
                 new List<long>(8);
 
+            // HUD combo count is cumulative for the active combo window.
+            // Unlike receivedHitTicks (a rolling window used by the global
+            // knockdown limit), this value never counts down as old hits age.
+            public int displayComboCount;
+            public long lastValidImpactTick = long.MinValue;
+
             public FighterState lastState;
             public bool comboClosedByKnockdown;
         }
@@ -52,6 +58,14 @@ namespace LandOfFire.BunnyStep
                     lastState = fighter.Machine.State
                 });
             }
+        }
+
+        public int GetComboCount(FighterMotor2D fighter)
+        {
+            if (fighter == null || !histories.TryGetValue(fighter, out FighterHistory history))
+                return 0;
+
+            return history.displayComboCount;
         }
 
         public void Unregister(FighterMotor2D fighter)
@@ -92,8 +106,9 @@ namespace LandOfFire.BunnyStep
             int hitLimit = Mathf.Max(1, maxComboHits);
             int hitWindow = Mathf.Max(1, comboHitWindowTicks);
 
-            // Expire old impacts and close a combo as soon as its defender
-            // enters a knockdown sequence. A later return to Idle starts clean.
+            // Expire the complete combo after an inactivity window and close
+            // it as soon as its defender enters a knockdown sequence. A later
+            // return to neutral starts clean.
             if (fighters != null)
             {
                 for (int i = 0; i < fighters.Count; i++)
@@ -106,13 +121,30 @@ namespace LandOfFire.BunnyStep
                     FighterHistory history = histories[fighter];
                     FighterState currentState = fighter.Machine.State;
 
+                    // The HUD count is a combo total, not the number of
+                    // timestamps currently left in the rolling knockdown
+                    // window. Keep it steady while the combo is alive, then
+                    // hide/reset it only when no valid impact has arrived for
+                    // the full combo window.
+                    if (history.displayComboCount > 0 &&
+                        history.lastValidImpactTick != long.MinValue &&
+                        currentTick - history.lastValidImpactTick > hitWindow)
+                    {
+                        // End the entire combo only after a full inactivity
+                        // window. The knockdown history and HUD must use the
+                        // same combo lifetime; do not age out hits one by one.
+                        history.receivedHitTicks.Clear();
+                        history.displayComboCount = 0;
+                        history.lastValidImpactTick = long.MinValue;
+                    }
+
                     if (currentState == FighterState.Knockdown ||
                         currentState == FighterState.ComboLimitKnockdown)
                     {
-                        // The combo is closed on knockdown, but the recorded
-                        // ticks are cleared when Reset finishes and control
-                        // returns to neutral. No new impacts can be received
-                        // during Knockdown or Reset.
+                        // The combo is closed on knockdown. Recorded impacts
+                        // are cleared when Reset finishes and control returns
+                        // to neutral. No new impacts can be received during
+                        // Knockdown or Reset.
                         history.comboClosedByKnockdown = true;
                     }
                     else if (history.comboClosedByKnockdown &&
@@ -121,11 +153,9 @@ namespace LandOfFire.BunnyStep
                               history.lastState == FighterState.Knockdown))
                     {
                         history.receivedHitTicks.Clear();
+                        history.displayComboCount = 0;
+                        history.lastValidImpactTick = long.MinValue;
                         history.comboClosedByKnockdown = false;
-                    }
-                    else if (!history.comboClosedByKnockdown)
-                    {
-                        PruneExpiredHits(history, currentTick, hitWindow);
                     }
 
                     history.lastState = currentState;
@@ -158,6 +188,8 @@ namespace LandOfFire.BunnyStep
                 }
 
                 history.receivedHitTicks.Add(currentTick);
+                history.displayComboCount++;
+                history.lastValidImpactTick = currentTick;
 
                 if (!knockdownDirections.ContainsKey(impact.target))
                     knockdownDirections.Add(impact.target, impact.direction);
@@ -201,16 +233,5 @@ namespace LandOfFire.BunnyStep
             pendingImpacts.Clear();
         }
 
-        private static void PruneExpiredHits(
-            FighterHistory history,
-            long currentTick,
-            int windowTicks)
-        {
-            for (int i = history.receivedHitTicks.Count - 1; i >= 0; i--)
-            {
-                if (currentTick - history.receivedHitTicks[i] > windowTicks)
-                    history.receivedHitTicks.RemoveAt(i);
-            }
-        }
     }
 }

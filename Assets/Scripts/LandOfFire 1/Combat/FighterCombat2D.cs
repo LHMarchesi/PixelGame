@@ -227,19 +227,22 @@ namespace LandOfFire.BunnyStep
                 combatElapsedTick,
                 machine.IsAirAttacking);
 
-            float airborneHeight =
-                machine.IsAirAttacking && move.followAirborneHeight
-                    ? machine.VisualHeight
-                    : 0f;
+            bool followsVisualHeight =
+                (machine.IsAirAttacking && move.followAirborneHeight) ||
+                (!machine.IsAirAttacking && move.useCustomGroundMovement);
 
-            UpdateDebugView(move, hitboxActive, facing, airborneHeight);
+            float attackHeightOffset = followsVisualHeight
+                ? machine.VisualHeight
+                : 0f;
+
+            UpdateDebugView(move, hitboxActive, facing, attackHeightOffset);
             if (!hitboxActive)
                 return;
 
             Vector2 offset = move.hitboxOffset;
             Vector2 center = owner.BodyPosition + new Vector2(
                 offset.x * facing,
-                offset.y + airborneHeight);
+                offset.y + attackHeightOffset);
 
             Vector2 size = new Vector2(
                 Mathf.Max(.01f, move.hitboxSize.x),
@@ -297,11 +300,12 @@ namespace LandOfFire.BunnyStep
             int facing,
             List<FighterHitCandidate> destination)
         {
-            int impactIndex;
-            AutoComboImpactData impact = machine.CurrentAutoCombo.FindImpactAtTick(
-                machine.Elapsed, out impactIndex);
+            int impactIndex = machine.CurrentAutoComboAttackIndex;
+            AutoComboImpactData impact = machine.CurrentAutoComboAttack;
+            int attackElapsedTick = machine.CurrentAutoComboAttackElapsedTick;
 
-            if (impact == null || impact.attackMove == null)
+            if (impact == null || impact.attackMove == null ||
+                machine.IsAutoComboTransitioning)
             {
                 if (debugView != null)
                     debugView.Hide();
@@ -315,14 +319,16 @@ namespace LandOfFire.BunnyStep
             }
 
             AttackMoveData move = impact.attackMove;
-            UpdateDebugView(move, move.useHitbox, facing, 0f);
-            if (!move.useHitbox)
+            bool hitboxActive = impact.IsHitboxActive(attackElapsedTick);
+            float comboHeightOffset = machine.VisualHeight;
+            UpdateDebugView(move, hitboxActive, facing, comboHeightOffset);
+            if (!hitboxActive)
                 return;
 
             Vector2 offset = move.hitboxOffset;
             Vector2 center = owner.BodyPosition + new Vector2(
                 offset.x * facing,
-                offset.y);
+                offset.y + comboHeightOffset);
             Vector2 size = new Vector2(
                 Mathf.Max(.01f, move.hitboxSize.x),
                 Mathf.Max(.01f, move.hitboxSize.y));
@@ -361,7 +367,9 @@ namespace LandOfFire.BunnyStep
                     Health = health,
                     Move = move,
                     Facing = facing,
-                    AttackElapsedTick = machine.Elapsed,
+                    // Parry and Telegraph timing is local to this attack,
+                    // not to the complete Auto Combo timeline.
+                    AttackElapsedTick = attackElapsedTick,
                     HoldChargeTicks = 0,
                     IsMovesetSpecial = false,
                     IsAutoCombo = true,
@@ -427,11 +435,6 @@ namespace LandOfFire.BunnyStep
                     hitThisAttack.Add(target);
                     HitConfirmed?.Invoke(target, move);
                     ValidImpactConfirmed?.Invoke(target, move, candidate.Facing);
-                    if (candidate.IsAutoCombo)
-                    {
-                        CombatFeedbackController.TriggerAutoComboImpact(
-                            target, candidate.AutoComboImpactIndex + 1, move.category);
-                    }
                     if (candidate.TriggersComboKnockdown)
                     {
                         FighterCombatResolver.QueueAutoComboKnockdown(
@@ -489,11 +492,6 @@ namespace LandOfFire.BunnyStep
             target.ApplyHitstop(move.hitstopTicks);
             HitConfirmed?.Invoke(target, move);
             ValidImpactConfirmed?.Invoke(target, move, candidate.Facing);
-            if (candidate.IsAutoCombo)
-            {
-                CombatFeedbackController.TriggerAutoComboImpact(
-                    target, candidate.AutoComboImpactIndex + 1, move.category);
-            }
             if (candidate.TriggersComboKnockdown)
             {
                 FighterCombatResolver.QueueAutoComboKnockdown(

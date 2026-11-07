@@ -12,12 +12,60 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 345f555d5cdfa144baace5a7e331d84d, type: 3}
   m_Name: New Auto Combo Data
   m_EditorClassIdentifier: 
+  attacks:
+  - attackMove: {fileID: 11400000, guid: 22fee837a9c9eac4ebdccd1c3ec8477f, type: 2}
+    animationMode: 0
+    timingMode: 0
+    anticipationTicks: 0
+    smearTicks: 0
+    poseTicks: 0
+    recoveryTicks: 0
+    customAnimationStates: []
+    hitboxStartTick: 30
+    hitboxDurationTicks: 10
+    transitionDelayTicks: 0
+    allowCancel: 0
+    cancelWindowStartTick: 1
+    cancelWindowEndTick: 1
+    allowedCancelTargets: 0
+    cancelStartupSkipPercent: 0
+  - attackMove: {fileID: 11400000, guid: 22fee837a9c9eac4ebdccd1c3ec8477f, type: 2}
+    animationMode: 0
+    timingMode: 0
+    anticipationTicks: 0
+    smearTicks: 0
+    poseTicks: 0
+    recoveryTicks: 0
+    customAnimationStates: []
+    hitboxStartTick: 30
+    hitboxDurationTicks: 10
+    transitionDelayTicks: 0
+    allowCancel: 0
+    cancelWindowStartTick: 1
+    cancelWindowEndTick: 1
+    allowedCancelTargets: 0
+    cancelStartupSkipPercent: 0
+  - attackMove: {fileID: 11400000, guid: 5c17ec24d9856db43b0e01b0ee790bea, type: 2}
+    animationMode: 0
+    timingMode: 0
+    anticipationTicks: 0
+    smearTicks: 0
+    poseTicks: 0
+    recoveryTicks: 0
+    customAnimationStates: []
+    hitboxStartTick: 5
+    hitboxDurationTicks: 1
+    transitionDelayTicks: 0
+    allowCancel: 0
+    cancelWindowStartTick: 1
+    cancelWindowEndTick: 1
+    allowedCancelTargets: 0
+    cancelStartupSkipPercent: 0
+  causesKnockdown: 0
+  knockdownAfterImpactNumber: 1
   animation:
     stateName: Base Layer.AutoCombo
     playback: 0
     loopTicks: 30
   durationTicks: 60
   startupTicks: 8
-  impacts: []
-  causesKnockdown: 0
-  knockdownAfterImpactNumber: 3

@@ -102,6 +102,19 @@ namespace LandOfFire.BunnyStep
             instance = null;
         }
 
+        /// <summary>
+        /// Returns the current number of valid impacts received by this fighter
+        /// inside the global combo window. The UI can display this without
+        /// maintaining a second counter or depending on the attack type.
+        /// </summary>
+        public static int GetComboHitCount(FighterMotor2D fighter)
+        {
+            if (fighter == null || instance == null)
+                return 0;
+
+            return instance.comboSystem.GetComboCount(fighter);
+        }
+
         public static void Register(FighterMotor2D fighter)
         {
             if (!Application.isPlaying || fighter == null)

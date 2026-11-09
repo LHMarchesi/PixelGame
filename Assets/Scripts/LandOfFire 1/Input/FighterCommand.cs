@@ -23,7 +23,9 @@ namespace LandOfFire.BunnyStep
         BunnyForwardLoop,
         Attack,
         Parry,
-        AutoCombo
+        AutoCombo,
+        Rekka,
+        RekkaContinue
     }
 
     public enum ParryInputType
@@ -46,6 +48,10 @@ namespace LandOfFire.BunnyStep
         public AttackMoveData AttackMove;
 
         public AutoComboData AutoCombo;
+
+        public RekkaTreeData RekkaTree;
+
+        public RekkaBranchData RekkaBranch;
 
         public ParryInputType ParryInput;
 

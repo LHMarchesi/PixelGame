@@ -1,6 +1,7 @@
 // Land of Fire · Física y coordinador actual del tick de un FighterRoot.
 // Ejecuta la máquina lógica a 60 Hz, aplica movimiento y llama al módulo de combate.
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -138,6 +139,12 @@ namespace LandOfFire.BunnyStep
         private bool hasBufferedAttack;
 
         private FighterCommand bufferedAttack;
+
+        private readonly List<RekkaBranchData> availableRekkaBranches =
+            new List<RekkaBranchData>(2);
+
+        private int configuredRekkaNodeSerial = -1;
+        private bool configuredRekkaWindow;
 
         // A Parry is only a pending one-tick intent until the shared
         // resolver confirms a matching incoming strike on this exact tick.
@@ -278,6 +285,8 @@ namespace LandOfFire.BunnyStep
                 return;
 
             Machine.Reset();
+            Machine.RekkaNodeChanged -= HandleRekkaNodeChanged;
+            Machine.RekkaNodeChanged += HandleRekkaNodeChanged;
 
             ConfigureMachine();
 
@@ -293,6 +302,7 @@ namespace LandOfFire.BunnyStep
             resumedThisStep = false;
 
             ClearAttackBuffer();
+            ClearRekkaCommandScope();
             hasPendingParry = false;
             pendingParryInput = default;
             ClearHoldAttackInput();
@@ -330,6 +340,8 @@ namespace LandOfFire.BunnyStep
 
             if (commands != null)
                 commands.ClearCommands();
+
+            ClearRekkaCommandScope();
         }
 
         /// <summary>Advances exactly one shared 60 Hz simulation tick.</summary>
@@ -372,6 +384,8 @@ namespace LandOfFire.BunnyStep
                 facing,
                 hasCommands ? commands.Direction : 0);
 
+            UpdateRekkaCommandScope();
+
             if (hasCommands)
             {
                 commands.ProcessInput(facing, tick);
@@ -391,6 +405,7 @@ namespace LandOfFire.BunnyStep
 
             poseTick = before == Machine.State ? poseTick + 1 : 0;
             delta += Machine.Advance();
+            UpdateRekkaCommandScope();
             if (!Machine.IsAttacking)
                 ClearHoldAttackInput();
 
@@ -429,9 +444,24 @@ namespace LandOfFire.BunnyStep
             currentAttackPhase = Machine.CurrentAttackPhase;
         }
 
+        internal void CancelRekkaBecauseTargetKnockedDown()
+        {
+            if (!ready || !Machine.IsRekka)
+                return;
+
+            Machine.CancelAttackToIdle();
+            if (combat != null)
+                combat.CancelAttack();
+
+            ClearAttackBuffer();
+            ClearRekkaCommandScope();
+            ClearHoldAttackInput();
+            poseTick = 0;
+        }
+
         internal void CancelAttackForClash()
         {
-            if (!ready || (!Machine.IsAttacking && !Machine.IsAutoCombo))
+            if (!ready || (!Machine.IsAttacking && !Machine.IsAutoCombo && !Machine.IsRekka))
                 return;
 
             coordinatedFrameDelta -= coordinatedLastTickDelta;
@@ -553,6 +583,20 @@ namespace LandOfFire.BunnyStep
 
                         if (!hasPendingParry)
                             HandleAutoComboInput(command);
+
+                        break;
+
+                    case FighterCommandType.Rekka:
+
+                        if (!hasPendingParry)
+                            HandleRekkaInput(command);
+
+                        break;
+
+                    case FighterCommandType.RekkaContinue:
+
+                        if (!hasPendingParry)
+                            HandleRekkaContinueInput(command);
 
                         break;
 
@@ -867,6 +911,117 @@ namespace LandOfFire.BunnyStep
             }
         }
 
+        private void HandleRekkaInput(FighterCommand command)
+        {
+            if (combat == null || command.RekkaTree == null)
+                return;
+
+            if (Machine.IsAutoCombo)
+            {
+                if (Machine.TryCancelAutoComboToRekka(command.RekkaTree, facing))
+                {
+                    ClearAttackBuffer();
+                    ClearHoldAttackInput();
+                    return;
+                }
+
+                if (Machine.HasFutureAutoComboCancelWindow)
+                {
+                    bufferedAttack = command;
+                    hasBufferedAttack = true;
+                }
+
+                return;
+            }
+
+            if (Machine.IsAttacking)
+            {
+                AttackMoveData current = Machine.CurrentAttack;
+                if (Machine.TryCancelAttackToRekka(command.RekkaTree, facing))
+                {
+                    ClearAttackBuffer();
+                    ClearHoldAttackInput();
+                    return;
+                }
+
+                if (current != null && current.allowRekkaCancel &&
+                    Machine.CurrentAttackPhase == AttackPhase.Pose)
+                {
+                    bufferedAttack = command;
+                    hasBufferedAttack = true;
+                }
+
+                return;
+            }
+
+            if (Machine.TryStartRekka(command.RekkaTree, facing))
+            {
+                ClearAttackBuffer();
+                ClearHoldAttackInput();
+            }
+        }
+
+        private void HandleRekkaContinueInput(FighterCommand command)
+        {
+            if (command.RekkaBranch == null || !Machine.IsRekka)
+                return;
+
+            if (Machine.TryContinueRekka(command.RekkaBranch))
+            {
+                ClearAttackBuffer();
+                ClearHoldAttackInput();
+            }
+        }
+
+        private void HandleRekkaNodeChanged()
+        {
+            ClearAttackBuffer();
+            ClearHoldAttackInput();
+
+            if (combat != null)
+                combat.BeginRekkaNode(Machine.CurrentRekkaNodeSerial);
+        }
+
+        private void UpdateRekkaCommandScope()
+        {
+            if (commands == null)
+                return;
+
+            if (!Machine.IsRekka)
+            {
+                if (configuredRekkaNodeSerial >= 0)
+                    ClearRekkaCommandScope();
+
+                return;
+            }
+
+            bool windowOpen = Machine.IsRekkaContinuationWindow;
+            int nodeSerial = Machine.CurrentRekkaNodeSerial;
+            // Keep the active branch definitions stable for the whole Pose
+            // window. If the node outcome resolves while a multi-token branch
+            // command is being entered, the recognizer must preserve its prefix;
+            // FighterStateMachine validates the frozen outcome when completed.
+            if (configuredRekkaNodeSerial == nodeSerial &&
+                configuredRekkaWindow == windowOpen)
+                return;
+
+            Machine.GetAvailableRekkaBranches(availableRekkaBranches);
+            commands.ConfigureRekkaContinuationBranches(availableRekkaBranches);
+
+            configuredRekkaNodeSerial = nodeSerial;
+            configuredRekkaWindow = windowOpen;
+        }
+
+        private void ClearRekkaCommandScope()
+        {
+            if (commands != null)
+                commands.ClearRekkaContinuationBranches();
+
+            availableRekkaBranches.Clear();
+            configuredRekkaNodeSerial = -1;
+            configuredRekkaWindow = false;
+        }
+
         private void TryExecuteBufferedAttack()
         {
             if (hasPendingParry || !hasBufferedAttack)
@@ -904,6 +1059,12 @@ namespace LandOfFire.BunnyStep
                         combat.BeginAutoCombo();
                     }
                 }
+                else if (command.Type == FighterCommandType.Rekka &&
+                         command.RekkaTree != null)
+                {
+                    if (Machine.TryCancelAutoComboToRekka(command.RekkaTree, facing))
+                        ClearHoldAttackInput();
+                }
                 else if (command.Type == FighterCommandType.Attack)
                 {
                     AttackMoveData targetMove = ResolveAttackMove(command);
@@ -934,6 +1095,14 @@ namespace LandOfFire.BunnyStep
                 return;
 
             ClearAttackBuffer();
+            if (command.Type == FighterCommandType.Rekka &&
+                command.RekkaTree != null)
+            {
+                if (Machine.TryCancelAttackToRekka(command.RekkaTree, facing))
+                    ClearHoldAttackInput();
+                return;
+            }
+
             if (command.Type == FighterCommandType.AutoCombo &&
                 command.AutoCombo != null)
             {
@@ -1330,6 +1499,8 @@ namespace LandOfFire.BunnyStep
 
         private void OnDisable()
         {
+            ClearRekkaCommandScope();
+            Machine.RekkaNodeChanged -= HandleRekkaNodeChanged;
             FighterCombatResolver.Unregister(this);
 
             if (!ready)

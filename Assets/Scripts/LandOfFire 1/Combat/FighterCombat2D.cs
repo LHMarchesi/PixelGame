@@ -74,6 +74,7 @@ namespace LandOfFire.BunnyStep
         private bool forceCurrentAttackLethal;
         private bool currentAttackIsMovesetSpecial;
         private int activeAutoComboImpactIndex = -1;
+        private int activeRekkaNodeSerial = -1;
         private int availableParrySlots;
 
         private void Awake()
@@ -153,6 +154,7 @@ namespace LandOfFire.BunnyStep
             currentMove = move;
             currentAttackIsMovesetSpecial = isMovesetSpecial;
             activeAutoComboImpactIndex = -1;
+            activeRekkaNodeSerial = -1;
             hitThisAttack.Clear();
             forceCurrentAttackLethal = false;
         }
@@ -162,6 +164,21 @@ namespace LandOfFire.BunnyStep
             currentMove = null;
             currentAttackIsMovesetSpecial = false;
             activeAutoComboImpactIndex = -1;
+            activeRekkaNodeSerial = -1;
+            hitThisAttack.Clear();
+            targetsCollectedThisTick.Clear();
+            forceCurrentAttackLethal = false;
+
+            if (debugView != null)
+                debugView.Hide();
+        }
+
+        public void BeginRekkaNode(int nodeSerial)
+        {
+            currentMove = null;
+            currentAttackIsMovesetSpecial = false;
+            activeAutoComboImpactIndex = -1;
+            activeRekkaNodeSerial = nodeSerial;
             hitThisAttack.Clear();
             targetsCollectedThisTick.Clear();
             forceCurrentAttackLethal = false;
@@ -186,6 +203,7 @@ namespace LandOfFire.BunnyStep
             currentMove = null;
             currentAttackIsMovesetSpecial = false;
             activeAutoComboImpactIndex = -1;
+            activeRekkaNodeSerial = -1;
             hitThisAttack.Clear();
             targetsCollectedThisTick.Clear();
             forceCurrentAttackLethal = false;
@@ -210,9 +228,16 @@ namespace LandOfFire.BunnyStep
                 return;
             }
 
+            if (machine.IsRekka && machine.CurrentRekkaNode != null)
+            {
+                CollectRekkaHitCandidates(machine, facing, destination);
+                return;
+            }
+
             if (!machine.IsAttacking || machine.CurrentAttack == null)
             {
-                if (currentMove != null || activeAutoComboImpactIndex >= 0)
+                if (currentMove != null || activeAutoComboImpactIndex >= 0 ||
+                    activeRekkaNodeSerial >= 0)
                     CancelAttack();
                 return;
             }
@@ -382,6 +407,91 @@ namespace LandOfFire.BunnyStep
             }
         }
 
+        private void CollectRekkaHitCandidates(
+            FighterStateMachine machine,
+            int facing,
+            List<FighterHitCandidate> destination)
+        {
+            RekkaNodeData node = machine.CurrentRekkaNode;
+            AutoComboImpactData attack = node != null ? node.attack : null;
+
+            if (attack == null || attack.attackMove == null)
+            {
+                if (debugView != null)
+                    debugView.Hide();
+                return;
+            }
+
+            int nodeSerial = machine.CurrentRekkaNodeSerial;
+            if (activeRekkaNodeSerial != nodeSerial)
+            {
+                activeRekkaNodeSerial = nodeSerial;
+                hitThisAttack.Clear();
+            }
+
+            AttackMoveData move = attack.attackMove;
+            int attackElapsedTick = machine.CurrentRekkaNodeElapsedTick;
+            bool hitboxActive = attack.IsHitboxActive(attackElapsedTick);
+            float heightOffset = machine.VisualHeight;
+            UpdateDebugView(move, hitboxActive, facing, heightOffset);
+
+            if (!hitboxActive)
+                return;
+
+            Vector2 center = owner.BodyPosition + new Vector2(
+                move.hitboxOffset.x * facing,
+                move.hitboxOffset.y + heightOffset);
+            Vector2 size = new Vector2(
+                Mathf.Max(.01f, move.hitboxSize.x),
+                Mathf.Max(.01f, move.hitboxSize.y));
+
+            var filter = new ContactFilter2D { useTriggers = true };
+            filter.SetLayerMask(hurtboxLayers);
+            overlapResults.Clear();
+            targetsCollectedThisTick.Clear();
+            Physics2D.OverlapBox(center, size, 0f, filter, overlapResults);
+
+            foreach (Collider2D collider in overlapResults)
+            {
+                if (collider == null)
+                    continue;
+
+                FighterHurtbox2D hurtbox = collider.GetComponent<FighterHurtbox2D>();
+                if (hurtbox == null || !hurtbox.isActiveAndEnabled)
+                    continue;
+
+                FighterMotor2D target = hurtbox.Owner;
+                FighterHealth health = hurtbox.Health;
+                if (target == null || target == owner ||
+                    !target.isActiveAndEnabled || health == null ||
+                    health.CurrentHealth <= 0 || !target.CanReceiveCombatHit ||
+                    hitThisAttack.Contains(target) ||
+                    !targetsCollectedThisTick.Add(target))
+                    continue;
+
+                destination.Add(new FighterHitCandidate
+                {
+                    Combat = this,
+                    Attacker = owner,
+                    Target = target,
+                    Health = health,
+                    Move = move,
+                    Facing = facing,
+                    AttackElapsedTick = attackElapsedTick,
+                    HoldChargeTicks = 0,
+                    IsMovesetSpecial = false,
+                    IsRekka = true,
+                    RekkaNodeSerial = nodeSerial,
+                    ForceLethal = node.IsTerminal,
+                    TriggersComboKnockdown =
+                        machine.CurrentRekkaTree != null &&
+                        machine.CurrentRekkaTree.ShouldTriggerKnockdown(
+                            machine.CurrentRekkaNodeIndex) &&
+                        !node.IsTerminal
+                });
+            }
+        }
+
         /// <summary>
         /// Aplica un contacto que ya fue seleccionado por el resolver.
         /// allowBlock=false se usa cuando una prioridad simultánea determina
@@ -435,6 +545,12 @@ namespace LandOfFire.BunnyStep
                     hitThisAttack.Add(target);
                     HitConfirmed?.Invoke(target, move);
                     ValidImpactConfirmed?.Invoke(target, move, candidate.Facing);
+                    if (candidate.IsRekka)
+                    {
+                        owner.Machine.ResolveRekkaNodeOutcome(
+                            candidate.RekkaNodeSerial,
+                            RekkaNodeOutcome.Hit);
+                    }
                     if (candidate.TriggersComboKnockdown)
                     {
                         FighterCombatResolver.QueueAutoComboKnockdown(
@@ -452,10 +568,18 @@ namespace LandOfFire.BunnyStep
                 owner.ApplyHitstop(move.hitstopTicks);
                 target.ApplyHitstop(move.hitstopTicks);
                 hitThisAttack.Add(target);
+                if (candidate.IsRekka)
+                {
+                    owner.Machine.ResolveRekkaNodeOutcome(
+                        candidate.RekkaNodeSerial,
+                        RekkaNodeOutcome.Block);
+                }
                 return true;
             }
 
-            bool lethal = move.lethalHit || candidate.ForceLethal;
+            bool lethal = candidate.IsRekka
+                ? candidate.ForceLethal
+                : move.lethalHit || candidate.ForceLethal;
             bool accepted;
 
             if (lethal)
@@ -485,13 +609,22 @@ namespace LandOfFire.BunnyStep
                 return false;
 
             hitThisAttack.Add(target);
-            candidate.Health.TakeDamage(move.damage);
+            candidate.Health.TakeDamage(move.damage + (lethal ? Mathf.Max(0, move.lethalHitBonusDamage) : 0));
             if (chargedHold && move.holdForwardDashDistance > 0f)
                 owner.ApplyPushback(move.holdForwardDashDistance, candidate.Facing);
             owner.ApplyHitstop(move.hitstopTicks);
             target.ApplyHitstop(move.hitstopTicks);
             HitConfirmed?.Invoke(target, move);
             ValidImpactConfirmed?.Invoke(target, move, candidate.Facing);
+            if (candidate.IsRekka)
+            {
+                owner.Machine.ResolveRekkaNodeOutcome(
+                    candidate.RekkaNodeSerial,
+                    RekkaNodeOutcome.Hit);
+
+                if (lethal || candidate.TriggersComboKnockdown)
+                    owner.Machine.EndRekkaRoute(candidate.RekkaNodeSerial);
+            }
             if (candidate.TriggersComboKnockdown)
             {
                 FighterCombatResolver.QueueAutoComboKnockdown(

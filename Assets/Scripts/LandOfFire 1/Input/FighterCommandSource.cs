@@ -1,5 +1,6 @@
 // Land of Fire · Fuente abstracta de comandos de un Fighter.
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -16,6 +17,13 @@ namespace LandOfFire.BunnyStep
         // Optional held-button query used by charge attacks. Custom command
         // sources can override this; older sources remain fully compatible.
         public virtual bool IsAttackHeld(AttackCommand attack) => false;
+
+        // Rekka continuation commands temporarily replace normal Moveset
+        // recognition while the active node's Pose window is open.
+        public virtual void ConfigureRekkaContinuationBranches(
+            IList<RekkaBranchData> branches) { }
+
+        public virtual void ClearRekkaContinuationBranches() { }
 
         public abstract void ProcessInput(
             int facing,

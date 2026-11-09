@@ -1,4 +1,4 @@
-﻿// Land of Fire · Auto Combo sequence data.
+// Land of Fire · Auto Combo sequence data.
 // One AutoComboData is a single logical move made of consecutive attacks.
 // Each attack can reuse AttackMoveData animations or provide its own Animator
 // state sequence. Combat timing (hitbox / Parry / Telegraph / cancel) is local
@@ -16,7 +16,8 @@ namespace LandOfFire.BunnyStep
     {
         None = 0,
         SingleMove = 1 << 0,
-        AutoCombo = 1 << 1
+        AutoCombo = 1 << 1,
+        Rekka = 1 << 2
     }
 
     public enum AutoComboAnimationMode
@@ -43,6 +44,9 @@ namespace LandOfFire.BunnyStep
 
         [Tooltip("Total displacement reached by the end of this custom state. X is relative to the fighter facing; Y changes visual height. This is applied progressively over this state's ticks.")]
         public Vector2 movement;
+
+        [Tooltip("When this custom state is used by a Rekka node, branch commands can be completed only while this state is active.")]
+        public bool isRekkaContinuationWindow;
 
         public int DurationTicks => Mathf.Max(1, durationTicks);
     }
@@ -413,6 +417,35 @@ namespace LandOfFire.BunnyStep
             }
         }
 
+        public int RekkaDurationTicks
+        {
+            get
+            {
+                int animationTicks = animationMode == AutoComboAnimationMode.CustomAnimationSequence
+                    ? CustomAnimationDurationTicks
+                    : AnticipationTicks + SmearTicks + PoseTicks + RecoveryTicks;
+
+                int combatEnd = animationTicks;
+                if (attackMove != null && attackMove.useHitbox)
+                {
+                    combatEnd = Mathf.Max(combatEnd, HitboxEndTick);
+                    combatEnd = Mathf.Max(
+                        combatEnd,
+                        Mathf.Max(1, attackMove.parryWindowEndTick));
+                }
+
+                if (attackMove != null && attackMove.showTelegraph &&
+                    attackMove.telegraphDurationTicks > 0)
+                {
+                    int telegraphEnd = Mathf.Max(1, attackMove.telegraphStartTick) +
+                                       attackMove.telegraphDurationTicks - 1;
+                    combatEnd = Mathf.Max(combatEnd, telegraphEnd);
+                }
+
+                return Mathf.Max(1, combatEnd);
+            }
+        }
+
         public int StartupTicks
         {
             get
@@ -451,6 +484,44 @@ namespace LandOfFire.BunnyStep
 
                 return Mathf.Max(1, total);
             }
+        }
+
+        public int HitboxEndTick =>
+            Mathf.Max(1, hitboxStartTick) +
+            Mathf.Max(1, hitboxDurationTicks) - 1;
+
+        public bool IsRekkaContinuationWindowAtTick(int attackElapsedTick)
+        {
+            if (attackElapsedTick <= 0)
+                return false;
+
+            int localTick = Mathf.Min(attackElapsedTick, AnimationDurationTicks);
+
+            if (animationMode == AutoComboAnimationMode.CustomAnimationSequence)
+            {
+                if (customAnimationStates == null || customAnimationStates.Count == 0)
+                    return false;
+
+                int cursor = 1;
+                for (int i = 0; i < customAnimationStates.Count; i++)
+                {
+                    AutoComboAnimationStateData state = customAnimationStates[i];
+                    if (state == null)
+                        continue;
+
+                    int end = cursor + state.DurationTicks - 1;
+                    if (localTick >= cursor && localTick <= end)
+                        return state.isRekkaContinuationWindow;
+
+                    cursor = end + 1;
+                }
+
+                return false;
+            }
+
+            int poseStart = AnticipationTicks + SmearTicks + 1;
+            int poseEnd = AnticipationTicks + SmearTicks + PoseTicks;
+            return localTick >= poseStart && localTick <= poseEnd;
         }
 
         public bool IsHitboxActive(int attackElapsedTick)
@@ -499,6 +570,9 @@ namespace LandOfFire.BunnyStep
                         animation = state.animation;
                         animationElapsedTick = localTick - cursor + 1;
                         animationDurationTicks = duration;
+                        phase = state.isRekkaContinuationWindow
+                            ? AttackPhase.Pose
+                            : AttackPhase.None;
                         return animation != null;
                     }
 

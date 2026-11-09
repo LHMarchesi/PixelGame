@@ -82,6 +82,10 @@ namespace LandOfFire.BunnyStep
 
         public int Direction { get; private set; }
 
+        public int VerticalDirection { get; private set; }
+
+        private FighterInputToken lastCardinalDirection = (FighterInputToken)(-1);
+
         public bool IsAttackHeld(AttackCommand attack)
         {
             switch (attack)
@@ -138,7 +142,17 @@ namespace LandOfFire.BunnyStep
                         "Right",
                         useArrowKeys
                             ? "<Keyboard>/rightArrow"
-                            : "<Keyboard>/d");
+                            : "<Keyboard>/d")
+                    .With(
+                        "Up",
+                        useArrowKeys
+                            ? "<Keyboard>/upArrow"
+                            : "<Keyboard>/w")
+                    .With(
+                        "Down",
+                        useArrowKeys
+                            ? "<Keyboard>/downArrow"
+                            : "<Keyboard>/s");
 
                 if (enableGamepad)
                 {
@@ -166,34 +180,74 @@ namespace LandOfFire.BunnyStep
         private void ReadMove(
             InputAction.CallbackContext context)
         {
-            float x =
-                context.ReadValue<Vector2>().x;
+            Vector2 value = context.ReadValue<Vector2>();
 
-            int next =
-                x > threshold
-                    ? 1
-                    : x < -threshold
-                        ? -1
-                        : 0;
+            int nextX = value.x > threshold
+                ? 1
+                : value.x < -threshold
+                    ? -1
+                    : 0;
 
-            if (next == 0)
+            int nextY = value.y > threshold
+                ? 1
+                : value.y < -threshold
+                    ? -1
+                    : 0;
+
+            // Keep horizontal movement semantics unchanged for the motor.
+            Direction = nextX;
+            VerticalDirection = nextY;
+
+            // Command recognition uses four cardinal directions. For a
+            // diagonal stick/D-pad value, the dominant axis determines the
+            // command token; ties resolve horizontally for deterministic input.
+            FighterInputToken nextToken = (FighterInputToken)(-1);
+            int eventX = 0;
+            int eventY = 0;
+
+            if (nextX != 0 || nextY != 0)
+            {
+                if (Mathf.Abs(value.y) > Mathf.Abs(value.x) && nextY != 0)
+                {
+                    nextToken = nextY > 0
+                        ? FighterInputToken.Up
+                        : FighterInputToken.Down;
+                    eventY = nextY;
+                }
+                else if (nextX != 0)
+                {
+                    nextToken = nextX > 0
+                        ? FighterInputToken.Forward
+                        : FighterInputToken.Back;
+                    eventX = nextX;
+                }
+                else if (nextY != 0)
+                {
+                    nextToken = nextY > 0
+                        ? FighterInputToken.Up
+                        : FighterInputToken.Down;
+                    eventY = nextY;
+                }
+            }
+
+            if (nextToken == lastCardinalDirection)
                 return;
 
-            if (next == Direction)
-                return;
+            lastCardinalDirection = nextToken;
 
-            Direction =
-                next;
+            if ((int)nextToken < 0)
+                return;
 
             inputBuffer.Enqueue(
-                FighterInputEvent.DirectionPress(
-                    next));
+                FighterInputEvent.DirectionPress(eventX, eventY));
         }
 
         private void ReadMoveCanceled(
       InputAction.CallbackContext context)
         {
             Direction = 0;
+            VerticalDirection = 0;
+            lastCardinalDirection = (FighterInputToken)(-1);
         }
 
         // ================================================================
@@ -351,7 +405,8 @@ namespace LandOfFire.BunnyStep
 
             if (!parryRequested)
             {
-                inputBuffer.Enqueue(FighterInputEvent.AttackPress(attack, Direction));
+                inputBuffer.Enqueue(FighterInputEvent.AttackPress(
+                    attack, Direction, VerticalDirection));
                 return;
             }
 
@@ -536,6 +591,8 @@ namespace LandOfFire.BunnyStep
                 ReadJump);
 
             Direction = 0;
+            VerticalDirection = 0;
+            lastCardinalDirection = (FighterInputToken)(-1);
 
             ClearInputs();
         }

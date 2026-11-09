@@ -17,7 +17,9 @@ namespace LandOfFire.BunnyStep
         Any,
         Neutral,
         Forward,
-        Back
+        Back,
+        Up,
+        Down
     }
 
     [CreateAssetMenu(
@@ -48,6 +50,13 @@ namespace LandOfFire.BunnyStep
         [Tooltip(
             "AutoComboData asset used when Command Type = AutoCombo.")]
         public AutoComboData autoCombo;
+
+        [Tooltip(
+            "RekkaTreeData asset used when Command Type = Rekka.")]
+        public RekkaTreeData rekkaTree;
+
+        [HideInInspector]
+        public RekkaBranchData rekkaBranch;
 
         [Tooltip(
             "Tipo de comando generado.")]

@@ -22,6 +22,8 @@ namespace LandOfFire.BunnyStep
         public bool IsMovesetSpecial;
         public bool IsAutoCombo;
         public int AutoComboImpactIndex;
+        public bool IsRekka;
+        public int RekkaNodeSerial;
         public bool TriggersComboKnockdown;
         public bool ForceLethal;
     }
@@ -295,6 +297,18 @@ namespace LandOfFire.BunnyStep
             // chance to Clash before releasing the original pending impact.
             FlushExpiredPendingClashes();
 
+            // Rekka Miss is committed only after every contact for this tick
+            // has resolved. A clash-buffered contact keeps the node pending.
+            for (int i = 0; i < fighters.Count; i++)
+            {
+                FighterMotor2D fighter = fighters[i];
+                if (fighter == null || !fighter.isActiveAndEnabled)
+                    continue;
+
+                fighter.Machine.FinalizeRekkaTick(
+                    HasPendingRekkaContact(fighter));
+            }
+
             // The Combo System receives only confirmed hits/guard breaks and
             // evaluates them after every contact from this shared tick has
             // finished resolving. This preserves symmetric simultaneous hits.
@@ -304,6 +318,20 @@ namespace LandOfFire.BunnyStep
                 maxComboHits,
                 comboHitWindowTicks,
                 forceKnockdownOnLimit);
+
+            // If the global Combo Hit Limit knocks the Rekka defender down
+            // before the route's terminal node, the Rekka cannot continue.
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                FighterHitCandidate candidate = candidates[i];
+                if (candidate.IsRekka &&
+                    candidate.Attacker != null &&
+                    candidate.Target != null &&
+                    candidate.Target.Machine.IsComboLimitKnockdown)
+                {
+                    candidate.Attacker.CancelRekkaBecauseTargetKnockedDown();
+                }
+            }
 
             // Per-combo knockdowns are evaluated after the global hit limit,
             // so the globally configured Combo Limit Knockdown wins if both
@@ -329,6 +357,20 @@ namespace LandOfFire.BunnyStep
             }
 
             pendingAutoComboKnockdowns.Clear();
+        }
+
+        private bool HasPendingRekkaContact(FighterMotor2D attacker)
+        {
+            for (int i = 0; i < pendingClashCandidates.Count; i++)
+            {
+                FighterHitCandidate candidate =
+                    pendingClashCandidates[i].Candidate;
+
+                if (candidate.IsRekka && candidate.Attacker == attacker)
+                    return true;
+            }
+
+            return false;
         }
 
         private void ResolveParryAttempts()
@@ -367,7 +409,17 @@ namespace LandOfFire.BunnyStep
 
                 consumedCandidates[incomingIndex] = true;
 
-                if (!incoming.IsMovesetSpecial && !incoming.IsAutoCombo)
+                if (incoming.IsRekka)
+                {
+                    // A successful Parry prevents this node's impact and
+                    // permanently closes its continuation options. The node
+                    // itself continues through its configured Recovery.
+                    incoming.Combat.RegisterParriedTarget(defender);
+                    incoming.Attacker.Machine.ResolveRekkaNodeOutcome(
+                        incoming.RekkaNodeSerial,
+                        RekkaNodeOutcome.Parried);
+                }
+                else if (!incoming.IsMovesetSpecial && !incoming.IsAutoCombo)
                 {
                     incoming.Attacker.CancelAttackForParry(
                         incoming.Move.parryStunTicks);

@@ -61,6 +61,19 @@ namespace LandOfFire.BunnyStep
                 profile.doubleTapTicks);
         }
 
+        public override void ConfigureRekkaContinuationBranches(
+            IList<RekkaBranchData> branches)
+        {
+            if (recognizer != null)
+                recognizer.SetRekkaContinuationBranches(branches);
+        }
+
+        public override void ClearRekkaContinuationBranches()
+        {
+            if (recognizer != null)
+                recognizer.ClearRekkaContinuationBranches();
+        }
+
         public override void ProcessInput(
             int facing,
             long tick)
@@ -90,6 +103,7 @@ namespace LandOfFire.BunnyStep
 
             int activeInputFrame = int.MinValue;
             int sameFrameDirection = int.MinValue;
+            int sameFrameVerticalDirection = int.MinValue;
 
             for (int i = 0; i < pendingInputEvents.Count; i++)
             {
@@ -98,26 +112,31 @@ namespace LandOfFire.BunnyStep
                 {
                     activeInputFrame = inputEvent.InputFrame;
                     sameFrameDirection = int.MinValue;
+                    sameFrameVerticalDirection = int.MinValue;
                 }
 
                 if (inputEvent.Type == FighterInputEventType.Direction)
                 {
                     sameFrameDirection = inputEvent.Direction;
+                    sameFrameVerticalDirection = inputEvent.VerticalDirection;
                 }
                 else if (inputEvent.Type == FighterInputEventType.Attack &&
-                         sameFrameDirection != int.MinValue)
+                         (sameFrameDirection != int.MinValue ||
+                          sameFrameVerticalDirection != int.MinValue))
                 {
                     // The attack callback may run before the Move callback
                     // in Unity's Input System. Sorting puts the direction
-                    // event first, then we overwrite the captured direction
-                    // so a same-frame Forward+Medium chord is deterministic.
-                    inputEvent.Direction = sameFrameDirection;
+                    // event first, preserving same-frame cardinal direction chords.
+                    if (sameFrameDirection != int.MinValue)
+                        inputEvent.Direction = sameFrameDirection;
+                    if (sameFrameVerticalDirection != int.MinValue)
+                        inputEvent.VerticalDirection = sameFrameVerticalDirection;
                 }
 
                 Debug.Log(
                     $"[PlayerCommandSource] INPUT " +
                     $"Type={inputEvent.Type} " +
-                    $"Direction={inputEvent.Direction} " +
+                    $"Direction=({inputEvent.Direction},{inputEvent.VerticalDirection}) " +
                     $"Attack={inputEvent.Attack} " +
                     $"Tick={tick}");
 
@@ -162,6 +181,7 @@ namespace LandOfFire.BunnyStep
             if (input != null)
                 input.ClearInputs();
 
+            recognizer.ClearRekkaContinuationBranches();
             recognizer.Clear();
         }
     }

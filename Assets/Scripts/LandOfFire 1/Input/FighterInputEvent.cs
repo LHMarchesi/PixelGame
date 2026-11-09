@@ -10,6 +10,8 @@ namespace LandOfFire.BunnyStep
     {
         Forward,
         Back,
+        Up,
+        Down,
         Light,
         Medium,
         Heavy
@@ -25,8 +27,10 @@ namespace LandOfFire.BunnyStep
     {
         public FighterInputEventType Type;
 
-        // -1 / 0 / 1 para dirección.
+        // World-space cardinal direction components (-1, 0, 1).
+        // The movement motor continues to consume only Direction (X).
         public int Direction;
+        public int VerticalDirection;
 
         public AttackCommand Attack;
 
@@ -37,12 +41,14 @@ namespace LandOfFire.BunnyStep
         public int InputFrame;
 
         public static FighterInputEvent DirectionPress(
-            int direction)
+            int direction,
+            int verticalDirection = 0)
         {
             return new FighterInputEvent
             {
                 Type = FighterInputEventType.Direction,
-                Direction = direction,
+                Direction = Mathf.Clamp(direction, -1, 1),
+                VerticalDirection = Mathf.Clamp(verticalDirection, -1, 1),
                 Attack = default,
                 ParryInput = default,
                 InputFrame = UnityEngine.Time.frameCount
@@ -51,12 +57,14 @@ namespace LandOfFire.BunnyStep
 
         public static FighterInputEvent AttackPress(
             AttackCommand attack,
-            int heldDirection = 0)
+            int heldDirection = 0,
+            int heldVerticalDirection = 0)
         {
             return new FighterInputEvent
             {
                 Type = FighterInputEventType.Attack,
                 Direction = Mathf.Clamp(heldDirection, -1, 1),
+                VerticalDirection = Mathf.Clamp(heldVerticalDirection, -1, 1),
                 Attack = attack,
                 ParryInput = default,
                 InputFrame = UnityEngine.Time.frameCount
@@ -69,6 +77,7 @@ namespace LandOfFire.BunnyStep
             {
                 Type = FighterInputEventType.Jump,
                 Direction = 0,
+                VerticalDirection = 0,
                 Attack = default,
                 ParryInput = default,
                 InputFrame = UnityEngine.Time.frameCount
@@ -81,6 +90,7 @@ namespace LandOfFire.BunnyStep
             {
                 Type = FighterInputEventType.Parry,
                 Direction = 0,
+                VerticalDirection = 0,
                 Attack = default,
                 ParryInput = inputType,
                 InputFrame = UnityEngine.Time.frameCount

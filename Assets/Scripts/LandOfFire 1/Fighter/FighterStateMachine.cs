@@ -6,6 +6,7 @@
 // Recibe comandos ya reconocidos desde FighterCommandRecognizer.
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LandOfFire.BunnyStep
@@ -32,7 +33,8 @@ namespace LandOfFire.BunnyStep
         ParryWhiff,
         ParryStun,
         ParryRecovery,
-        AutoCombo
+        AutoCombo,
+        Rekka
     }
 
     public enum BunnyPhase
@@ -106,6 +108,35 @@ namespace LandOfFire.BunnyStep
         public int CurrentAutoComboAnimationElapsedTick { get; private set; }
 
         public int CurrentAutoComboAnimationDurationTicks { get; private set; }
+
+        public RekkaTreeData CurrentRekkaTree { get; private set; }
+
+        public RekkaNodeData CurrentRekkaNode { get; private set; }
+
+        public int CurrentRekkaNodeElapsedTick => IsRekka ? Elapsed : 0;
+
+        public int CurrentRekkaNodeSerial { get; private set; }
+
+        public int CurrentRekkaNodeIndex { get; private set; }
+
+        public RekkaNodeOutcome CurrentRekkaNodeOutcome { get; private set; }
+
+        public PhaseAnimation CurrentRekkaAnimation { get; private set; }
+
+        public int CurrentRekkaAnimationElapsedTick { get; private set; }
+
+        public int CurrentRekkaAnimationDurationTicks { get; private set; }
+
+        public bool IsRekka =>
+            State == FighterState.Rekka;
+
+        public bool IsRekkaContinuationWindow =>
+            IsRekka &&
+            CurrentRekkaNode != null &&
+            CurrentRekkaNode.attack != null &&
+            CurrentRekkaNode.attack.IsRekkaContinuationWindowAtTick(Elapsed);
+
+        public event Action RekkaNodeChanged;
 
         // Hold charge extends Anticipation without changing the shared tick rate.
         public int HoldChargeTicks { get; private set; }
@@ -211,7 +242,8 @@ namespace LandOfFire.BunnyStep
             IsKnockdown ||
             IsResetting ||
             IsAttacking ||
-            IsAutoCombo;
+            IsAutoCombo ||
+            IsRekka;
 
         public float Progress =>
             IsTimed && Duration > 0
@@ -269,6 +301,17 @@ namespace LandOfFire.BunnyStep
         private int autoComboMovementAttackIndex = -1;
         private float autoComboAttackStartHeight;
         private Vector2 autoComboAttackLastOffset;
+
+        // Rekka nodes use the same local attack/animation data as Auto Combos,
+        // but advance as a closed branching route.
+        private RekkaBranchData pendingRekkaBranch;
+        private readonly List<RekkaBranchData> availableRekkaBranches =
+            new List<RekkaBranchData>(2);
+        private int rekkaMovementFacing = 1;
+        private int rekkaMovementNodeSerial = -1;
+        private float rekkaNodeStartHeight;
+        private Vector2 rekkaNodeLastOffset;
+        private bool rekkaWindowObserved;
 
         // ================================================================
         // HURT
@@ -502,6 +545,7 @@ namespace LandOfFire.BunnyStep
             PhaseDuration = configuredJumpAnticipation;
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
             CurrentAttackPhase = AttackPhase.None;
             flightProgress = 0;
 
@@ -761,6 +805,17 @@ namespace LandOfFire.BunnyStep
                 PhaseDuration = configuredJumpRecovery;
                 Height = 0f;
                 return 0f;
+            }
+
+            // ============================================================
+            // REKKA
+            // ============================================================
+
+            if (IsRekka)
+            {
+                Phase = BunnyPhase.None;
+                UpdateRekkaPresentation();
+                return AdvanceRekkaMovement();
             }
 
             // ============================================================
@@ -1189,6 +1244,155 @@ namespace LandOfFire.BunnyStep
                 CurrentAttack.cancelStartupSkipPercent);
         }
 
+        public bool TryStartRekka(RekkaTreeData tree, int facing)
+        {
+            if (tree == null || !tree.HasValidTree || IsTimed ||
+                (State != FighterState.Idle && State != FighterState.Walk))
+            {
+                return false;
+            }
+
+            return StartRekka(tree, facing, 0f);
+        }
+
+        public bool TryCancelAttackToRekka(RekkaTreeData tree, int facing)
+        {
+            if (tree == null || !tree.HasValidTree ||
+                !IsAttacking || IsAirAttacking ||
+                !IsAttackCancelWindow || CurrentAttack == null ||
+                !CurrentAttack.allowRekkaCancel)
+            {
+                return false;
+            }
+
+            return StartRekka(
+                tree,
+                facing,
+                CurrentAttack.cancelStartupSkipPercent);
+        }
+
+        public bool TryContinueRekka(RekkaBranchData branch)
+        {
+            if (!IsRekka || branch == null || CurrentRekkaNode == null ||
+                !IsRekkaContinuationWindow ||
+                !CurrentRekkaNode.ContainsBranch(branch))
+            {
+                return false;
+            }
+
+            if (CurrentRekkaNodeOutcome == RekkaNodeOutcome.Unknown)
+            {
+                pendingRekkaBranch = branch;
+                return true;
+            }
+
+            if (!branch.IsAvailableFor(CurrentRekkaNodeOutcome) ||
+                (CurrentRekkaNodeOutcome == RekkaNodeOutcome.Hit &&
+                 CurrentRekkaTree != null &&
+                 CurrentRekkaTree.ShouldTriggerKnockdown(CurrentRekkaNodeIndex) &&
+                 !CurrentRekkaNode.IsTerminal))
+                return false;
+
+            return StartRekkaNode(branch.targetNode);
+        }
+
+        public void GetAvailableRekkaBranches(List<RekkaBranchData> destination)
+        {
+            if (destination == null)
+                return;
+
+            destination.Clear();
+            if (!IsRekka || !IsRekkaContinuationWindow ||
+                CurrentRekkaNode == null)
+                return;
+
+            if (CurrentRekkaNodeOutcome == RekkaNodeOutcome.Hit &&
+                CurrentRekkaTree != null &&
+                CurrentRekkaTree.ShouldTriggerKnockdown(CurrentRekkaNodeIndex) &&
+                !CurrentRekkaNode.IsTerminal)
+                return;
+
+            CurrentRekkaNode.GetBranchesForOutcome(
+                CurrentRekkaNodeOutcome,
+                destination);
+        }
+
+        public void ResolveRekkaNodeOutcome(
+            int nodeSerial,
+            RekkaNodeOutcome outcome)
+        {
+            if (!IsRekka || nodeSerial != CurrentRekkaNodeSerial ||
+                CurrentRekkaNodeOutcome != RekkaNodeOutcome.Unknown ||
+                outcome == RekkaNodeOutcome.Unknown)
+                return;
+
+            CurrentRekkaNodeOutcome = outcome;
+
+            if (pendingRekkaBranch == null)
+                return;
+
+            RekkaBranchData pending = pendingRekkaBranch;
+            pendingRekkaBranch = null;
+
+            if (CurrentRekkaNode != null &&
+                CurrentRekkaNode.ContainsBranch(pending) &&
+                pending.IsAvailableFor(outcome) &&
+                !(outcome == RekkaNodeOutcome.Hit &&
+                  CurrentRekkaTree != null &&
+                  CurrentRekkaTree.ShouldTriggerKnockdown(CurrentRekkaNodeIndex) &&
+                  !CurrentRekkaNode.IsTerminal))
+            {
+                StartRekkaNode(pending.targetNode);
+            }
+        }
+
+        public void FinalizeRekkaTick(bool hasPendingContact)
+        {
+            if (!IsRekka || CurrentRekkaNode == null ||
+                CurrentRekkaNode.attack == null ||
+                CurrentRekkaNodeOutcome != RekkaNodeOutcome.Unknown ||
+                hasPendingContact)
+                return;
+
+            AutoComboImpactData attack = CurrentRekkaNode.attack;
+            if (attack.attackMove == null)
+            {
+                ResolveRekkaNodeOutcome(
+                    CurrentRekkaNodeSerial,
+                    RekkaNodeOutcome.Miss);
+                return;
+            }
+
+            if (!attack.attackMove.useHitbox)
+            {
+                if (IsRekkaContinuationWindow)
+                    rekkaWindowObserved = true;
+                else if (rekkaWindowObserved)
+                {
+                    ResolveRekkaNodeOutcome(
+                        CurrentRekkaNodeSerial,
+                        RekkaNodeOutcome.Miss);
+                }
+
+                return;
+            }
+
+            if (Elapsed >= attack.HitboxEndTick)
+            {
+                ResolveRekkaNodeOutcome(
+                    CurrentRekkaNodeSerial,
+                    RekkaNodeOutcome.Miss);
+            }
+        }
+
+        public void EndRekkaRoute(int nodeSerial)
+        {
+            if (!IsRekka || nodeSerial != CurrentRekkaNodeSerial)
+                return;
+
+            FinishGroundedAttack();
+        }
+
         public bool TryCancelAutoComboToAttack(
             AttackMoveData move,
             int facing,
@@ -1220,9 +1424,164 @@ namespace LandOfFire.BunnyStep
             return StartAutoCombo(combo, cancel.cancelStartupSkipPercent);
         }
 
+        public bool TryCancelAutoComboToRekka(
+            RekkaTreeData tree,
+            int facing)
+        {
+            AutoComboImpactData cancel = CurrentAutoComboCancelWindow;
+            if (tree == null || !tree.HasValidTree || cancel == null ||
+                !cancel.AllowsCancelTo(AutoComboCancelTarget.Rekka))
+                return false;
+
+            return StartRekka(tree, facing, cancel.cancelStartupSkipPercent);
+        }
+
         public bool HasFutureAutoComboCancelWindow =>
             IsAutoCombo && CurrentAutoCombo != null &&
             CurrentAutoCombo.HasCancelWindowAfterTick(Elapsed + 1);
+
+        private bool StartRekka(
+            RekkaTreeData tree,
+            int facing,
+            float startupSkipPercent)
+        {
+            if (tree == null || !tree.HasValidTree)
+                return false;
+
+            CurrentAttack = null;
+            CurrentAutoCombo = null;
+            ResetAutoComboPresentation();
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+            HoldChargeTicks = 0;
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
+            CurrentJumpPhase = JumpPhase.None;
+            CurrentRekkaTree = tree;
+            CurrentRekkaNodeIndex = 0;
+            rekkaMovementFacing = facing >= 0 ? 1 : -1;
+            rekkaMovementNodeSerial = -1;
+            rekkaNodeStartHeight = Height;
+            rekkaNodeLastOffset = Vector2.zero;
+            Phase = BunnyPhase.None;
+            StepDirection = 0;
+            Distance = 0f;
+
+            if (!StartRekkaNode(tree.rootNode))
+                return false;
+
+            int skippedTicks = Mathf.RoundToInt(
+                tree.StartupTicks *
+                Mathf.Clamp(startupSkipPercent, 0f, 100f) / 100f);
+
+            Elapsed = Mathf.Clamp(skippedTicks, 0, Mathf.Max(0, Duration - 1));
+            UpdateRekkaPresentation();
+            return true;
+        }
+
+        private bool StartRekkaNode(RekkaNodeData node)
+        {
+            if (node == null || !node.HasValidNode)
+                return false;
+
+            CurrentRekkaNode = node;
+            CurrentRekkaNodeIndex++;
+            CurrentRekkaNodeOutcome = RekkaNodeOutcome.Unknown;
+            pendingRekkaBranch = null;
+            CurrentAttack = null;
+            CurrentAutoCombo = null;
+            CurrentAttackPhase = AttackPhase.None;
+            ResetAutoComboPresentation();
+            CurrentRekkaAnimation = null;
+            CurrentRekkaAnimationElapsedTick = 0;
+            CurrentRekkaAnimationDurationTicks = 0;
+
+            Elapsed = 0;
+            Duration = Mathf.Max(1, node.DurationTicks);
+            Phase = BunnyPhase.None;
+            PhaseElapsed = 0;
+            PhaseDuration = Duration;
+            StepDirection = 0;
+            Distance = 0f;
+
+            CurrentRekkaNodeSerial++;
+            rekkaMovementNodeSerial = CurrentRekkaNodeSerial;
+            rekkaNodeStartHeight = Height;
+            rekkaNodeLastOffset = Vector2.zero;
+            rekkaWindowObserved = false;
+
+            Change(FighterState.Rekka);
+            RekkaNodeChanged?.Invoke();
+            return true;
+        }
+
+        private void UpdateRekkaPresentation()
+        {
+            CurrentRekkaAnimation = null;
+            CurrentRekkaAnimationElapsedTick = 0;
+            CurrentRekkaAnimationDurationTicks = 0;
+            CurrentAttackPhase = AttackPhase.None;
+
+            if (CurrentRekkaNode == null || CurrentRekkaNode.attack == null)
+                return;
+
+            PhaseAnimation animation;
+            int animationElapsed;
+            int animationDuration;
+            AttackPhase phase;
+
+            if (!CurrentRekkaNode.attack.TryGetAnimationAtTick(
+                Elapsed,
+                out animation,
+                out animationElapsed,
+                out animationDuration,
+                out phase))
+                return;
+
+            CurrentRekkaAnimation = animation;
+            CurrentRekkaAnimationElapsedTick = animationElapsed;
+            CurrentRekkaAnimationDurationTicks = animationDuration;
+            CurrentAttackPhase = phase;
+            PhaseElapsed = animationElapsed;
+            PhaseDuration = animationDuration;
+        }
+
+        private float AdvanceRekkaMovement()
+        {
+            if (CurrentRekkaNode == null || CurrentRekkaNode.attack == null)
+                return 0f;
+
+            if (rekkaMovementNodeSerial != CurrentRekkaNodeSerial)
+            {
+                rekkaMovementNodeSerial = CurrentRekkaNodeSerial;
+                rekkaNodeStartHeight = Height;
+                rekkaNodeLastOffset = Vector2.zero;
+            }
+
+            Vector2 offset = CurrentRekkaNode.attack.MovementOffsetAtTick(Elapsed);
+            float horizontalDelta =
+                (offset.x - rekkaNodeLastOffset.x) * rekkaMovementFacing;
+
+            rekkaNodeLastOffset = offset;
+            Height = Mathf.Max(0f, rekkaNodeStartHeight + offset.y);
+            return horizontalDelta;
+        }
+
+        private void ClearRekkaState()
+        {
+            CurrentRekkaTree = null;
+            CurrentRekkaNode = null;
+            CurrentRekkaNodeIndex = 0;
+            CurrentRekkaNodeOutcome = RekkaNodeOutcome.Unknown;
+            pendingRekkaBranch = null;
+            CurrentRekkaAnimation = null;
+            CurrentRekkaAnimationElapsedTick = 0;
+            CurrentRekkaAnimationDurationTicks = 0;
+            rekkaMovementNodeSerial = -1;
+            rekkaNodeLastOffset = Vector2.zero;
+            rekkaWindowObserved = false;
+            availableRekkaBranches.Clear();
+        }
 
         private bool StartAutoCombo(
             AutoComboData combo,
@@ -1232,6 +1591,7 @@ namespace LandOfFire.BunnyStep
                 return false;
 
             CurrentAttack = null;
+            ClearRekkaState();
             CurrentAutoCombo = combo;
             CurrentAttackPhase = AttackPhase.None;
             ResetAutoComboPresentation();
@@ -1368,6 +1728,7 @@ namespace LandOfFire.BunnyStep
 
             CurrentAutoCombo = null;
             ResetAutoComboPresentation();
+            ClearRekkaState();
             groundAttackFacing = facing >= 0 ? 1 : -1;
             groundAttackLastOffset = Vector2.zero;
 
@@ -1669,6 +2030,7 @@ namespace LandOfFire.BunnyStep
 
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
             CurrentAttackPhase = AttackPhase.None;
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
@@ -1715,7 +2077,7 @@ namespace LandOfFire.BunnyStep
         /// </summary>
         public void CancelAttackToIdle()
         {
-            if (!IsAttacking && !IsAutoCombo)
+            if (!IsAttacking && !IsAutoCombo && !IsRekka)
                 return;
 
             FinishGroundedAttack();
@@ -1733,6 +2095,7 @@ namespace LandOfFire.BunnyStep
             CurrentJumpPhase = JumpPhase.None;
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
             CurrentAttackPhase = AttackPhase.None;
             Phase = BunnyPhase.None;
             PhaseElapsed = 0;
@@ -1848,6 +2211,7 @@ namespace LandOfFire.BunnyStep
             jumpHeightOffset = 0f;
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1916,6 +2280,8 @@ namespace LandOfFire.BunnyStep
             jumpHeightOffset = 0f;
             CurrentJumpPhase = JumpPhase.None;
             CurrentAttack = null;
+            CurrentAutoCombo = null;
+            ClearRekkaState();
             CurrentAttackPhase = AttackPhase.None;
             holdChargeRequested = false;
             holdChargeButtonHeld = false;
@@ -1950,6 +2316,7 @@ namespace LandOfFire.BunnyStep
             jumpHeightOffset = 0f;
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -1986,6 +2353,7 @@ namespace LandOfFire.BunnyStep
         {
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -2022,6 +2390,7 @@ namespace LandOfFire.BunnyStep
         {
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -2106,6 +2475,7 @@ namespace LandOfFire.BunnyStep
 
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
 
             attackAnticipation = 0;
             attackSmear = 0;
@@ -2199,6 +2569,7 @@ namespace LandOfFire.BunnyStep
                     IsJumping ||
                     IsAirAttacking ||
                     IsAutoCombo ||
+                    IsRekka ||
                     IsHurt ||
                     IsFlyingHurt ||
                     IsComboLimitKnockdown)
@@ -2227,6 +2598,7 @@ namespace LandOfFire.BunnyStep
             jumpHeightOffset = 0f;
             CurrentAttack = null;
             CurrentAutoCombo = null;
+            ClearRekkaState();
 
             CurrentAttackPhase =
                 AttackPhase.None;
@@ -2356,6 +2728,12 @@ namespace LandOfFire.BunnyStep
             {
                 CurrentAutoCombo = null;
                 ResetAutoComboPresentation();
+            }
+
+            if (IsRekka)
+            {
+                FinishGroundedAttack();
+                return;
             }
 
             if (State == FighterState.Parry)

@@ -322,9 +322,12 @@ namespace LandOfFire.BunnyStep
         [Header("Lethal Hit")]
 
         [Tooltip(
-            "Si está activo, cualquier impacto no bloqueado " +
-            "produce Flying Hurt sin importar el HP restante.")]
+            "For normal attacks, enables Flying Hurt on any unblocked hit. A terminal Rekka node forces Lethal Hit when its final impact connects, regardless of this toggle.")]
         public bool lethalHit;
+
+        [Min(0)]
+        [Tooltip("Daño adicional aplicado cuando este movimiento produce Lethal Hit. En el nodo final de una Rekka también se utiliza este valor.")]
+        public int lethalHitBonusDamage;
 
         [Tooltip(
             "Duración del Flying Hurt.")]
@@ -365,6 +368,9 @@ namespace LandOfFire.BunnyStep
 
         [Tooltip("Allows this SingleMove to cancel into an Auto Combo during its existing Pose cancel window.")]
         public bool allowAutoComboCancel;
+
+        [Tooltip("Allows this SingleMove to cancel into a Rekka Tree during its existing Pose cancel window.")]
+        public bool allowRekkaCancel;
 
         [Range(0f, 100f)]
         [Tooltip("Percentage of the target Auto Combo startup ticks skipped when this move cancels into it.")]

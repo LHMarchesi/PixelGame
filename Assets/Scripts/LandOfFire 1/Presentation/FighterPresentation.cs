@@ -36,7 +36,9 @@ namespace LandOfFire.BunnyStep
             if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;
             PhaseAnimation settings = machine.IsAutoCombo
                 ? machine.CurrentAutoComboAnimation
-                : machine.IsAttacking && machine.CurrentAttack != null
+                : machine.IsRekka
+                    ? machine.CurrentRekkaAnimation
+                    : machine.IsAttacking && machine.CurrentAttack != null
                     ? machine.CurrentAttack.AnimationFor(machine.CurrentAttackPhase)
                     : profile.AnimationFor(machine.State, machine.Phase, machine.CurrentJumpPhase);
             if (settings != null && animator != null && animator.runtimeAnimatorController != null)
@@ -55,6 +57,11 @@ namespace LandOfFire.BunnyStep
                         elapsed = machine.CurrentAutoComboAnimationElapsedTick;
                         duration = machine.CurrentAutoComboAnimationDurationTicks;
                     }
+                    else if (machine.IsRekka)
+                    {
+                        elapsed = machine.CurrentRekkaAnimationElapsedTick;
+                        duration = machine.CurrentRekkaAnimationDurationTicks;
+                    }
                     else
                     {
                         bool combatTimed = machine.State == FighterState.BlockRecovery ||
@@ -70,12 +77,18 @@ namespace LandOfFire.BunnyStep
                     }
 
                     float normalizedTime;
-                    bool fitCustomAutoComboState = machine.IsAutoCombo &&
-                        machine.CurrentAutoComboAttack != null &&
-                        machine.CurrentAutoComboAttack.animationMode ==
-                            AutoComboAnimationMode.CustomAnimationSequence;
+                    bool fitCustomSequence =
+                        (machine.IsAutoCombo &&
+                         machine.CurrentAutoComboAttack != null &&
+                         machine.CurrentAutoComboAttack.animationMode ==
+                            AutoComboAnimationMode.CustomAnimationSequence) ||
+                        (machine.IsRekka &&
+                         machine.CurrentRekkaNode != null &&
+                         machine.CurrentRekkaNode.attack != null &&
+                         machine.CurrentRekkaNode.attack.animationMode ==
+                            AutoComboAnimationMode.CustomAnimationSequence);
 
-                    if (fitCustomAutoComboState)
+                    if (fitCustomSequence)
                     {
                         // Custom Auto Combo states always complete within
                         // their configured tick count. The Animator is sampled
@@ -107,6 +120,15 @@ namespace LandOfFire.BunnyStep
                 {
                     telegraphMove = machine.CurrentAutoCombo.TelegraphMoveAtTick(
                         machine.Elapsed);
+                }
+                else if (machine.IsRekka &&
+                         machine.CurrentRekkaNode != null &&
+                         machine.CurrentRekkaNode.attack != null &&
+                         machine.CurrentRekkaNode.attack.attackMove != null &&
+                         machine.CurrentRekkaNode.attack.attackMove.IsTelegraphActive(
+                             machine.CurrentRekkaNodeElapsedTick))
+                {
+                    telegraphMove = machine.CurrentRekkaNode.attack.attackMove;
                 }
                 else if (machine.IsAttacking && machine.CurrentAttack != null &&
                          machine.CurrentAttack.IsTelegraphActive(machine.Elapsed))

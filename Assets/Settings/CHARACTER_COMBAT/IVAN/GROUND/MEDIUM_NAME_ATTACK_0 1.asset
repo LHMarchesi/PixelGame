@@ -20,19 +20,24 @@ MonoBehaviour:
   useCustomTelegraphColor: 0
   customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
   anticipationTicks: 20
-  smearTicks: 10
-  poseTicks: 10
+  smearTicks: 20
+  poseTicks: 20
   recoveryTicks: 20
   useHitbox: 1
   useTickHitWindow: 1
-  hitboxStartTick: 30
-  hitboxEndTick: 40
+  hitboxStartTick: 40
+  hitboxEndTick: 50
   hitDuringSmear: 0
   hitDuringPose: 1
   parryWindowStartTick: 1
   parryWindowEndTick: 40
   parryStunTicks: 18
-  useCustomAirMovement: 1
+  useCustomGroundMovement: 1
+  groundAnticipationMovement: {x: 0, y: 0}
+  groundSmearMovement: {x: 4, y: 0}
+  groundPoseMovement: {x: 2, y: 0}
+  groundRecoveryMovement: {x: 0, y: 0}
+  useCustomAirMovement: 0
   airAnticipationMovement: {x: 0, y: 0}
   airSmearMovement: {x: 0, y: 0}
   airPoseMovement: {x: 0, y: 0}
@@ -57,14 +62,18 @@ MonoBehaviour:
   canBeBlocked: 1
   blockRecoveryTicks: 0
   lethalHit: 0
+  lethalHitBonusDamage: 0
   flyingHurtTicks: 24
   flyingHurtDistance: 3
   flyingHurtHeight: 1.5
   lethalHitKnockdownTicks: 30
   showHitboxDebug: 1
-  cancelStartTick: 8
-  cancelEndTick: 15
+  cancelStartTick: 40
+  cancelEndTick: 60
   cancelBufferTicks: 2
+  allowAutoComboCancel: 0
+  allowRekkaCancel: 1
+  cancelStartupSkipPercent: 0
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.MediumAnticipation

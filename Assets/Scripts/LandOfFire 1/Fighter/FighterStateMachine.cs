@@ -17,6 +17,15 @@ namespace LandOfFire.BunnyStep
         Guard,
         BlockRecovery,
         GuardBreak,
+        OverheadCollision,
+        OverheadImpact,
+        OverheadRecovery,
+        BodyCollision,
+        BodyImpact,
+        BodyRecovery,
+        LegsCollision,
+        LegsImpact,
+        LegsRecovery,
         BunnyForward,
         BunnyBackward,
         BunnyForwardLoop,
@@ -176,8 +185,22 @@ namespace LandOfFire.BunnyStep
         private float configuredWalkSpeed;
         private int walkDirection;
 
-        public bool IsHurt =>
-            State == FighterState.Hurt;
+        public FighterHurtType CurrentHurtType => currentHurtType;
+
+        public FighterHurtPhase CurrentHurtPhase => currentHurtPhase;
+
+        public int AccumulatedHurtHitstunTicks => hurtAccumulatedHitstunTicks;
+
+        public bool IsHurt => IsHurtState(State);
+
+        public bool IsHurtRecovery =>
+            IsHurt && currentHurtPhase == FighterHurtPhase.Recovery;
+
+        public bool IsHurtRecoveryParryWindowActive =>
+            IsHurtRecovery &&
+            hurtRecoveryParryWindowTicks > 0 &&
+            Elapsed >= hurtRecoveryParryDelayTicks &&
+            Elapsed < hurtRecoveryParryDelayTicks + hurtRecoveryParryWindowTicks;
 
         public bool IsFlyingHurt =>
             State == FighterState.FlyingHurt;
@@ -380,6 +403,20 @@ namespace LandOfFire.BunnyStep
         private float comboLimitKnockdownMaxHeight;
         private int comboLimitKnockdownGroundTicks;
 
+        // Three-stage Hurt state. Attack hitstun is additional to the base
+        // Impact duration and accumulates only while the fighter remains in Impact.
+        private FighterHurtType currentHurtType = FighterHurtType.None;
+        private FighterHurtPhase currentHurtPhase = FighterHurtPhase.None;
+        private int hurtCollisionTicks;
+        private int hurtBaseImpactTicks;
+        private int hurtRecoveryTicks;
+        private int hurtAccumulatedHitstunTicks;
+        private int hurtMaxAccumulatedHitstunTicks;
+        private int hurtRecoveryParryDelayTicks;
+        private int hurtRecoveryParryWindowTicks;
+        private int hurtSequenceElapsedTicks;
+        private int hurtSequenceTotalTicks;
+
         // ================================================================
         // KNOCKDOWN
         // ================================================================
@@ -551,6 +588,14 @@ namespace LandOfFire.BunnyStep
 
             Change(FighterState.Jump);
             return true;
+        }
+
+        public void ConfigureHurtRecoveryParryWindow(
+            int delayTicks,
+            int windowTicks)
+        {
+            hurtRecoveryParryDelayTicks = Mathf.Max(0, delayTicks);
+            hurtRecoveryParryWindowTicks = Mathf.Max(0, windowTicks);
         }
 
         public void ConfigureKnockdown(
@@ -917,16 +962,20 @@ namespace LandOfFire.BunnyStep
 
             if (IsHurt)
             {
-                Height =
-                    Mathf.Lerp(
-                        hurtStartHeight,
-                        0,
-                        Duration <= 1
-                            ? 1f
-                            : (float)Elapsed /
-                              Duration);
-
-                return 0;
+                hurtSequenceElapsedTicks = Mathf.Min(
+                    hurtSequenceTotalTicks,
+                    hurtSequenceElapsedTicks + 1);
+                Height = Mathf.Lerp(
+                    hurtStartHeight,
+                    0f,
+                    hurtSequenceTotalTicks <= 1
+                        ? 1f
+                        : Mathf.Clamp01(
+                            (float)hurtSequenceElapsedTicks / hurtSequenceTotalTicks));
+                Phase = BunnyPhase.None;
+                PhaseElapsed = Elapsed;
+                PhaseDuration = Duration;
+                return 0f;
             }
 
             // ============================================================
@@ -2183,17 +2232,202 @@ namespace LandOfFire.BunnyStep
         }
 
         public void EnterHurt(
-            int duration)
+            FighterHurtType hurtType,
+            int collisionTicks,
+            int impactTicks,
+            int recoveryTicks,
+            int attackHitstunTicks,
+            int maxAccumulatedHitstunTicks)
         {
-            float currentHeight =
-                VisualHeight;
+            float currentHeight = VisualHeight;
 
-            StartTimedState(
-                FighterState.Hurt,
-                duration);
+            currentHurtType = hurtType == FighterHurtType.None
+                ? FighterHurtType.Body
+                : hurtType;
+            hurtCollisionTicks = Mathf.Max(1, collisionTicks);
+            hurtBaseImpactTicks = Mathf.Max(1, impactTicks);
+            hurtRecoveryTicks = Mathf.Max(1, recoveryTicks);
+            hurtMaxAccumulatedHitstunTicks = Mathf.Max(0, maxAccumulatedHitstunTicks);
+            hurtAccumulatedHitstunTicks = Mathf.Clamp(
+                attackHitstunTicks,
+                0,
+                hurtMaxAccumulatedHitstunTicks);
+            hurtSequenceElapsedTicks = 0;
+            hurtSequenceTotalTicks = hurtCollisionTicks + hurtBaseImpactTicks +
+                                     hurtRecoveryTicks + hurtAccumulatedHitstunTicks;
+            hurtStartHeight = currentHeight;
 
-            hurtStartHeight =
-                currentHeight;
+            StartHurtPhase(FighterHurtPhase.Collision);
+        }
+
+        /// <summary>
+        /// Adds the new move's hitstun to the current Impact. The state is not
+        /// restarted; only the remaining Impact duration is extended, capped
+        /// by the configured accumulated-hitstun limit.
+        /// </summary>
+        public int AddHurtHitstun(int additionalTicks)
+        {
+            if (!IsHurt || currentHurtPhase != FighterHurtPhase.Impact ||
+                additionalTicks <= 0)
+            {
+                return 0;
+            }
+
+            int nextTotal = Mathf.Min(
+                hurtMaxAccumulatedHitstunTicks,
+                hurtAccumulatedHitstunTicks + additionalTicks);
+            int added = Mathf.Max(0, nextTotal - hurtAccumulatedHitstunTicks);
+            if (added <= 0)
+                return 0;
+
+            hurtAccumulatedHitstunTicks = nextTotal;
+            hurtSequenceTotalTicks += added;
+            Duration += added;
+            PhaseDuration = Duration;
+            return added;
+        }
+
+        private void StartHurtPhase(FighterHurtPhase phase)
+        {
+            currentHurtPhase = phase;
+            hasSuspendedJump = false;
+            jumpHeightOffset = 0f;
+            CurrentJumpPhase = JumpPhase.None;
+            Elapsed = 0;
+            StepDirection = 0;
+            Distance = 0f;
+            Phase = BunnyPhase.None;
+            PhaseElapsed = 0;
+            PhaseDuration = 0;
+            Height = 0f;
+            CurrentAttack = null;
+            CurrentAutoCombo = null;
+            ClearRekkaState();
+            CurrentAttackPhase = AttackPhase.None;
+            HoldChargeTicks = 0;
+            holdChargeRequested = false;
+            holdChargeButtonHeld = false;
+
+            switch (phase)
+            {
+                case FighterHurtPhase.Collision:
+                    Duration = hurtCollisionTicks;
+                    break;
+                case FighterHurtPhase.Impact:
+                    Duration = hurtBaseImpactTicks + hurtAccumulatedHitstunTicks;
+                    break;
+                case FighterHurtPhase.Recovery:
+                    Duration = hurtRecoveryTicks;
+                    break;
+                default:
+                    Duration = 0;
+                    break;
+            }
+
+            Duration = Mathf.Max(1, Duration);
+            PhaseDuration = Duration;
+            Change(GetHurtState(currentHurtType, currentHurtPhase));
+        }
+
+        private void AdvanceHurtPhase()
+        {
+            switch (currentHurtPhase)
+            {
+                case FighterHurtPhase.Collision:
+                    StartHurtPhase(FighterHurtPhase.Impact);
+                    break;
+
+                case FighterHurtPhase.Impact:
+                    StartHurtPhase(FighterHurtPhase.Recovery);
+                    break;
+
+                case FighterHurtPhase.Recovery:
+                    currentHurtType = FighterHurtType.None;
+                    currentHurtPhase = FighterHurtPhase.None;
+                    hurtAccumulatedHitstunTicks = 0;
+                    hurtSequenceElapsedTicks = 0;
+                    hurtSequenceTotalTicks = 0;
+                    Change(FighterState.Idle);
+                    Elapsed = 0;
+                    Duration = 0;
+                    Phase = BunnyPhase.None;
+                    PhaseElapsed = 0;
+                    PhaseDuration = 0;
+                    Height = 0f;
+                    break;
+
+                default:
+                    currentHurtType = FighterHurtType.None;
+                    currentHurtPhase = FighterHurtPhase.None;
+                    Change(FighterState.Idle);
+                    Elapsed = 0;
+                    Duration = 0;
+                    break;
+            }
+        }
+
+        private void ClearHurtContext()
+        {
+            currentHurtType = FighterHurtType.None;
+            currentHurtPhase = FighterHurtPhase.None;
+            hurtAccumulatedHitstunTicks = 0;
+            hurtSequenceElapsedTicks = 0;
+            hurtSequenceTotalTicks = 0;
+            hurtCollisionTicks = 0;
+            hurtBaseImpactTicks = 0;
+            hurtRecoveryTicks = 0;
+            hurtMaxAccumulatedHitstunTicks = 0;
+        }
+
+        private static bool IsHurtState(FighterState state)
+        {
+            return state == FighterState.Hurt ||
+                   state == FighterState.OverheadCollision ||
+                   state == FighterState.OverheadImpact ||
+                   state == FighterState.OverheadRecovery ||
+                   state == FighterState.BodyCollision ||
+                   state == FighterState.BodyImpact ||
+                   state == FighterState.BodyRecovery ||
+                   state == FighterState.LegsCollision ||
+                   state == FighterState.LegsImpact ||
+                   state == FighterState.LegsRecovery;
+        }
+
+        private static FighterState GetHurtState(
+            FighterHurtType type,
+            FighterHurtPhase phase)
+        {
+            switch (type)
+            {
+                case FighterHurtType.Overhead:
+                    switch (phase)
+                    {
+                        case FighterHurtPhase.Collision: return FighterState.OverheadCollision;
+                        case FighterHurtPhase.Impact: return FighterState.OverheadImpact;
+                        case FighterHurtPhase.Recovery: return FighterState.OverheadRecovery;
+                    }
+                    break;
+
+                case FighterHurtType.Legs:
+                    switch (phase)
+                    {
+                        case FighterHurtPhase.Collision: return FighterState.LegsCollision;
+                        case FighterHurtPhase.Impact: return FighterState.LegsImpact;
+                        case FighterHurtPhase.Recovery: return FighterState.LegsRecovery;
+                    }
+                    break;
+
+                default:
+                    switch (phase)
+                    {
+                        case FighterHurtPhase.Collision: return FighterState.BodyCollision;
+                        case FighterHurtPhase.Impact: return FighterState.BodyImpact;
+                        case FighterHurtPhase.Recovery: return FighterState.BodyRecovery;
+                    }
+                    break;
+            }
+
+            return FighterState.Hurt;
         }
 
         // ================================================================
@@ -2207,6 +2441,7 @@ namespace LandOfFire.BunnyStep
             int direction,
             int knockdownTicks)
         {
+            ClearHurtContext();
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentAttack = null;
@@ -2276,6 +2511,7 @@ namespace LandOfFire.BunnyStep
             int groundedKnockdownTicks,
             int direction)
         {
+            ClearHurtContext();
             hasSuspendedJump = false;
             jumpHeightOffset = 0f;
             CurrentJumpPhase = JumpPhase.None;
@@ -2309,6 +2545,9 @@ namespace LandOfFire.BunnyStep
             FighterState state,
             int duration)
         {
+            if (!IsHurtState(state))
+                ClearHurtContext();
+
             holdChargeRequested = false;
             holdChargeButtonHeld = false;
             HoldChargeTicks = 0;
@@ -2351,6 +2590,7 @@ namespace LandOfFire.BunnyStep
 
         private void EnterKnockdown(int durationOverride = -1)
         {
+            ClearHurtContext();
             CurrentAttack = null;
             CurrentAutoCombo = null;
             ClearRekkaState();
@@ -2388,6 +2628,7 @@ namespace LandOfFire.BunnyStep
 
         private void EnterReset()
         {
+            ClearHurtContext();
             CurrentAttack = null;
             CurrentAutoCombo = null;
             ClearRekkaState();
@@ -2420,6 +2661,7 @@ namespace LandOfFire.BunnyStep
 
         private void FinishReset()
         {
+            ClearHurtContext();
             Elapsed = 0;
             Duration = 0;
 
@@ -2453,6 +2695,7 @@ namespace LandOfFire.BunnyStep
 
         public void Reset()
         {
+            ClearHurtContext();
             State =
                 FighterState.Idle;
 
@@ -2724,6 +2967,12 @@ namespace LandOfFire.BunnyStep
 
         private void FinishTimedState()
         {
+            if (IsHurt)
+            {
+                AdvanceHurtPhase();
+                return;
+            }
+
             if (IsAutoCombo)
             {
                 CurrentAutoCombo = null;

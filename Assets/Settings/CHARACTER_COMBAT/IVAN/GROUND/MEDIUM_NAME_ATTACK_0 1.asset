@@ -46,7 +46,10 @@ MonoBehaviour:
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 100
-  hitstunTicks: 18
+  chipDamage: 10
+  firstHitReaction: 2
+  comboHitReaction: 2
+  hitstunTicks: 20
   hitstopTicks: 10
   allowHoldAttack: 1
   holdMinChargeTicks: 6

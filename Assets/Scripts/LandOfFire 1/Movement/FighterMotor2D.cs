@@ -19,8 +19,14 @@ namespace LandOfFire.BunnyStep
         public FighterCombat2D combat;
 
         [Tooltip(
-            "Opcional. Sin rival conserva la orientación configurada.")]
+            "Opcional: objetivo explícito de orientación. Si queda vacío, " +
+            "el luchador mira automáticamente al FighterRoot activo más cercano.")]
         public Transform facingTarget;
+
+        [Tooltip(
+            "Cuando Facing Target está vacío, orienta al luchador hacia el " +
+            "FighterRoot activo más cercano registrado en FighterCombatResolver.")]
+        public bool autoFaceNearestOpponent = true;
 
         public bool startsFacingRight = true;
         public bool frozen;
@@ -111,7 +117,17 @@ namespace LandOfFire.BunnyStep
         }
 
         private Rigidbody2D body;
+        private BoxCollider2D bodyCollider;
         private PhysicsMaterial2D material;
+
+        internal Collider2D RootBodyCollider => bodyCollider;
+
+        // Fighter root colliders may pass through each other only while this
+        // fighter is visibly airborne from a jump (including an Air Attack
+        // that is still using the airborne trajectory).
+        internal bool IsAboveGroundForCrossover =>
+            (Machine.IsJumping || Machine.IsAirAttacking) &&
+            Machine.Height > 0.01f;
 
         private long tick;
 
@@ -175,6 +191,9 @@ namespace LandOfFire.BunnyStep
         {
             body =
                 GetComponent<Rigidbody2D>();
+
+            bodyCollider =
+                GetComponent<BoxCollider2D>();
 
             if (profile == null)
             {
@@ -256,8 +275,9 @@ namespace LandOfFire.BunnyStep
                     bounciness = 0
                 };
 
-            BoxCollider2D box =
-                GetComponent<BoxCollider2D>();
+            BoxCollider2D box = bodyCollider;
+            if (box == null)
+                box = bodyCollider = GetComponent<BoxCollider2D>();
 
             box.isTrigger = false;
 
@@ -369,12 +389,7 @@ namespace LandOfFire.BunnyStep
                 pendingPushback = 0f;
             }
 
-            if (!Machine.IsTimed && facingTarget != null)
-            {
-                float difference = facingTarget.position.x - body.position.x;
-                if (Mathf.Abs(difference) > .001f)
-                    facing = difference > 0 ? 1 : -1;
-            }
+            UpdateFacingFromOpponent();
 
             bool hasCommands = commands != null && commands.isActiveAndEnabled;
             ConfigureMachine();
@@ -505,6 +520,54 @@ namespace LandOfFire.BunnyStep
         }
 
         // ================================================================
+        // FACING
+        // ================================================================
+
+        private void UpdateFacingFromOpponent()
+        {
+            // A jump is the one timed state in which facing must keep tracking
+            // the opponent: a fighter can cross sides while airborne, and the
+            // next attack must capture the new forward direction immediately.
+            // Attacks, Rekkas, Auto Combos, Bunny Steps and hit reactions keep
+            // their captured facing until their current timed state finishes.
+            if (Machine.IsTimed &&
+                !Machine.IsJumping &&
+                Machine.Elapsed < Machine.Duration)
+            {
+                return;
+            }
+
+            float targetX = body.position.x;
+            bool hasTarget = false;
+
+            if (facingTarget != null && facingTarget != transform)
+            {
+                targetX = facingTarget.position.x;
+                hasTarget = true;
+            }
+            else if (autoFaceNearestOpponent)
+            {
+                FighterMotor2D opponent =
+                    FighterCombatResolver.GetNearestOpponent(this);
+
+                if (opponent != null)
+                {
+                    targetX = opponent.BodyPosition.x;
+                    hasTarget = true;
+                }
+            }
+
+            if (!hasTarget)
+                return;
+
+            float difference = targetX - body.position.x;
+            if (Mathf.Abs(difference) <= .001f)
+                return;
+
+            facing = difference > 0f ? 1 : -1;
+        }
+
+        // ================================================================
         // MACHINE CONFIGURATION
         // ================================================================
 
@@ -545,6 +608,10 @@ namespace LandOfFire.BunnyStep
 
             Machine.ConfigureKnockdown(
                 autoGetUp);
+
+            Machine.ConfigureHurtRecoveryParryWindow(
+                RuntimeProfile.hurtRecoveryParryDelayTicks,
+                RuntimeProfile.hurtRecoveryParryWindowTicks);
 
             Machine.ConfigureReset(
                 RuntimeProfile.resetTicks);
@@ -635,13 +702,20 @@ namespace LandOfFire.BunnyStep
             if (hasPendingParry || !ready || !isActiveAndEnabled || combat == null)
                 return;
 
-            // Parry cannot interrupt an attack, a Bunny, a Jump, Hurt,
-            // or any other timed action. It is available only from a
-            // grounded neutral state (Idle/Walk/Guard).
-            if (Machine.IsAttacking || Machine.IsTimed ||
-                (Machine.State != FighterState.Idle &&
-                 Machine.State != FighterState.Walk &&
-                 Machine.State != FighterState.Guard))
+            // Besides grounded neutral, Parry is available during the
+            // configured input window inside any Hurt Recovery phase.
+            bool hurtRecoveryParry =
+                Machine.IsHurtRecovery &&
+                Machine.IsHurtRecoveryParryWindowActive;
+
+            bool groundedNeutral =
+                !Machine.IsTimed &&
+                (Machine.State == FighterState.Idle ||
+                 Machine.State == FighterState.Walk ||
+                 Machine.State == FighterState.Guard);
+
+            if (!hurtRecoveryParry &&
+                (Machine.IsAttacking || !groundedNeutral))
             {
                 return;
             }
@@ -1292,25 +1366,52 @@ namespace LandOfFire.BunnyStep
         // ================================================================
 
         public bool ReceiveConfirmedHit(
-            int durationTicks = -1)
+            FighterHurtType attackReaction,
+            FighterHurtType contactedHurtbox,
+            int attackHitstunTicks)
         {
-            if (!CanReceiveCombatHit)
+            if (!CanReceiveCombatHit || RuntimeProfile == null)
                 return false;
 
-            // A real hit interrupts an unsuccessful Parry attempt. Clear
-            // its latched input so it cannot survive into Hurt or Idle.
+            // A subsequent hit received during Impact extends the same phase.
+            // It does not restart the chosen Hurt reaction or return to Collision.
+            if (Machine.IsHurt &&
+                Machine.CurrentHurtPhase == FighterHurtPhase.Impact)
+            {
+                Machine.AddHurtHitstun(
+                    attackHitstunTicks);
+                return true;
+            }
+
+            // A hit during Collision or Recovery restarts the sequence using
+            // the reaction configured by the newly confirmed attack.
             ClearPendingParry();
             ClearHoldAttackInput();
 
-            int hurtTicks =
-                durationTicks > 0
-                    ? durationTicks
-                    : debugHurtTicks;
+            FighterHurtType resolvedHurt =
+                attackReaction == FighterHurtType.None
+                    ? contactedHurtbox
+                    : attackReaction;
+
+            if (resolvedHurt == FighterHurtType.None)
+                resolvedHurt = FighterHurtType.Body;
+
+            int collisionTicks;
+            int impactTicks;
+            int recoveryTicks;
+            GetHurtDurations(
+                resolvedHurt,
+                out collisionTicks,
+                out impactTicks,
+                out recoveryTicks);
 
             Machine.EnterHurt(
-                Mathf.Max(
-                    1,
-                    hurtTicks));
+                resolvedHurt,
+                collisionTicks,
+                impactTicks,
+                recoveryTicks,
+                attackHitstunTicks,
+                RuntimeProfile.maxAccumulatedHitstunTicks);
 
             if (combat != null)
                 combat.CancelAttack();
@@ -1319,23 +1420,14 @@ namespace LandOfFire.BunnyStep
                 commands.ClearCommands();
 
             ClearAttackBuffer();
-
+            pendingPushback = 0f;
             poseTick = 0;
+            SetVelocity(Vector2.zero);
 
-            SetVelocity(
-                Vector2.zero);
-
-            currentState =
-                Machine.State;
-
-            currentPhase =
-                Machine.Phase;
-
-            currentJumpPhase =
-                Machine.CurrentJumpPhase;
-
-            currentAttackPhase =
-                Machine.CurrentAttackPhase;
+            currentState = Machine.State;
+            currentPhase = Machine.Phase;
+            currentJumpPhase = Machine.CurrentJumpPhase;
+            currentAttackPhase = Machine.CurrentAttackPhase;
 
             if (presentation != null)
             {
@@ -1347,6 +1439,43 @@ namespace LandOfFire.BunnyStep
             }
 
             return true;
+        }
+
+        /// <summary>Compatibility helper for the inspector debug-hit command.</summary>
+        public bool ReceiveConfirmedHit()
+        {
+            return ReceiveConfirmedHit(
+                FighterHurtType.Body,
+                FighterHurtType.Body,
+                debugHurtTicks);
+        }
+
+        private void GetHurtDurations(
+            FighterHurtType hurtType,
+            out int collisionTicks,
+            out int impactTicks,
+            out int recoveryTicks)
+        {
+            switch (hurtType)
+            {
+                case FighterHurtType.Overhead:
+                    collisionTicks = RuntimeProfile.overheadCollisionTicks;
+                    impactTicks = RuntimeProfile.overheadImpactTicks;
+                    recoveryTicks = RuntimeProfile.overheadRecoveryTicks;
+                    break;
+
+                case FighterHurtType.Legs:
+                    collisionTicks = RuntimeProfile.legsCollisionTicks;
+                    impactTicks = RuntimeProfile.legsImpactTicks;
+                    recoveryTicks = RuntimeProfile.legsRecoveryTicks;
+                    break;
+
+                default:
+                    collisionTicks = RuntimeProfile.bodyCollisionTicks;
+                    impactTicks = RuntimeProfile.bodyImpactTicks;
+                    recoveryTicks = RuntimeProfile.bodyRecoveryTicks;
+                    break;
+            }
         }
 
         // ================================================================

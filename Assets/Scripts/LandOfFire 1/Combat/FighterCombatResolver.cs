@@ -15,6 +15,8 @@ namespace LandOfFire.BunnyStep
         public FighterMotor2D Attacker;
         public FighterMotor2D Target;
         public FighterHealth Health;
+        public FighterHurtType HurtboxType;
+        public float HurtboxDistanceSqr;
         public AttackMoveData Move;
         public int Facing;
         public int AttackElapsedTick;
@@ -117,6 +119,57 @@ namespace LandOfFire.BunnyStep
             return instance.comboSystem.GetComboCount(fighter);
         }
 
+        /// <summary>
+        /// True while the defender's HUD combo counter is still active. This
+        /// is queried before the current shared tick is committed, so every
+        /// simultaneous impact uses the same pre-tick combo classification.
+        /// </summary>
+        public static bool IsComboActive(FighterMotor2D fighter)
+        {
+            if (fighter == null || instance == null)
+                return false;
+
+            return instance.comboSystem.IsComboActive(
+                fighter,
+                instance.simulationTick,
+                instance.comboHitWindowTicks);
+        }
+
+        /// <summary>
+        /// Returns the horizontally nearest registered opponent. Explicit
+        /// FighterMotor2D.facingTarget references take precedence in the
+        /// motor; this fallback supports the common two-fighter setup without
+        /// requiring manual cross-references in the Inspector.
+        /// </summary>
+        public static FighterMotor2D GetNearestOpponent(FighterMotor2D fighter)
+        {
+            if (fighter == null || instance == null)
+                return null;
+
+            FighterMotor2D nearest = null;
+            float nearestDistance = float.PositiveInfinity;
+            float fighterX = fighter.BodyPosition.x;
+
+            for (int i = 0; i < instance.fighters.Count; i++)
+            {
+                FighterMotor2D candidate = instance.fighters[i];
+                if (candidate == null || candidate == fighter ||
+                    !candidate.isActiveAndEnabled)
+                {
+                    continue;
+                }
+
+                float distance = Mathf.Abs(candidate.BodyPosition.x - fighterX);
+                if (distance < nearestDistance - 0.0001f)
+                {
+                    nearestDistance = distance;
+                    nearest = candidate;
+                }
+            }
+
+            return nearest;
+        }
+
         public static void Register(FighterMotor2D fighter)
         {
             if (!Application.isPlaying || fighter == null)
@@ -127,6 +180,8 @@ namespace LandOfFire.BunnyStep
             if (!instance.fighters.Contains(fighter))
                 instance.fighters.Add(fighter);
 
+            // Body colliders remain solid by default. The resolver only
+            // ignores a fighter pair while at least one fighter is airborne.
             instance.comboSystem.Register(fighter);
 
             if (fighter.combat != null)
@@ -140,6 +195,22 @@ namespace LandOfFire.BunnyStep
         {
             if (fighter == null || instance == null)
                 return;
+
+            Collider2D departingBody = fighter.RootBodyCollider;
+            if (departingBody != null)
+            {
+                for (int i = 0; i < instance.fighters.Count; i++)
+                {
+                    FighterMotor2D other = instance.fighters[i];
+                    if (other == null || other == fighter || other.RootBodyCollider == null)
+                        continue;
+
+                    Physics2D.IgnoreCollision(
+                        departingBody,
+                        other.RootBodyCollider,
+                        false);
+                }
+            }
 
             instance.fighters.Remove(fighter);
             RemovePendingForFighter(fighter);
@@ -204,6 +275,36 @@ namespace LandOfFire.BunnyStep
             instance = coordinator.AddComponent<FighterCombatResolver>();
         }
 
+        private void UpdateRegisteredFighterBodyCollisions()
+        {
+            // Keep the two root body colliders solid during grounded combat.
+            // Passing through is permitted only while at least one fighter is
+            // above the ground during Jump/AirAttack. Hurtbox trigger colliders
+            // are not changed by this rule.
+            for (int i = 0; i < fighters.Count; i++)
+            {
+                FighterMotor2D first = fighters[i];
+                if (first == null || first.RootBodyCollider == null)
+                    continue;
+
+                for (int j = i + 1; j < fighters.Count; j++)
+                {
+                    FighterMotor2D second = fighters[j];
+                    if (second == null || second.RootBodyCollider == null)
+                        continue;
+
+                    bool allowAirborneCrossover =
+                        first.IsAboveGroundForCrossover ||
+                        second.IsAboveGroundForCrossover;
+
+                    Physics2D.IgnoreCollision(
+                        first.RootBodyCollider,
+                        second.RootBodyCollider,
+                        allowAirborneCrossover);
+                }
+            }
+        }
+
         private void OnDestroy()
         {
             if (instance == this)
@@ -213,6 +314,21 @@ namespace LandOfFire.BunnyStep
                     FighterMotor2D fighter = fighters[i];
                     if (fighter != null && fighter.combat != null)
                         fighter.combat.ValidImpactConfirmed -= OnValidImpactConfirmed;
+
+                    if (fighter == null || fighter.RootBodyCollider == null)
+                        continue;
+
+                    for (int j = i + 1; j < fighters.Count; j++)
+                    {
+                        FighterMotor2D other = fighters[j];
+                        if (other == null || other.RootBodyCollider == null)
+                            continue;
+
+                        Physics2D.IgnoreCollision(
+                            fighter.RootBodyCollider,
+                            other.RootBodyCollider,
+                            false);
+                    }
                 }
                 instance = null;
             }
@@ -243,6 +359,10 @@ namespace LandOfFire.BunnyStep
                 accumulatedTime -= TickSeconds;
                 SimulateSharedTick();
             }
+
+            // Refresh fighter-vs-fighter body collision rules after the
+            // shared tick has advanced jump phases and visual jump heights.
+            UpdateRegisteredFighterBodyCollisions();
 
             float fixedDelta = Mathf.Max(.000001f, Time.fixedDeltaTime);
             for (int i = 0; i < fighters.Count; i++)

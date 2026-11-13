@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PROFILE_IVAN_0
   m_EditorClassIdentifier: 
   walkSpeed: 2.5
-  allowBackwardWalk: 0
+  allowBackwardWalk: 1
   forwardTiming:
     preparation: 10
     flight: 20
@@ -36,6 +36,22 @@ MonoBehaviour:
   airAttackInputEndTick: 24
   jumpHeight: 12
   jumpAirControl: 0.25
+  overheadCollisionTicks: 20
+  overheadImpactTicks: 60
+  overheadRecoveryTicks: 20
+  bodyCollisionTicks: 40
+  bodyImpactTicks: 80
+  bodyRecoveryTicks: 40
+  legsCollisionTicks: 40
+  legsImpactTicks: 60
+  legsRecoveryTicks: 40
+  maxAccumulatedHitstunTicks: 200
+  hurtRecoveryParryDelayTicks: 40
+  hurtRecoveryParryWindowTicks: 40
+  comboLimitKnockdownFallTicks: 12
+  comboLimitKnockdownDistance: 0.55
+  comboLimitKnockdownHeight: 0.35
+  comboLimitKnockdownGroundTicks: 24
   resetTicks: 20
   backwardTiming:
     preparation: 10
@@ -104,6 +120,10 @@ MonoBehaviour:
     stateName: Base Layer.Guard
     playback: 0
     loopTicks: 30
+  guardBreak:
+    stateName: Base Layer.GuardBreak
+    playback: 0
+    loopTicks: 30
   parry:
     stateName: Base Layer.Parry
     playback: 0
@@ -124,8 +144,48 @@ MonoBehaviour:
     stateName: Base Layer.Hurt
     playback: 0
     loopTicks: 30
+  overheadCollision:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  overheadImpact:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  overheadRecovery:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  bodyCollision:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  bodyImpact:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  bodyRecovery:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  legsCollision:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  legsImpact:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
+  legsRecovery:
+    stateName: Base Layer.Hurt
+    playback: 0
+    loopTicks: 30
   flyingHurt:
     stateName: Base Layer.FlyingHurt
+    playback: 0
+    loopTicks: 30
+  comboLimitKnockdown:
+    stateName: Base Layer.ComboLimitKnockdown
     playback: 0
     loopTicks: 30
   knockdown:

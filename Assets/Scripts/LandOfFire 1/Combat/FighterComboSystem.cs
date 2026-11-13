@@ -68,6 +68,27 @@ namespace LandOfFire.BunnyStep
             return history.displayComboCount;
         }
 
+        public bool IsComboActive(
+            FighterMotor2D fighter,
+            long currentTick,
+            int comboHitWindowTicks)
+        {
+            if (fighter == null ||
+                !histories.TryGetValue(fighter, out FighterHistory history) ||
+                history.displayComboCount <= 0 ||
+                history.lastValidImpactTick == long.MinValue ||
+                history.comboClosedByKnockdown ||
+                fighter.Machine.IsKnockdown ||
+                fighter.Machine.IsComboLimitKnockdown ||
+                fighter.Machine.IsResetting)
+            {
+                return false;
+            }
+
+            return currentTick - history.lastValidImpactTick <=
+                   Mathf.Max(1, comboHitWindowTicks);
+        }
+
         public void Unregister(FighterMotor2D fighter)
         {
             if (fighter == null)

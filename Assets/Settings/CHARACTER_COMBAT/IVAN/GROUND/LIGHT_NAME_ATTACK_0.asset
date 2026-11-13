@@ -32,6 +32,11 @@ MonoBehaviour:
   parryWindowStartTick: 3
   parryWindowEndTick: 15
   parryStunTicks: 18
+  useCustomGroundMovement: 0
+  groundAnticipationMovement: {x: 0, y: 0}
+  groundSmearMovement: {x: 0, y: 0}
+  groundPoseMovement: {x: 0, y: 0}
+  groundRecoveryMovement: {x: 0, y: 0}
   useCustomAirMovement: 0
   airAnticipationMovement: {x: 0, y: 0}
   airSmearMovement: {x: 0, y: 0}
@@ -41,7 +46,10 @@ MonoBehaviour:
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 65
-  hitstunTicks: 18
+  chipDamage: 5
+  firstHitReaction: 2
+  comboHitReaction: 2
+  hitstunTicks: 20
   hitstopTicks: 8
   allowHoldAttack: 1
   holdMinChargeTicks: 6
@@ -57,6 +65,7 @@ MonoBehaviour:
   canBeBlocked: 1
   blockRecoveryTicks: 0
   lethalHit: 0
+  lethalHitBonusDamage: 0
   flyingHurtTicks: 24
   flyingHurtDistance: 3
   flyingHurtHeight: 1.5
@@ -65,6 +74,9 @@ MonoBehaviour:
   cancelStartTick: 8
   cancelEndTick: 13
   cancelBufferTicks: 3
+  allowAutoComboCancel: 0
+  allowRekkaCancel: 0
+  cancelStartupSkipPercent: 0
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.LightAnticipation

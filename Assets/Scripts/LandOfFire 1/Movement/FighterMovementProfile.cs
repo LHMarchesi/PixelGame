@@ -84,6 +84,35 @@ namespace LandOfFire.BunnyStep
         [Tooltip("Desplazamiento horizontal por tick mientras está en Air o Descending.")]
         public float jumpAirControl = .035f;
 
+
+        [Header("Hurt System - Overhead")]
+        [Min(1)] public int overheadCollisionTicks = 2;
+        [Min(1)] public int overheadImpactTicks = 2;
+        [Min(1)] public int overheadRecoveryTicks = 8;
+
+        [Header("Hurt System - Body / Torso")]
+        [Min(1)] public int bodyCollisionTicks = 2;
+        [Min(1)] public int bodyImpactTicks = 2;
+        [Min(1)] public int bodyRecoveryTicks = 8;
+
+        [Header("Hurt System - Legs")]
+        [Min(1)] public int legsCollisionTicks = 2;
+        [Min(1)] public int legsImpactTicks = 2;
+        [Min(1)] public int legsRecoveryTicks = 8;
+
+        [Header("Hurt System - Hitstun and Parry")]
+        [Min(0)]
+        [Tooltip("Maximum additional hitstun accumulated during one continuous Hurt Impact. The base Impact duration is not included in this cap.")]
+        public int maxAccumulatedHitstunTicks = 60;
+
+        [Min(0)]
+        [Tooltip("Ticks elapsed in Hurt Recovery before the Parry input window opens.")]
+        public int hurtRecoveryParryDelayTicks = 2;
+
+        [Min(0)]
+        [Tooltip("Duration of the Parry input window during Hurt Recovery. 0 disables Hurt Recovery Parry.")]
+        public int hurtRecoveryParryWindowTicks;
+
         [Header("Combo Limit Knockdown")]
 
         [Min(1)]
@@ -226,6 +255,20 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "Hurt");
 
+
+        [Header("Hurt Phase Animations")]
+        public PhaseAnimation overheadCollision = new PhaseAnimation("Hurt");
+        public PhaseAnimation overheadImpact = new PhaseAnimation("Hurt");
+        public PhaseAnimation overheadRecovery = new PhaseAnimation("Hurt");
+
+        public PhaseAnimation bodyCollision = new PhaseAnimation("Hurt");
+        public PhaseAnimation bodyImpact = new PhaseAnimation("Hurt");
+        public PhaseAnimation bodyRecovery = new PhaseAnimation("Hurt");
+
+        public PhaseAnimation legsCollision = new PhaseAnimation("Hurt");
+        public PhaseAnimation legsImpact = new PhaseAnimation("Hurt");
+        public PhaseAnimation legsRecovery = new PhaseAnimation("Hurt");
+
         public PhaseAnimation flyingHurt =
             new PhaseAnimation(
                 "FlyingHurt");
@@ -299,6 +342,27 @@ namespace LandOfFire.BunnyStep
                         default:
                             return null;
                     }
+
+                case FighterState.OverheadCollision:
+                    return overheadCollision != null ? overheadCollision : hurt;
+                case FighterState.OverheadImpact:
+                    return overheadImpact != null ? overheadImpact : hurt;
+                case FighterState.OverheadRecovery:
+                    return overheadRecovery != null ? overheadRecovery : hurt;
+
+                case FighterState.BodyCollision:
+                    return bodyCollision != null ? bodyCollision : hurt;
+                case FighterState.BodyImpact:
+                    return bodyImpact != null ? bodyImpact : hurt;
+                case FighterState.BodyRecovery:
+                    return bodyRecovery != null ? bodyRecovery : hurt;
+
+                case FighterState.LegsCollision:
+                    return legsCollision != null ? legsCollision : hurt;
+                case FighterState.LegsImpact:
+                    return legsImpact != null ? legsImpact : hurt;
+                case FighterState.LegsRecovery:
+                    return legsRecovery != null ? legsRecovery : hurt;
 
                 case FighterState.Hurt:
                     return hurt;

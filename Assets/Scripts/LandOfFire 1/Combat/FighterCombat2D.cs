@@ -62,8 +62,8 @@ namespace LandOfFire.BunnyStep
         private readonly HashSet<FighterMotor2D> hitThisAttack =
             new HashSet<FighterMotor2D>();
 
-        private readonly HashSet<FighterMotor2D> targetsCollectedThisTick =
-            new HashSet<FighterMotor2D>();
+        private readonly Dictionary<FighterMotor2D, int> candidateIndexByTarget =
+            new Dictionary<FighterMotor2D, int>(4);
 
         private readonly List<Collider2D> overlapResults =
             new List<Collider2D>(8);
@@ -166,7 +166,7 @@ namespace LandOfFire.BunnyStep
             activeAutoComboImpactIndex = -1;
             activeRekkaNodeSerial = -1;
             hitThisAttack.Clear();
-            targetsCollectedThisTick.Clear();
+            candidateIndexByTarget.Clear();
             forceCurrentAttackLethal = false;
 
             if (debugView != null)
@@ -180,7 +180,7 @@ namespace LandOfFire.BunnyStep
             activeAutoComboImpactIndex = -1;
             activeRekkaNodeSerial = nodeSerial;
             hitThisAttack.Clear();
-            targetsCollectedThisTick.Clear();
+            candidateIndexByTarget.Clear();
             forceCurrentAttackLethal = false;
 
             if (debugView != null)
@@ -205,7 +205,7 @@ namespace LandOfFire.BunnyStep
             activeAutoComboImpactIndex = -1;
             activeRekkaNodeSerial = -1;
             hitThisAttack.Clear();
-            targetsCollectedThisTick.Clear();
+            candidateIndexByTarget.Clear();
             forceCurrentAttackLethal = false;
 
             if (debugView != null)
@@ -276,47 +276,27 @@ namespace LandOfFire.BunnyStep
             var filter = new ContactFilter2D { useTriggers = true };
             filter.SetLayerMask(hurtboxLayers);
             overlapResults.Clear();
-            targetsCollectedThisTick.Clear();
+            candidateIndexByTarget.Clear();
 
             Physics2D.OverlapBox(center, size, 0f, filter, overlapResults);
 
             foreach (Collider2D collider in overlapResults)
             {
-                if (collider == null)
-                    continue;
-
-                FighterHurtbox2D hurtbox =
-                    collider.GetComponent<FighterHurtbox2D>();
-
-                if (hurtbox == null || !hurtbox.isActiveAndEnabled)
-                    continue;
-
-                FighterMotor2D target = hurtbox.Owner;
-                FighterHealth health = hurtbox.Health;
-
-                if (target == null || target == owner ||
-                    !target.isActiveAndEnabled || health == null ||
-                    health.CurrentHealth <= 0 ||
-                    !target.CanReceiveCombatHit ||
-                    hitThisAttack.Contains(target) ||
-                    !targetsCollectedThisTick.Add(target))
-                {
-                    continue;
-                }
-
-                destination.Add(new FighterHitCandidate
-                {
-                    Combat = this,
-                    Attacker = owner,
-                    Target = target,
-                    Health = health,
-                    Move = move,
-                    Facing = facing,
-                    AttackElapsedTick = combatElapsedTick,
-                    HoldChargeTicks = machine.HoldChargeTicks,
-                    IsMovesetSpecial = currentAttackIsMovesetSpecial,
-                    ForceLethal = forceCurrentAttackLethal
-                });
+                AddCandidateForHurtbox(
+                    collider,
+                    center,
+                    destination,
+                    new FighterHitCandidate
+                    {
+                        Combat = this,
+                        Attacker = owner,
+                        Move = move,
+                        Facing = facing,
+                        AttackElapsedTick = combatElapsedTick,
+                        HoldChargeTicks = machine.HoldChargeTicks,
+                        IsMovesetSpecial = currentAttackIsMovesetSpecial,
+                        ForceLethal = forceCurrentAttackLethal
+                    });
             }
         }
 
@@ -361,49 +341,33 @@ namespace LandOfFire.BunnyStep
             var filter = new ContactFilter2D { useTriggers = true };
             filter.SetLayerMask(hurtboxLayers);
             overlapResults.Clear();
-            targetsCollectedThisTick.Clear();
+            candidateIndexByTarget.Clear();
             Physics2D.OverlapBox(center, size, 0f, filter, overlapResults);
 
             foreach (Collider2D collider in overlapResults)
             {
-                if (collider == null)
-                    continue;
-
-                FighterHurtbox2D hurtbox = collider.GetComponent<FighterHurtbox2D>();
-                if (hurtbox == null || !hurtbox.isActiveAndEnabled)
-                    continue;
-
-                FighterMotor2D target = hurtbox.Owner;
-                FighterHealth health = hurtbox.Health;
-                if (target == null || target == owner ||
-                    !target.isActiveAndEnabled || health == null ||
-                    health.CurrentHealth <= 0 || !target.CanReceiveCombatHit ||
-                    hitThisAttack.Contains(target) ||
-                    !targetsCollectedThisTick.Add(target))
-                {
-                    continue;
-                }
-
-                destination.Add(new FighterHitCandidate
-                {
-                    Combat = this,
-                    Attacker = owner,
-                    Target = target,
-                    Health = health,
-                    Move = move,
-                    Facing = facing,
-                    // Parry and Telegraph timing is local to this attack,
-                    // not to the complete Auto Combo timeline.
-                    AttackElapsedTick = attackElapsedTick,
-                    HoldChargeTicks = 0,
-                    IsMovesetSpecial = false,
-                    IsAutoCombo = true,
-                    AutoComboImpactIndex = impactIndex,
-                    TriggersComboKnockdown =
-                        machine.CurrentAutoCombo.ShouldTriggerKnockdown(impactIndex) &&
-                        !move.lethalHit,
-                    ForceLethal = false
-                });
+                AddCandidateForHurtbox(
+                    collider,
+                    center,
+                    destination,
+                    new FighterHitCandidate
+                    {
+                        Combat = this,
+                        Attacker = owner,
+                        Move = move,
+                        Facing = facing,
+                        // Parry and Telegraph timing is local to this attack,
+                        // not to the complete Auto Combo timeline.
+                        AttackElapsedTick = attackElapsedTick,
+                        HoldChargeTicks = 0,
+                        IsMovesetSpecial = false,
+                        IsAutoCombo = true,
+                        AutoComboImpactIndex = impactIndex,
+                        TriggersComboKnockdown =
+                            machine.CurrentAutoCombo.ShouldTriggerKnockdown(impactIndex) &&
+                            !move.lethalHit,
+                        ForceLethal = false
+                    });
             }
         }
 
@@ -448,47 +412,106 @@ namespace LandOfFire.BunnyStep
             var filter = new ContactFilter2D { useTriggers = true };
             filter.SetLayerMask(hurtboxLayers);
             overlapResults.Clear();
-            targetsCollectedThisTick.Clear();
+            candidateIndexByTarget.Clear();
             Physics2D.OverlapBox(center, size, 0f, filter, overlapResults);
 
             foreach (Collider2D collider in overlapResults)
             {
-                if (collider == null)
-                    continue;
+                AddCandidateForHurtbox(
+                    collider,
+                    center,
+                    destination,
+                    new FighterHitCandidate
+                    {
+                        Combat = this,
+                        Attacker = owner,
+                        Move = move,
+                        Facing = facing,
+                        AttackElapsedTick = attackElapsedTick,
+                        HoldChargeTicks = 0,
+                        IsMovesetSpecial = false,
+                        IsRekka = true,
+                        RekkaNodeSerial = nodeSerial,
+                        ForceLethal = node.IsTerminal,
+                        TriggersComboKnockdown =
+                            machine.CurrentRekkaTree != null &&
+                            machine.CurrentRekkaTree.ShouldTriggerKnockdown(
+                                machine.CurrentRekkaNodeIndex) &&
+                            !node.IsTerminal
+                    });
+            }
+        }
 
-                FighterHurtbox2D hurtbox = collider.GetComponent<FighterHurtbox2D>();
-                if (hurtbox == null || !hurtbox.isActiveAndEnabled)
-                    continue;
+        /// <summary>
+        /// Collects one physical hurtbox per target. If an attack overlaps more
+        /// than one of the target's hurtboxes, the nearest collider center to
+        /// the hitbox center wins; enum order breaks exact-distance ties.
+        /// This avoids relying on Physics2D overlap enumeration order.
+        /// </summary>
+        private void AddCandidateForHurtbox(
+            Collider2D collider,
+            Vector2 hitboxCenter,
+            List<FighterHitCandidate> destination,
+            FighterHitCandidate candidate)
+        {
+            if (collider == null)
+                return;
 
-                FighterMotor2D target = hurtbox.Owner;
-                FighterHealth health = hurtbox.Health;
-                if (target == null || target == owner ||
-                    !target.isActiveAndEnabled || health == null ||
-                    health.CurrentHealth <= 0 || !target.CanReceiveCombatHit ||
-                    hitThisAttack.Contains(target) ||
-                    !targetsCollectedThisTick.Add(target))
-                    continue;
+            FighterHurtbox2D hurtbox =
+                collider.GetComponent<FighterHurtbox2D>();
+            if (hurtbox == null || !hurtbox.isActiveAndEnabled)
+                return;
 
-                destination.Add(new FighterHitCandidate
-                {
-                    Combat = this,
-                    Attacker = owner,
-                    Target = target,
-                    Health = health,
-                    Move = move,
-                    Facing = facing,
-                    AttackElapsedTick = attackElapsedTick,
-                    HoldChargeTicks = 0,
-                    IsMovesetSpecial = false,
-                    IsRekka = true,
-                    RekkaNodeSerial = nodeSerial,
-                    ForceLethal = node.IsTerminal,
-                    TriggersComboKnockdown =
-                        machine.CurrentRekkaTree != null &&
-                        machine.CurrentRekkaTree.ShouldTriggerKnockdown(
-                            machine.CurrentRekkaNodeIndex) &&
-                        !node.IsTerminal
-                });
+            FighterMotor2D target = hurtbox.Owner;
+            FighterHealth health = hurtbox.Health;
+            if (target == null || target == owner ||
+                !target.isActiveAndEnabled || health == null ||
+                health.CurrentHealth <= 0 || !target.CanReceiveCombatHit ||
+                hitThisAttack.Contains(target))
+            {
+                return;
+            }
+
+            candidate.Target = target;
+            candidate.Health = health;
+            candidate.HurtboxType = hurtbox.region == FighterHurtboxRegion.Overhead
+                ? FighterHurtType.Overhead
+                : hurtbox.region == FighterHurtboxRegion.Legs
+                    ? FighterHurtType.Legs
+                    : FighterHurtType.Body;
+            candidate.HurtboxDistanceSqr =
+                ((Vector2)collider.bounds.center - hitboxCenter).sqrMagnitude;
+
+            if (candidateIndexByTarget.TryGetValue(target, out int existingIndex))
+            {
+                FighterHitCandidate existing = destination[existingIndex];
+                bool closer = candidate.HurtboxDistanceSqr <
+                              existing.HurtboxDistanceSqr - 0.0001f;
+                bool tiedAndPreferred =
+                    Mathf.Abs(candidate.HurtboxDistanceSqr -
+                              existing.HurtboxDistanceSqr) <= 0.0001f &&
+                    GetHurtboxTiePriority(candidate.HurtboxType) <
+                    GetHurtboxTiePriority(existing.HurtboxType);
+
+                if (closer || tiedAndPreferred)
+                    destination[existingIndex] = candidate;
+
+                return;
+            }
+
+            candidateIndexByTarget.Add(target, destination.Count);
+            destination.Add(candidate);
+        }
+
+        private static int GetHurtboxTiePriority(FighterHurtType hurtType)
+        {
+            // Body is the neutral/default result when two zones are equally close.
+            switch (hurtType)
+            {
+                case FighterHurtType.Body: return 0;
+                case FighterHurtType.Overhead: return 1;
+                case FighterHurtType.Legs: return 2;
+                default: return 3;
             }
         }
 
@@ -564,6 +587,10 @@ namespace LandOfFire.BunnyStep
                 if (!blocked)
                     return false;
 
+                // Chip damage is applied only after Guard has been accepted.
+                // It does not generate a combo impact or alter Hurt state.
+                candidate.Health.TakeDamage(move.chipDamage);
+
                 target.ApplyPushback(move.guardPushback, candidate.Facing);
                 owner.ApplyHitstop(move.hitstopTicks);
                 target.ApplyHitstop(move.hitstopTicks);
@@ -593,7 +620,17 @@ namespace LandOfFire.BunnyStep
             }
             else
             {
-                accepted = target.ReceiveConfirmedHit(move.HurtTicks);
+                bool comboWasActive =
+                    FighterCombatResolver.IsComboActive(target);
+                FighterHurtType reaction = comboWasActive
+                    ? move.comboHitReaction
+                    : move.firstHitReaction;
+
+                accepted = target.ReceiveConfirmedHit(
+                    reaction,
+                    candidate.HurtboxType,
+                    move.HurtTicks);
+
                 if (accepted)
                 {
                     float extraHoldPushback = chargedHold

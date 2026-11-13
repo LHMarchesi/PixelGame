@@ -247,13 +247,24 @@ namespace LandOfFire.BunnyStep
         [Min(0)]
         public int damage = 8;
 
-        [Tooltip(
-            "Duración del estado Hurt que aplica este ataque.")]
-        [Min(1)]
+        [Min(0)]
+        [Tooltip("Damage dealt when this attack is successfully blocked. 0 disables chip damage for this move.")]
+        public int chipDamage;
+
+        [Header("Hurt Reaction")]
+
+        [Tooltip("Hurt type used when this attack starts a new combo. None uses the physical hurtbox that was hit.")]
+        public FighterHurtType firstHitReaction = FighterHurtType.None;
+
+        [Tooltip("Hurt type used when this attack connects during an active combo. None uses the physical hurtbox that was hit.")]
+        public FighterHurtType comboHitReaction = FighterHurtType.None;
+
+        [Min(0)]
+        [Tooltip("Additional hitstun ticks added to the selected Hurt Impact phase. Further hits during Impact add this value again, up to the fighter profile cap.")]
         public int hitstunTicks = 18;
 
         public int HurtTicks =>
-            Mathf.Max(1, hitstunTicks);
+            Mathf.Max(0, hitstunTicks);
 
         [Min(0)]
         public int hitstopTicks = 3;

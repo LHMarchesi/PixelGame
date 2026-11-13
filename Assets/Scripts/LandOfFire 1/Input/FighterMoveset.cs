@@ -43,7 +43,7 @@ namespace LandOfFire.BunnyStep
             sequence =
             new List<FighterInputToken>();
 
-        [Tooltip("Optional direction requirement for each input step. Keep the list empty to accept any direction. For an input such as Light, Light, Forward+Medium, use [Light, Light, Medium] and set the third requirement to Forward.")]
+        [Tooltip("Optional direction requirement for each input step. Keep the list empty to accept any direction. Attack tokens include Light, Medium, Heavy, LightKick and MediumKick. For an input such as Light, Light, Forward+Medium, use [Light, Light, Medium] and set the third requirement to Forward.")]
         public List<FighterInputDirectionRequirement> directionRequirements =
             new List<FighterInputDirectionRequirement>();
 

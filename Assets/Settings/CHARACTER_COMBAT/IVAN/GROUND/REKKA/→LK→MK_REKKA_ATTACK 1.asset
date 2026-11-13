@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
-  m_Name: LIGHT_REKKA_ATTACK
+  m_Name: "\u2192LK\u2192MK_REKKA_ATTACK 1"
   m_EditorClassIdentifier: 
   category: 0
   clashGroup: 0
@@ -19,23 +19,23 @@ MonoBehaviour:
   telegraphDurationTicks: 10
   useCustomTelegraphColor: 0
   customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
-  anticipationTicks: 5
-  smearTicks: 10
-  poseTicks: 15
-  recoveryTicks: 10
+  anticipationTicks: 20
+  smearTicks: 20
+  poseTicks: 40
+  recoveryTicks: 30
   useHitbox: 1
   useTickHitWindow: 0
-  hitboxStartTick: 15
-  hitboxEndTick: 16
+  hitboxStartTick: 40
+  hitboxEndTick: 41
   hitDuringSmear: 0
   hitDuringPose: 1
-  parryWindowStartTick: 3
-  parryWindowEndTick: 15
+  parryWindowStartTick: 40
+  parryWindowEndTick: 60
   parryStunTicks: 18
-  useCustomGroundMovement: 0
+  useCustomGroundMovement: 1
   groundAnticipationMovement: {x: 0, y: 0}
-  groundSmearMovement: {x: 3, y: 0}
-  groundPoseMovement: {x: 3, y: 0}
+  groundSmearMovement: {x: 2, y: 0}
+  groundPoseMovement: {x: 1, y: 0}
   groundRecoveryMovement: {x: 0, y: 0}
   useCustomAirMovement: 0
   airAnticipationMovement: {x: 0, y: 0}
@@ -46,6 +46,9 @@ MonoBehaviour:
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 65
+  chipDamage: 0
+  firstHitReaction: 0
+  comboHitReaction: 0
   hitstunTicks: 18
   hitstopTicks: 8
   allowHoldAttack: 1
@@ -57,8 +60,8 @@ MonoBehaviour:
   guardBreakPushback: 0.55
   holdHitPushback: 0.18
   holdForwardDashDistance: 0.12
-  hitPushback: 0.08
-  guardPushback: 0.04
+  hitPushback: 0.94
+  guardPushback: 0.53
   canBeBlocked: 1
   blockRecoveryTicks: 0
   lethalHit: 0

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 413f9b0bb8caf974da97275efdb0345c, type: 3}
   m_Name: PROFILE_IVAN_0
   m_EditorClassIdentifier: 
-  walkSpeed: 2.5
+  walkSpeed: 6
   allowBackwardWalk: 1
   forwardTiming:
     preparation: 10
@@ -48,11 +48,11 @@ MonoBehaviour:
   maxAccumulatedHitstunTicks: 200
   hurtRecoveryParryDelayTicks: 40
   hurtRecoveryParryWindowTicks: 40
-  comboLimitKnockdownFallTicks: 12
-  comboLimitKnockdownDistance: 0.55
-  comboLimitKnockdownHeight: 0.35
-  comboLimitKnockdownGroundTicks: 24
-  resetTicks: 20
+  comboLimitKnockdownFallTicks: 60
+  comboLimitKnockdownDistance: 12
+  comboLimitKnockdownHeight: 4
+  comboLimitKnockdownGroundTicks: 40
+  resetTicks: 80
   backwardTiming:
     preparation: 10
     flight: 20
@@ -145,39 +145,39 @@ MonoBehaviour:
     playback: 0
     loopTicks: 30
   overheadCollision:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_OH_Collision
     playback: 0
     loopTicks: 30
   overheadImpact:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_OH_Impact
     playback: 0
     loopTicks: 30
   overheadRecovery:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_OH_Recovery
     playback: 0
     loopTicks: 30
   bodyCollision:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_Body_Collision
     playback: 0
     loopTicks: 30
   bodyImpact:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_Body_Impact
     playback: 0
     loopTicks: 30
   bodyRecovery:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_Body_Recovery
     playback: 0
     loopTicks: 30
   legsCollision:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_Legs_Collision
     playback: 0
     loopTicks: 30
   legsImpact:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_Legs_Impact
     playback: 0
     loopTicks: 30
   legsRecovery:
-    stateName: Base Layer.Hurt
+    stateName: Base Layer.Hurt_Legs_Recovery
     playback: 0
     loopTicks: 30
   flyingHurt:

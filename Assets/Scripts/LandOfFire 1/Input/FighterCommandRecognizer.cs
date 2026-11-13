@@ -6,7 +6,7 @@
 // Soporta:
 // - Bunny Forward (doble tap hacia adelante)
 // - Bunny Backward (doble tap hacia atrás)
-// - ataques L/M/H normales
+// - ataques normales Light/Medium/Heavy Punch y Light/Medium Kick
 // - ataques especiales con AttackMoveData propio
 //
 // Mantiene la resolución por coincidencia más larga.
@@ -218,6 +218,17 @@ namespace LandOfFire.BunnyStep
                     AttackCommand.Heavy,
                     -1000));
 
+            definitions.Add(
+                CreateAttack(
+                    FighterInputToken.LightKick,
+                    AttackCommand.LightKick,
+                    -1000));
+
+            definitions.Add(
+                CreateAttack(
+                    FighterInputToken.MediumKick,
+                    AttackCommand.MediumKick,
+                    -1000));
         }
 
         private static FighterCommandDefinition Create(
@@ -394,6 +405,26 @@ namespace LandOfFire.BunnyStep
                         facing);
 
                     break;
+
+                case AttackCommand.LightKick:
+
+                    PushAttackToken(
+                        FighterInputToken.LightKick,
+                        input,
+                        tick,
+                        facing);
+
+                    break;
+
+                case AttackCommand.MediumKick:
+
+                    PushAttackToken(
+                        FighterInputToken.MediumKick,
+                        input,
+                        tick,
+                        facing);
+
+                    break;
             }
         }
 
@@ -489,7 +520,9 @@ namespace LandOfFire.BunnyStep
         {
             return token == FighterInputToken.Light ||
                    token == FighterInputToken.Medium ||
-                   token == FighterInputToken.Heavy;
+                   token == FighterInputToken.Heavy ||
+                   token == FighterInputToken.LightKick ||
+                   token == FighterInputToken.MediumKick;
         }
 
         private void PushToken(

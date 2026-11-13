@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
+  m_Name: "\u2192LK\u2192LK_REKKA_ATTACK"
+  m_EditorClassIdentifier: 
+  category: 0
+  clashGroup: 0
+  showTelegraph: 0
+  telegraphStartTick: 2
+  telegraphDurationTicks: 10
+  useCustomTelegraphColor: 0
+  customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
+  anticipationTicks: 20
+  smearTicks: 20
+  poseTicks: 40
+  recoveryTicks: 30
+  useHitbox: 1
+  useTickHitWindow: 0
+  hitboxStartTick: 40
+  hitboxEndTick: 41
+  hitDuringSmear: 0
+  hitDuringPose: 1
+  parryWindowStartTick: 40
+  parryWindowEndTick: 60
+  parryStunTicks: 18
+  useCustomGroundMovement: 1
+  groundAnticipationMovement: {x: 0, y: 0}
+  groundSmearMovement: {x: 2, y: 0}
+  groundPoseMovement: {x: 1, y: 0}
+  groundRecoveryMovement: {x: 0, y: 0}
+  useCustomAirMovement: 0
+  airAnticipationMovement: {x: 0, y: 0}
+  airSmearMovement: {x: 0, y: 0}
+  airPoseMovement: {x: 0, y: 0}
+  airRecoveryMovement: {x: 0, y: 0}
+  followAirborneHeight: 0
+  hitboxOffset: {x: 6, y: 1}
+  hitboxSize: {x: 5, y: 8}
+  damage: 65
+  chipDamage: 0
+  firstHitReaction: 0
+  comboHitReaction: 0
+  hitstunTicks: 18
+  hitstopTicks: 8
+  allowHoldAttack: 1
+  holdMinChargeTicks: 6
+  holdMaxChargeTicks: 30
+  blockBreakRequiredChargeTicks: 24
+  guardBreakDurationTicks: 24
+  guardBreakDamage: 10
+  guardBreakPushback: 0.55
+  holdHitPushback: 0.18
+  holdForwardDashDistance: 0.12
+  hitPushback: 0.94
+  guardPushback: 0.53
+  canBeBlocked: 1
+  blockRecoveryTicks: 0
+  lethalHit: 0
+  lethalHitBonusDamage: 0
+  flyingHurtTicks: 24
+  flyingHurtDistance: 3
+  flyingHurtHeight: 1.5
+  lethalHitKnockdownTicks: 30
+  showHitboxDebug: 1
+  cancelStartTick: 8
+  cancelEndTick: 13
+  cancelBufferTicks: 3
+  allowAutoComboCancel: 0
+  allowRekkaCancel: 0
+  cancelStartupSkipPercent: 0
+  allowBunnyCancel: 0
+  anticipation:
+    stateName: Base Layer.LightAnticipation
+    playback: 0
+    loopTicks: 30
+  smear:
+    stateName: Base Layer.LightSmear
+    playback: 0
+    loopTicks: 30
+  pose:
+    stateName: Base Layer.LightPose
+    playback: 0
+    loopTicks: 30
+  recovery:
+    stateName: Base Layer.LightRecovery
+    playback: 0
+    loopTicks: 30

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25a00bfcbca7445e9f0574ddaed6fe10, type: 3}
-  m_Name: New Rekka Tree Data
+  m_Name: "\u2192LK_TREE_REKKA"
   m_EditorClassIdentifier: 
   rootNode: {fileID: 11400000, guid: 273415b5b0e8e0847812fbeae856b607, type: 2}
   causesKnockdown: 1

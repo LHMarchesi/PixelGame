@@ -12,6 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
   m_Name: AIR_MEDIUM_NAME_ATTACK_0 1
   m_EditorClassIdentifier: 
+  category: 0
+  clashGroup: 0
+  showTelegraph: 0
+  telegraphStartTick: 1
+  telegraphDurationTicks: 0
+  useCustomTelegraphColor: 0
+  customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
   anticipationTicks: 10
   smearTicks: 10
   poseTicks: 15
@@ -22,6 +29,14 @@ MonoBehaviour:
   hitboxEndTick: 25
   hitDuringSmear: 0
   hitDuringPose: 1
+  parryWindowStartTick: 5
+  parryWindowEndTick: 5
+  parryStunTicks: 18
+  useCustomGroundMovement: 0
+  groundAnticipationMovement: {x: 0, y: 0}
+  groundSmearMovement: {x: 0, y: 0}
+  groundPoseMovement: {x: 0, y: 0}
+  groundRecoveryMovement: {x: 0, y: 0}
   useCustomAirMovement: 1
   airAnticipationMovement: {x: 0, y: 0}
   airSmearMovement: {x: 4, y: -4}
@@ -31,11 +46,26 @@ MonoBehaviour:
   hitboxOffset: {x: 6, y: 1}
   hitboxSize: {x: 5, y: 8}
   damage: 65
+  chipDamage: 0
+  firstHitReaction: 1
+  comboHitReaction: 1
   hitstunTicks: 18
   hitstopTicks: 8
+  allowHoldAttack: 0
+  holdMinChargeTicks: 6
+  holdMaxChargeTicks: 30
+  blockBreakRequiredChargeTicks: 24
+  guardBreakDurationTicks: 24
+  guardBreakDamage: 10
+  guardBreakPushback: 0.55
+  holdHitPushback: 0.18
+  holdForwardDashDistance: 0.12
   hitPushback: 0.08
   guardPushback: 0.04
+  canBeBlocked: 1
+  blockRecoveryTicks: 0
   lethalHit: 0
+  lethalHitBonusDamage: 0
   flyingHurtTicks: 24
   flyingHurtDistance: 3
   flyingHurtHeight: 1.5
@@ -44,6 +74,9 @@ MonoBehaviour:
   cancelStartTick: 8
   cancelEndTick: 13
   cancelBufferTicks: 3
+  allowAutoComboCancel: 0
+  allowRekkaCancel: 0
+  cancelStartupSkipPercent: 0
   allowBunnyCancel: 0
   anticipation:
     stateName: Base Layer.AIRMediumAnticipation

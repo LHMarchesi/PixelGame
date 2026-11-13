@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MOVESET_IVAN
   m_EditorClassIdentifier: 
   commands:
-  - sequence: 05000000
+  - sequence: 07000000
     directionRequirements: 02000000
     autoCombo: {fileID: 0}
     rekkaTree: {fileID: 11400000, guid: 9108a94eb20bbd449b5e3de08db70fd4, type: 2}
@@ -26,6 +26,6 @@ MonoBehaviour:
       allowOnBlock: 0
       targetNode: {fileID: 0}
     commandType: 8
-    attack: 1
+    attack: 0
     attackMove: {fileID: 0}
     priority: 1

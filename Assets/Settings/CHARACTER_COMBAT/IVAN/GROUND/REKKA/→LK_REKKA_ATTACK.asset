@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c71c923ecd3480ebbfd516538d0f865, type: 3}
-  m_Name: LIGHT_REKKA_ATTACK 1
+  m_Name: "\u2192LK_REKKA_ATTACK"
   m_EditorClassIdentifier: 
   category: 0
   clashGroup: 0
@@ -19,23 +19,23 @@ MonoBehaviour:
   telegraphDurationTicks: 10
   useCustomTelegraphColor: 0
   customTelegraphColor: {r: 0, g: 1, b: 1, a: 1}
-  anticipationTicks: 5
-  smearTicks: 10
-  poseTicks: 15
-  recoveryTicks: 10
+  anticipationTicks: 40
+  smearTicks: 20
+  poseTicks: 40
+  recoveryTicks: 30
   useHitbox: 1
   useTickHitWindow: 0
-  hitboxStartTick: 5
-  hitboxEndTick: 5
+  hitboxStartTick: 40
+  hitboxEndTick: 41
   hitDuringSmear: 0
   hitDuringPose: 1
-  parryWindowStartTick: 3
-  parryWindowEndTick: 15
-  parryStunTicks: 18
-  useCustomGroundMovement: 0
+  parryWindowStartTick: 40
+  parryWindowEndTick: 60
+  parryStunTicks: 40
+  useCustomGroundMovement: 1
   groundAnticipationMovement: {x: 0, y: 0}
   groundSmearMovement: {x: 3, y: 0}
-  groundPoseMovement: {x: 0, y: 0}
+  groundPoseMovement: {x: 2, y: 0}
   groundRecoveryMovement: {x: 0, y: 0}
   useCustomAirMovement: 0
   airAnticipationMovement: {x: 0, y: 0}
@@ -44,11 +44,14 @@ MonoBehaviour:
   airRecoveryMovement: {x: 0, y: 0}
   followAirborneHeight: 0
   hitboxOffset: {x: 6, y: 1}
-  hitboxSize: {x: 5, y: 8}
+  hitboxSize: {x: 2.5, y: 2}
   damage: 65
-  hitstunTicks: 18
-  hitstopTicks: 8
-  allowHoldAttack: 1
+  chipDamage: 0
+  firstHitReaction: 2
+  comboHitReaction: 3
+  hitstunTicks: 20
+  hitstopTicks: 20
+  allowHoldAttack: 0
   holdMinChargeTicks: 6
   holdMaxChargeTicks: 30
   blockBreakRequiredChargeTicks: 24
@@ -57,10 +60,10 @@ MonoBehaviour:
   guardBreakPushback: 0.55
   holdHitPushback: 0.18
   holdForwardDashDistance: 0.12
-  hitPushback: 0.08
-  guardPushback: 0.04
+  hitPushback: 0.62
+  guardPushback: 0.33
   canBeBlocked: 1
-  blockRecoveryTicks: 0
+  blockRecoveryTicks: 20
   lethalHit: 0
   lethalHitBonusDamage: 0
   flyingHurtTicks: 24
@@ -68,11 +71,11 @@ MonoBehaviour:
   flyingHurtHeight: 1.5
   lethalHitKnockdownTicks: 30
   showHitboxDebug: 1
-  cancelStartTick: 8
-  cancelEndTick: 13
+  cancelStartTick: 55
+  cancelEndTick: 80
   cancelBufferTicks: 3
-  allowAutoComboCancel: 0
-  allowRekkaCancel: 0
+  allowAutoComboCancel: 1
+  allowRekkaCancel: 1
   cancelStartupSkipPercent: 0
   allowBunnyCancel: 0
   anticipation:

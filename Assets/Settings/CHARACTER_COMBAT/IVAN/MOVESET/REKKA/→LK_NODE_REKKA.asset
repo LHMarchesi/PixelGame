@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bf9322c8157c4a18b94df6acfcf9b7fa, type: 3}
-  m_Name: New Rekka Node Data
+  m_Name: "\u2192LK_NODE_REKKA"
   m_EditorClassIdentifier: 
   attack:
-    attackMove: {fileID: 11400000, guid: 22fee837a9c9eac4ebdccd1c3ec8477f, type: 2}
+    attackMove: {fileID: 11400000, guid: ab8df600c3d6a3844b05cc2f284f7c28, type: 2}
     animationMode: 0
     timingMode: 0
     anticipationTicks: 4
@@ -22,7 +22,7 @@ MonoBehaviour:
     recoveryTicks: 8
     customAnimationStates: []
     hitboxStartTick: 40
-    hitboxDurationTicks: 50
+    hitboxDurationTicks: 41
     transitionDelayTicks: 0
     allowCancel: 1
     cancelWindowStartTick: 40
@@ -31,7 +31,7 @@ MonoBehaviour:
     cancelStartupSkipPercent: 13.6
   branches:
   - branchName: 
-    sequence: 04000000
+    sequence: 07000000
     directionRequirements: 02000000
     priority: 1
     allowOnHit: 1

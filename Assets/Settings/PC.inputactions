@@ -69,7 +69,7 @@
                 {
                     "name": "",
                     "id": "ab0b11ba-7e96-4df0-933d-75154d44ac84",
-                    "path": "<Keyboard>/l",
+                    "path": "<Keyboard>/k",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -80,13 +80,13 @@
             ]
         },
         {
-            "name": "Jump_P1",
-            "id": "097bdde7-e12b-4aee-a214-f8dcd25abaa3",
+            "name": "LightKickAttack_P1",
+            "id": "bc4d5731-6af4-4088-a3d5-e86e699c6447",
             "actions": [
                 {
-                    "name": "Jump",
+                    "name": "MediumAttack",
                     "type": "Button",
-                    "id": "1dca0274-3f1c-4f30-841b-8abcae01dc78",
+                    "id": "d1204c07-f47e-484b-953d-c61235c0a4ad",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -96,12 +96,68 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "58a6a662-14c6-4add-8703-4f9daf32db9a",
-                    "path": "<Keyboard>/upArrow",
+                    "id": "3af90dca-007f-497b-82ab-aa7bdc4b7432",
+                    "path": "<Keyboard>/l",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Jump",
+                    "action": "MediumAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "MediumAttack_P1",
+            "id": "ed6e9e7a-03c5-42eb-a9c3-42a7a739a8dc",
+            "actions": [
+                {
+                    "name": "MediumAttack",
+                    "type": "Button",
+                    "id": "c14205c5-558f-43dc-a983-b80fcdc250a4",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "5b728da2-8ad6-416e-92a9-4fb96f80d2d1",
+                    "path": "<Keyboard>/i",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MediumAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "MediumKickAttack_P1",
+            "id": "fb997a9f-1aa3-4d54-a253-0b9e24b9cd60",
+            "actions": [
+                {
+                    "name": "MediumAttack",
+                    "type": "Button",
+                    "id": "2dfd922b-2ee2-4c1b-af6a-2fa556d975d9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "adfe24c7-91d3-45b1-a084-afd9aa710d55",
+                    "path": "<Keyboard>/o",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MediumAttack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -136,13 +192,13 @@
             ]
         },
         {
-            "name": "Parry_P2",
-            "id": "97de057a-724d-47d2-a1dc-d7c049c2aa03",
+            "name": "Jump_P1",
+            "id": "097bdde7-e12b-4aee-a214-f8dcd25abaa3",
             "actions": [
                 {
-                    "name": "Parry",
+                    "name": "Jump",
                     "type": "Button",
-                    "id": "e26ec075-562e-4c1b-b42e-3d24ddec8aec",
+                    "id": "1dca0274-3f1c-4f30-841b-8abcae01dc78",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -152,12 +208,12 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "d09a3b9b-da9d-4be7-a4a1-6e0ef4121144",
-                    "path": "<Keyboard>/h",
+                    "id": "58a6a662-14c6-4add-8703-4f9daf32db9a",
+                    "path": "<Keyboard>/upArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Parry",
+                    "action": "Jump",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -186,62 +242,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "Jump",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                }
-            ]
-        },
-        {
-            "name": "MediumAttack_P1",
-            "id": "ed6e9e7a-03c5-42eb-a9c3-42a7a739a8dc",
-            "actions": [
-                {
-                    "name": "MediumAttack",
-                    "type": "Button",
-                    "id": "c14205c5-558f-43dc-a983-b80fcdc250a4",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                }
-            ],
-            "bindings": [
-                {
-                    "name": "",
-                    "id": "5b728da2-8ad6-416e-92a9-4fb96f80d2d1",
-                    "path": "<Keyboard>/k",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MediumAttack",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                }
-            ]
-        },
-        {
-            "name": "HeavyAttack_P1",
-            "id": "230a22be-920b-4397-a7ab-009202ed2703",
-            "actions": [
-                {
-                    "name": "HeavyAttack",
-                    "type": "Button",
-                    "id": "ebba8060-2959-4f3c-9c60-2b6624b2dcb9",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                }
-            ],
-            "bindings": [
-                {
-                    "name": "",
-                    "id": "eb934b80-1abf-4b55-81e8-669b71a70685",
-                    "path": "<Keyboard>/j",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "HeavyAttack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -294,6 +294,34 @@
                     "action": "Movement",
                     "isComposite": false,
                     "isPartOfComposite": true
+                }
+            ]
+        },
+        {
+            "name": "HeavyAttack_P1",
+            "id": "230a22be-920b-4397-a7ab-009202ed2703",
+            "actions": [
+                {
+                    "name": "HeavyAttack",
+                    "type": "Button",
+                    "id": "ebba8060-2959-4f3c-9c60-2b6624b2dcb9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "eb934b80-1abf-4b55-81e8-669b71a70685",
+                    "path": "<Keyboard>/semicolon",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HeavyAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -376,6 +404,34 @@
                     "processors": "",
                     "groups": "",
                     "action": "HeavyAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Parry_P2",
+            "id": "97de057a-724d-47d2-a1dc-d7c049c2aa03",
+            "actions": [
+                {
+                    "name": "Parry",
+                    "type": "Button",
+                    "id": "e26ec075-562e-4c1b-b42e-3d24ddec8aec",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d09a3b9b-da9d-4be7-a4a1-6e0ef4121144",
+                    "path": "<Keyboard>/h",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Parry",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

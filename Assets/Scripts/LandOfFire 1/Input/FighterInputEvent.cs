@@ -1,5 +1,5 @@
 // Land of Fire · Captura del Input System para un jugador.
-// Registra pulsaciones entre ticks y ofrece Move y L/M/H sin repetir
+// Registra pulsaciones entre ticks y ofrece Move y cinco botones de ataque sin repetir
 // los ataques por hold.
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,7 +14,9 @@ namespace LandOfFire.BunnyStep
         Down,
         Light,
         Medium,
-        Heavy
+        Heavy,
+        LightKick,
+        MediumKick
     }
     public enum FighterInputEventType
     {
@@ -37,7 +39,7 @@ namespace LandOfFire.BunnyStep
         public ParryInputType ParryInput;
 
         // Button events from the same Unity input frame can be combined
-        // into a P+L/M/H chord regardless of callback order.
+        // into a P + attack-category chord regardless of callback order.
         public int InputFrame;
 
         public static FighterInputEvent DirectionPress(

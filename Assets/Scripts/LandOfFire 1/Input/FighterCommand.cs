@@ -2,7 +2,7 @@
 //
 // Un comando puede representar:
 // - Bunny
-// - ataque normal L/M/H
+// - ataques normales Light/Medium/Heavy Punch y Light/Medium Kick
 // - ataque especial mediante un AttackMoveData propio.
 
 namespace LandOfFire.BunnyStep
@@ -11,7 +11,9 @@ namespace LandOfFire.BunnyStep
     {
         Light,
         Medium,
-        Heavy
+        Heavy,
+        LightKick,
+        MediumKick
     }
 
     public enum FighterCommandType

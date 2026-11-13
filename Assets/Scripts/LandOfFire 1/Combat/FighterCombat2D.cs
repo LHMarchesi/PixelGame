@@ -17,12 +17,16 @@ namespace LandOfFire.BunnyStep
         public AttackMoveData lightAttack;
         public AttackMoveData mediumAttack;
         public AttackMoveData heavyAttack;
+        public AttackMoveData lightKickAttack;
+        public AttackMoveData mediumKickAttack;
 
         [Header("Ataques aéreos")]
-        [Tooltip("Si no se asigna un ataque aéreo, se reutiliza el ataque terrestre correspondiente.")]
+        [Tooltip("Si no se asigna un ataque aéreo, se reutiliza el ataque terrestre correspondiente, también para LK y MK.")]
         public AttackMoveData airLightAttack;
         public AttackMoveData airMediumAttack;
         public AttackMoveData airHeavyAttack;
+        public AttackMoveData airLightKickAttack;
+        public AttackMoveData airMediumKickAttack;
 
         [Tooltip("Incluir la layer donde se encuentran las hurtboxes.")]
         public LayerMask hurtboxLayers = ~0;
@@ -134,6 +138,8 @@ namespace LandOfFire.BunnyStep
                     case AttackCommand.Light: aerial = airLightAttack; break;
                     case AttackCommand.Medium: aerial = airMediumAttack; break;
                     case AttackCommand.Heavy: aerial = airHeavyAttack; break;
+                    case AttackCommand.LightKick: aerial = airLightKickAttack; break;
+                    case AttackCommand.MediumKick: aerial = airMediumKickAttack; break;
                 }
 
                 if (aerial != null)
@@ -145,6 +151,8 @@ namespace LandOfFire.BunnyStep
                 case AttackCommand.Light: return lightAttack;
                 case AttackCommand.Medium: return mediumAttack;
                 case AttackCommand.Heavy: return heavyAttack;
+                case AttackCommand.LightKick: return lightKickAttack;
+                case AttackCommand.MediumKick: return mediumKickAttack;
                 default: return null;
             }
         }

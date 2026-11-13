@@ -49,6 +49,12 @@ namespace LandOfFire.BunnyStep
         [SerializeField]
         private InputActionReference heavyAttack;
 
+        [SerializeField, Tooltip("InputActionReference del botón Light Kick. Asigná su binding desde tu Input Actions Asset.")]
+        private InputActionReference lightKickAttack;
+
+        [SerializeField, Tooltip("InputActionReference del botón Medium Kick. Asigná su binding desde tu Input Actions Asset.")]
+        private InputActionReference mediumKickAttack;
+
         [Header("Parry")]
         [Tooltip("P solo = Parry imperfecto. P + ataque = Parry perfecto de esa categoría.")]
         [SerializeField]
@@ -77,6 +83,8 @@ namespace LandOfFire.BunnyStep
         private InputAction lightAction;
         private InputAction mediumAction;
         private InputAction heavyAction;
+        private InputAction lightKickAction;
+        private InputAction mediumKickAction;
         private InputAction parryAction;
         private InputAction jumpAction;
 
@@ -96,6 +104,10 @@ namespace LandOfFire.BunnyStep
                     return IsActionPressed(mediumAction);
                 case AttackCommand.Heavy:
                     return IsActionPressed(heavyAction);
+                case AttackCommand.LightKick:
+                    return IsActionPressed(lightKickAction);
+                case AttackCommand.MediumKick:
+                    return IsActionPressed(mediumKickAction);
                 default:
                     return false;
             }
@@ -277,6 +289,23 @@ namespace LandOfFire.BunnyStep
                     "<Keyboard>/l",
                     ReadHeavy);
 
+            // Kick buttons intentionally have no fallback keyboard/gamepad
+            // binding. Their InputActionReference and bindings are assigned
+            // by the project in the Input Actions asset.
+            lightKickAction =
+                CreateAttackAction(
+                    "Light Kick",
+                    lightKickAttack,
+                    null,
+                    ReadLightKick);
+
+            mediumKickAction =
+                CreateAttackAction(
+                    "Medium Kick",
+                    mediumKickAttack,
+                    null,
+                    ReadMediumKick);
+
             parryAction = CreateParryAction();
 
             jumpAction =
@@ -348,13 +377,17 @@ namespace LandOfFire.BunnyStep
             }
             else
             {
-                createdAction =
-                    new InputAction(
+                // A null binding creates an unbound action. This is used by
+                // LK/MK so the game does not silently assign keys that may
+                // conflict with the user's custom control layout.
+                createdAction = string.IsNullOrEmpty(keyboardBinding)
+                    ? new InputAction(actionName, InputActionType.Button)
+                    : new InputAction(
                         actionName,
                         InputActionType.Button,
                         keyboardBinding);
 
-                if (enableGamepad)
+                if (enableGamepad && !string.IsNullOrEmpty(keyboardBinding))
                 {
                     createdAction.AddBinding(
                         "<Gamepad>/buttonSouth");
@@ -389,6 +422,18 @@ namespace LandOfFire.BunnyStep
             InputAction.CallbackContext context)
         {
             QueueAttackOrParry(AttackCommand.Heavy);
+        }
+
+        private void ReadLightKick(
+            InputAction.CallbackContext context)
+        {
+            QueueAttackOrParry(AttackCommand.LightKick);
+        }
+
+        private void ReadMediumKick(
+            InputAction.CallbackContext context)
+        {
+            QueueAttackOrParry(AttackCommand.MediumKick);
         }
 
         private void ReadParry(InputAction.CallbackContext context)
@@ -432,9 +477,18 @@ namespace LandOfFire.BunnyStep
 
         private void QueueParryChord(int frame, AttackCommand? forcedAttack)
         {
-            bool light = IsActionPressed(lightAction) || HasQueuedAttack(frame, AttackCommand.Light);
-            bool medium = IsActionPressed(mediumAction) || HasQueuedAttack(frame, AttackCommand.Medium);
-            bool heavy = IsActionPressed(heavyAction) || HasQueuedAttack(frame, AttackCommand.Heavy);
+            // Punch and kick buttons share the same Parry category:
+            // Light/LK => PerfectLight, Medium/MK => PerfectMedium.
+            bool light = IsActionPressed(lightAction) ||
+                         IsActionPressed(lightKickAction) ||
+                         HasQueuedAttack(frame, AttackCommand.Light) ||
+                         HasQueuedAttack(frame, AttackCommand.LightKick);
+            bool medium = IsActionPressed(mediumAction) ||
+                          IsActionPressed(mediumKickAction) ||
+                          HasQueuedAttack(frame, AttackCommand.Medium) ||
+                          HasQueuedAttack(frame, AttackCommand.MediumKick);
+            bool heavy = IsActionPressed(heavyAction) ||
+                         HasQueuedAttack(frame, AttackCommand.Heavy);
 
             if (forcedAttack.HasValue)
             {
@@ -443,6 +497,8 @@ namespace LandOfFire.BunnyStep
                     case AttackCommand.Light: light = true; break;
                     case AttackCommand.Medium: medium = true; break;
                     case AttackCommand.Heavy: heavy = true; break;
+                    case AttackCommand.LightKick: light = true; break;
+                    case AttackCommand.MediumKick: medium = true; break;
                 }
             }
 
@@ -469,9 +525,13 @@ namespace LandOfFire.BunnyStep
             return IsActionPressed(lightAction) ||
                    IsActionPressed(mediumAction) ||
                    IsActionPressed(heavyAction) ||
+                   IsActionPressed(lightKickAction) ||
+                   IsActionPressed(mediumKickAction) ||
                    HasQueuedAttack(frame, AttackCommand.Light) ||
                    HasQueuedAttack(frame, AttackCommand.Medium) ||
-                   HasQueuedAttack(frame, AttackCommand.Heavy);
+                   HasQueuedAttack(frame, AttackCommand.Heavy) ||
+                   HasQueuedAttack(frame, AttackCommand.LightKick) ||
+                   HasQueuedAttack(frame, AttackCommand.MediumKick);
         }
 
         private bool HasQueuedAttack(int frame, AttackCommand attack)
@@ -581,6 +641,14 @@ namespace LandOfFire.BunnyStep
             DisposeAttackAction(
                 ref heavyAction,
                 ReadHeavy);
+
+            DisposeAttackAction(
+                ref lightKickAction,
+                ReadLightKick);
+
+            DisposeAttackAction(
+                ref mediumKickAction,
+                ReadMediumKick);
 
             DisposeAttackAction(
                 ref parryAction,

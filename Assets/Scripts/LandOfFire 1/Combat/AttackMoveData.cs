@@ -32,11 +32,11 @@ namespace LandOfFire.BunnyStep
     {
         [Header("Categoría y Telegraph")]
 
-        [Tooltip("Categoría usada para identificar visualmente el ataque. Light = azul, Medium = naranja, Heavy = rojo.")]
+        [Tooltip("Categoría de combate y Telegraph. Light Punch y Light Kick comparten Light; Medium Punch y Medium Kick comparten Medium. Light = azul, Medium = naranja, Heavy = rojo.")]
         public AttackCategory category = AttackCategory.Light;
 
         [Header("Clash")]
-        [Tooltip("MatchCategory usa la categoría del ataque. None desactiva el Clash para este movimiento. Las categorías Light/Medium/Heavy permiten configurar explícitamente el grupo.")]
+        [Tooltip("MatchCategory usa la categoría del ataque. Para Light Kick elegí Light; para Medium Kick elegí Medium. None desactiva el Clash para este movimiento. También podés configurar explícitamente el grupo.")]
         public AttackClashGroup clashGroup = AttackClashGroup.MatchCategory;
 
         public AttackClashGroup ResolvedClashGroup

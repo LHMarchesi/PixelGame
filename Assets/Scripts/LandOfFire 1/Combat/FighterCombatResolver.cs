@@ -180,8 +180,10 @@ namespace LandOfFire.BunnyStep
             if (!instance.fighters.Contains(fighter))
                 instance.fighters.Add(fighter);
 
-            // Body colliders remain solid by default. The resolver only
-            // ignores a fighter pair while at least one fighter is airborne.
+            // Initialize every registered pair immediately. This also clears
+            // any stale per-pair IgnoreCollision state left by a previous
+            // airborne crossover or component re-enable.
+            instance.UpdateRegisteredFighterBodyCollisions();
             instance.comboSystem.Register(fighter);
 
             if (fighter.combat != null)
@@ -277,10 +279,9 @@ namespace LandOfFire.BunnyStep
 
         private void UpdateRegisteredFighterBodyCollisions()
         {
-            // Keep the two root body colliders solid during grounded combat.
-            // Passing through is permitted only while at least one fighter is
-            // above the ground during Jump/AirAttack. Hurtbox trigger colliders
-            // are not changed by this rule.
+            // Keep root body colliders solid by default. A pair is ignored
+            // only when one fighter has risen high enough to pass over the
+            // opponent's physical body. Hurtbox trigger colliders are untouched.
             for (int i = 0; i < fighters.Count; i++)
             {
                 FighterMotor2D first = fighters[i];
@@ -294,8 +295,8 @@ namespace LandOfFire.BunnyStep
                         continue;
 
                     bool allowAirborneCrossover =
-                        first.IsAboveGroundForCrossover ||
-                        second.IsAboveGroundForCrossover;
+                        first.CanCrossOver(second) ||
+                        second.CanCrossOver(first);
 
                     Physics2D.IgnoreCollision(
                         first.RootBodyCollider,

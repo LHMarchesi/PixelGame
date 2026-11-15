@@ -63,6 +63,14 @@ namespace LandOfFire.BunnyStep
         Recovery
     }
 
+    public enum WalkCyclePhase
+    {
+        None,
+        Intro,
+        Loop,
+        Outro
+    }
+
     public enum AttackPhase
     {
         None,
@@ -169,6 +177,10 @@ namespace LandOfFire.BunnyStep
         public bool IsWalking =>
             State == FighterState.Walk;
 
+        public WalkCyclePhase CurrentWalkCyclePhase { get; private set; }
+
+        public bool IsWalkForward { get; private set; } = true;
+
         public bool IsStepping =>
             State == FighterState.BunnyForward ||
             State == FighterState.BunnyBackward ||
@@ -181,9 +193,16 @@ namespace LandOfFire.BunnyStep
 
         private BunnyTiming configuredLoopTiming;
 
-        // Ground walk is evaluated in deterministic 60 Hz ticks.
+        // Ground walk is evaluated in deterministic 60 Hz ticks. The logical
+        // FighterState remains Walk; its visual timeline runs Intro, Loop, Outro.
         private float configuredWalkSpeed;
         private int walkDirection;
+        private int walkCycleElapsedTicks;
+        private int walkCycleDurationTicks;
+        private int configuredForwardWalkIntroTicks = 2;
+        private int configuredForwardWalkOutroTicks = 5;
+        private int configuredBackwardWalkIntroTicks = 18;
+        private int configuredBackwardWalkOutroTicks = 2;
 
         public FighterHurtType CurrentHurtType => currentHurtType;
 
@@ -516,14 +535,23 @@ namespace LandOfFire.BunnyStep
 
         public void ConfigureWalk(
             float speedUnitsPerSecond,
-            bool canWalkBackward)
+            bool canWalkBackward,
+            int forwardIntroTicks,
+            int forwardOutroTicks,
+            int backwardIntroTicks,
+            int backwardOutroTicks)
         {
             configuredWalkSpeed =
                 Mathf.Max(0f, speedUnitsPerSecond);
 
+            configuredForwardWalkIntroTicks = Mathf.Max(1, forwardIntroTicks);
+            configuredForwardWalkOutroTicks = Mathf.Max(1, forwardOutroTicks);
+            configuredBackwardWalkIntroTicks = Mathf.Max(1, backwardIntroTicks);
+            configuredBackwardWalkOutroTicks = Mathf.Max(1, backwardOutroTicks);
+
             // Back is always a movement input now. Guard is evaluated
             // reactively by FighterCombat2D only on the impact tick.
-            // Keep the parameter for compatibility with existing callers.
+            // Keep the legacy parameter for existing profile compatibility.
         }
 
         public void ConfigureJump(
@@ -747,22 +775,109 @@ namespace LandOfFire.BunnyStep
             if (!IsTimed)
             {
                 Phase = BunnyPhase.None;
-                PhaseElapsed = 0;
-                PhaseDuration = 0;
-                walkDirection = heldDirection;
+                UpdateGroundWalk(heldDirection);
+            }
+        }
 
-                // Holding Back means walking backwards by default.
-                // Guard is no longer a persistent stance: the combat
-                // resolver checks Back on the exact impact tick.
-                if (heldDirection != 0)
+        private void UpdateGroundWalk(int heldDirection)
+        {
+            if (heldDirection == 0)
+            {
+                if (State == FighterState.Walk)
                 {
-                    Change(FighterState.Walk);
+                    if (CurrentWalkCyclePhase != WalkCyclePhase.Outro)
+                    {
+                        StartWalkOutro();
+                    }
+                    else if (walkCycleElapsedTicks >= walkCycleDurationTicks)
+                    {
+                        Change(FighterState.Idle);
+                        ClearWalkCycle();
+                        PhaseElapsed = 0;
+                        PhaseDuration = 0;
+                    }
                 }
                 else
                 {
                     Change(FighterState.Idle);
+                    ClearWalkCycle();
                 }
+
+                return;
             }
+
+            bool forward = heldDirection == currentFacing;
+
+            if (State != FighterState.Walk ||
+                CurrentWalkCyclePhase == WalkCyclePhase.None ||
+                CurrentWalkCyclePhase == WalkCyclePhase.Outro ||
+                forward != IsWalkForward)
+            {
+                StartWalkIntro(heldDirection, forward);
+                return;
+            }
+
+            walkDirection = heldDirection;
+
+            if (CurrentWalkCyclePhase == WalkCyclePhase.Intro &&
+                walkCycleElapsedTicks >= walkCycleDurationTicks)
+            {
+                StartWalkLoop();
+            }
+        }
+
+        private void StartWalkIntro(int direction, bool forward)
+        {
+            Change(FighterState.Walk);
+
+            IsWalkForward = forward;
+            walkDirection = direction;
+            CurrentWalkCyclePhase = WalkCyclePhase.Intro;
+            walkCycleElapsedTicks = 0;
+            walkCycleDurationTicks = forward
+                ? configuredForwardWalkIntroTicks
+                : configuredBackwardWalkIntroTicks;
+
+            PhaseElapsed = 0;
+            PhaseDuration = walkCycleDurationTicks;
+        }
+
+        private void StartWalkLoop()
+        {
+            CurrentWalkCyclePhase = WalkCyclePhase.Loop;
+            walkCycleElapsedTicks = 0;
+            walkCycleDurationTicks = 0;
+            PhaseElapsed = 0;
+            PhaseDuration = 0;
+        }
+
+        private void StartWalkOutro()
+        {
+            CurrentWalkCyclePhase = WalkCyclePhase.Outro;
+            walkDirection = 0;
+            walkCycleElapsedTicks = 0;
+            walkCycleDurationTicks = IsWalkForward
+                ? configuredForwardWalkOutroTicks
+                : configuredBackwardWalkOutroTicks;
+
+            PhaseElapsed = 0;
+            PhaseDuration = walkCycleDurationTicks;
+        }
+
+        private void AdvanceWalkTimeline()
+        {
+            walkCycleElapsedTicks++;
+            PhaseElapsed = walkCycleElapsedTicks;
+            PhaseDuration = walkCycleDurationTicks;
+        }
+
+        private void ClearWalkCycle()
+        {
+            CurrentWalkCyclePhase = WalkCyclePhase.None;
+            walkCycleElapsedTicks = 0;
+            walkCycleDurationTicks = 0;
+            walkDirection = 0;
+            IsWalkForward = true;
         }
 
         // ================================================================
@@ -773,6 +888,8 @@ namespace LandOfFire.BunnyStep
         {
             if (State == FighterState.Walk)
             {
+                AdvanceWalkTimeline();
+
                 const float TickSeconds = 1f / 60f;
                 return configuredWalkSpeed * TickSeconds * walkDirection;
             }
@@ -2696,6 +2813,7 @@ namespace LandOfFire.BunnyStep
         public void Reset()
         {
             ClearHurtContext();
+            ClearWalkCycle();
             State =
                 FighterState.Idle;
 
@@ -3095,6 +3213,9 @@ namespace LandOfFire.BunnyStep
 
             FighterState previous =
                 State;
+
+            if (previous == FighterState.Walk && next != FighterState.Walk)
+                ClearWalkCycle();
 
             State =
                 next;

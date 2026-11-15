@@ -204,11 +204,83 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "Idle");
 
+        [Tooltip("Legacy fallback. The directional walk cycle fields below are used when configured.")]
         public PhaseAnimation walk =
             new PhaseAnimation("Walk")
             {
                 playback = PhasePlayback.Loop,
-                loopTicks = 24
+                loopTicks = 24,
+                timelineFrameCount = 20,
+                startFrame = 1,
+                endFrame = 20
+            };
+
+        [Header("Walk Cycle - Forward") ]
+        public PhaseAnimation walkForwardIntro =
+            new PhaseAnimation("Walk")
+            {
+                useTimelineRange = true,
+                playback = PhasePlayback.FitPhase,
+                timelineTicks = 2,
+                timelineFrameCount = 20,
+                startFrame = 1,
+                endFrame = 2
+            };
+
+        public PhaseAnimation walkForwardLoop =
+            new PhaseAnimation("Walk")
+            {
+                useTimelineRange = true,
+                playback = PhasePlayback.Loop,
+                loopTicks = 17,
+                timelineFrameCount = 20,
+                startFrame = 2,
+                endFrame = 18
+            };
+
+        public PhaseAnimation walkForwardOutro =
+            new PhaseAnimation("Walk")
+            {
+                useTimelineRange = true,
+                playback = PhasePlayback.FitPhase,
+                timelineTicks = 5,
+                timelineFrameCount = 20,
+                startFrame = 16,
+                endFrame = 20
+            };
+
+        [Header("Walk Cycle - Backward")]
+        public PhaseAnimation walkBackwardIntro =
+            new PhaseAnimation("Walk")
+            {
+                useTimelineRange = true,
+                playback = PhasePlayback.FitPhase,
+                timelineTicks = 18,
+                timelineFrameCount = 20,
+                startFrame = 19,
+                endFrame = 2
+            };
+
+        public PhaseAnimation walkBackwardLoop =
+            new PhaseAnimation("Walk")
+            {
+                useTimelineRange = true,
+                playback = PhasePlayback.Loop,
+                loopTicks = 18,
+                timelineFrameCount = 20,
+                startFrame = 19,
+                endFrame = 2
+            };
+
+        public PhaseAnimation walkBackwardOutro =
+            new PhaseAnimation("Walk")
+            {
+                useTimelineRange = true,
+                playback = PhasePlayback.FitPhase,
+                timelineTicks = 2,
+                timelineFrameCount = 20,
+                startFrame = 2,
+                endFrame = 1
             };
 
         public PhaseAnimation jumpAnticipation =
@@ -286,6 +358,36 @@ namespace LandOfFire.BunnyStep
             new PhaseAnimation(
                 "GetUp");
 
+
+        public PhaseAnimation WalkAnimationFor(
+            WalkCyclePhase walkPhase,
+            bool forward)
+        {
+            PhaseAnimation selected = null;
+
+            if (forward)
+            {
+                switch (walkPhase)
+                {
+                    case WalkCyclePhase.Intro: selected = walkForwardIntro; break;
+                    case WalkCyclePhase.Loop: selected = walkForwardLoop; break;
+                    case WalkCyclePhase.Outro: selected = walkForwardOutro; break;
+                }
+            }
+            else
+            {
+                switch (walkPhase)
+                {
+                    case WalkCyclePhase.Intro: selected = walkBackwardIntro; break;
+                    case WalkCyclePhase.Loop: selected = walkBackwardLoop; break;
+                    case WalkCyclePhase.Outro: selected = walkBackwardOutro; break;
+                }
+            }
+
+            // Existing Movement Profiles remain usable until their new walk
+            // timelines are configured in the Inspector.
+            return selected != null ? selected : (walk != null ? walk : idle);
+        }
 
         public PhaseAnimation AnimationFor(
             FighterState state,

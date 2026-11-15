@@ -34,7 +34,12 @@ namespace LandOfFire.BunnyStep
         {
             Initialize();
             if (visualOffset != null) visualOffset.localPosition = rest + Vector3.up * machine.VisualHeight;
-            PhaseAnimation settings = machine.IsAutoCombo
+            bool walkCycle = machine.IsWalking;
+            PhaseAnimation settings = walkCycle
+                ? profile.WalkAnimationFor(
+                    machine.CurrentWalkCyclePhase,
+                    machine.IsWalkForward)
+                : machine.IsAutoCombo
                 ? machine.CurrentAutoComboAnimation
                 : machine.IsRekka
                     ? machine.CurrentRekkaAnimation
@@ -69,11 +74,13 @@ namespace LandOfFire.BunnyStep
                                            machine.IsHurt || machine.IsParryState ||
                                            machine.IsComboLimitKnockdown;
                         elapsed = combatTimed ? machine.Elapsed :
-                            machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseElapsed :
-                            poseTick + 1;
+                            walkCycle || machine.IsStepping || machine.IsJumping || machine.IsAttacking
+                                ? machine.PhaseElapsed
+                                : poseTick + 1;
                         duration = combatTimed ? machine.Duration :
-                            machine.IsStepping || machine.IsJumping || machine.IsAttacking ? machine.PhaseDuration :
-                            settings.loopTicks;
+                            walkCycle || machine.IsStepping || machine.IsJumping || machine.IsAttacking
+                                ? machine.PhaseDuration
+                                : settings.loopTicks;
                     }
 
                     float normalizedTime;

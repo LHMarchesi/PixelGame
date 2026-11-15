@@ -1447,6 +1447,7 @@ MonoBehaviour:
   autoFaceNearestOpponent: 1
   startsFacingRight: 0
   frozen: 0
+  jumpCrossoverClearanceRatio: 0.1
   autoGetUp: 1
   debugHurtTicks: 18
   currentState: 0
@@ -5489,6 +5490,7 @@ MonoBehaviour:
   autoFaceNearestOpponent: 1
   startsFacingRight: 1
   frozen: 0
+  jumpCrossoverClearanceRatio: 0.1
   autoGetUp: 1
   debugHurtTicks: 18
   currentState: 0

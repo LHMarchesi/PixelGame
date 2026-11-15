@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 413f9b0bb8caf974da97275efdb0345c, type: 3}
   m_Name: PROFILE_IVAN_0
   m_EditorClassIdentifier: 
-  walkSpeed: 6
+  walkSpeed: 4
   allowBackwardWalk: 1
   forwardTiming:
     preparation: 10
@@ -66,133 +66,352 @@ MonoBehaviour:
   mass: 100
   forwardPreparation:
     stateName: Base Layer.ForwardPreparation
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   forwardFlight:
     stateName: Base Layer.ForwardFlight
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   forwardRecovery:
     stateName: Base Layer.ForwardRecovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   backwardPreparation:
     stateName: Base Layer.BackwardPreparation
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   backwardFlight:
     stateName: Base Layer.BackwardFlight
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   backwardRecovery:
     stateName: Base Layer.BackwardRecovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   idle:
     stateName: Base Layer.Idle
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 1
+    timelineTicks: 20
     loopTicks: 60
   walk:
     stateName: Base Layer.Walk
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 1
+    timelineTicks: 20
     loopTicks: 24
+  walkForwardIntro:
+    stateName: Base Layer.WalkForwardIntro
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
+    playback: 0
+    timelineTicks: 20
+    loopTicks: 36
+  walkForwardLoop:
+    stateName: Base Layer.WalkForwardLoop
+    useTimelineRange: 0
+    timelineFrameCount: 220
+    startFrame: 1
+    endFrame: 220
+    playback: 1
+    timelineTicks: 220
+    loopTicks: 220
+  walkForwardOutro:
+    stateName: Base Layer.WalkForwardOutro
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
+    playback: 0
+    timelineTicks: 20
+    loopTicks: 20
+  walkBackwardIntro:
+    stateName: Base Layer.WalkBackwardIntro
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
+    playback: 0
+    timelineTicks: 20
+    loopTicks: 20
+  walkBackwardLoop:
+    stateName: Base Layer.WalkBackwardLoop
+    useTimelineRange: 0
+    timelineFrameCount: 220
+    startFrame: 1
+    endFrame: 220
+    playback: 1
+    timelineTicks: 220
+    loopTicks: 220
+  walkBackwardOutro:
+    stateName: Base Layer.WalkBackwardOutro
+    useTimelineRange: 1
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
+    playback: 0
+    timelineTicks: 20
+    loopTicks: 20
   jumpAnticipation:
     stateName: Base Layer.JumpAnticipation
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   jumpAir:
     stateName: Base Layer.JumpAir
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   jumpDescending:
     stateName: Base Layer.JumpDescending
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   jumpRecovery:
     stateName: Base Layer.JumpRecovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   guard:
     stateName: Base Layer.Guard
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 1
+    timelineTicks: 20
     loopTicks: 60
   blockRecovery:
     stateName: Base Layer.Guard
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   guardBreak:
     stateName: Base Layer.GuardBreak
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   parry:
     stateName: Base Layer.Parry
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   parryWhiff:
     stateName: Base Layer.ParryWhiff
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   parryStun:
     stateName: Base Layer.ParryStun
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   parryRecovery:
     stateName: Base Layer.ParryRecovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   hurt:
     stateName: Base Layer.Hurt
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   overheadCollision:
     stateName: Base Layer.Hurt_OH_Collision
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   overheadImpact:
     stateName: Base Layer.Hurt_OH_Impact
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   overheadRecovery:
     stateName: Base Layer.Hurt_OH_Recovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   bodyCollision:
     stateName: Base Layer.Hurt_Body_Collision
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   bodyImpact:
     stateName: Base Layer.Hurt_Body_Impact
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   bodyRecovery:
     stateName: Base Layer.Hurt_Body_Recovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   legsCollision:
     stateName: Base Layer.Hurt_Legs_Collision
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   legsImpact:
     stateName: Base Layer.Hurt_Legs_Impact
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   legsRecovery:
     stateName: Base Layer.Hurt_Legs_Recovery
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   flyingHurt:
     stateName: Base Layer.FlyingHurt
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   comboLimitKnockdown:
     stateName: Base Layer.ComboLimitKnockdown
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   knockdown:
     stateName: Base Layer.Knockdown
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30
   reset:
     stateName: Base Layer.Reset
+    useTimelineRange: 0
+    timelineFrameCount: 20
+    startFrame: 1
+    endFrame: 20
     playback: 0
+    timelineTicks: 20
     loopTicks: 30

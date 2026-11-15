@@ -31,6 +31,13 @@ namespace LandOfFire.BunnyStep
         public bool startsFacingRight = true;
         public bool frozen;
 
+        [Header("Crossover")]
+        [Tooltip(
+            "Altura mínima del salto, como proporción de la altura física del rival, " +
+            "necesaria para permitir el crossover. Subí el valor para exigir un salto más alto.")]
+        [SerializeField, Range(0.05f, 0.75f)]
+        private float jumpCrossoverClearanceRatio = 0.10f;
+
         [Header("Knockdown")]
 
         [Tooltip(
@@ -122,12 +129,37 @@ namespace LandOfFire.BunnyStep
 
         internal Collider2D RootBodyCollider => bodyCollider;
 
-        // Fighter root colliders may pass through each other only while this
-        // fighter is visibly airborne from a jump (including an Air Attack
-        // that is still using the airborne trajectory).
-        internal bool IsAboveGroundForCrossover =>
-            (Machine.IsJumping || Machine.IsAirAttacking) &&
-            Machine.Height > 0.01f;
+        // Passing through another fighter is allowed only after this fighter
+        // has reached a meaningful jump height. A tiny positive visual offset
+        // is not enough: that previously made the pair ignore collisions almost
+        // immediately after takeoff, which looked like grounded walk-through.
+        internal bool CanCrossOver(FighterMotor2D opponent)
+        {
+            if (opponent == null || opponent == this ||
+                !isActiveAndEnabled || bodyCollider == null ||
+                opponent.RootBodyCollider == null)
+            {
+                return false;
+            }
+
+            if ((!Machine.IsJumping && !Machine.IsAirAttacking) ||
+                Machine.Height <= 0f)
+            {
+                return false;
+            }
+
+            float opponentBodyHeight =
+                opponent.RootBodyCollider.bounds.size.y;
+
+            float requiredHeight = Mathf.Max(
+                0.05f,
+                opponentBodyHeight * Mathf.Clamp(
+                    jumpCrossoverClearanceRatio,
+                    0.05f,
+                    0.75f));
+
+            return Machine.Height >= requiredHeight;
+        }
 
         private long tick;
 
@@ -575,7 +607,19 @@ namespace LandOfFire.BunnyStep
         {
             Machine.ConfigureWalk(
                 RuntimeProfile.walkSpeed,
-                RuntimeProfile.allowBackwardWalk);
+                RuntimeProfile.allowBackwardWalk,
+                RuntimeProfile.walkForwardIntro != null
+                    ? RuntimeProfile.walkForwardIntro.TimelineDurationTicks
+                    : 2,
+                RuntimeProfile.walkForwardOutro != null
+                    ? RuntimeProfile.walkForwardOutro.TimelineDurationTicks
+                    : 5,
+                RuntimeProfile.walkBackwardIntro != null
+                    ? RuntimeProfile.walkBackwardIntro.TimelineDurationTicks
+                    : 18,
+                RuntimeProfile.walkBackwardOutro != null
+                    ? RuntimeProfile.walkBackwardOutro.TimelineDurationTicks
+                    : 2);
 
             if (commands != null)
                 commands.ConfigureMovement(RuntimeProfile);
